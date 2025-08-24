@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Line?>
+<?import javafx.scene.text.Font?>
+<?import javafx.scene.text.Text?>
+
+<BorderPane prefHeight="600.0" prefWidth="1000.0" stylesheets="@styles.css" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="cr.ac.una.tareaprogramacion3.controller.PrincipalViewController">
+
+    <center>
+        <!-- Centro vacío, FlowController insertará aquí el contenido -->
+        <VBox alignment="TOP_RIGHT" prefHeight="500.0" prefWidth="587.0" BorderPane.alignment="CENTER_RIGHT" />
+    </center>
+
+    <left>
+        <AnchorPane prefHeight="621.0" prefWidth="244.0" BorderPane.alignment="CENTER">
+            <children>
+
+                <!-- Menú Administrador -->
+                <VBox fx:id="VBoxMenuAdmin" alignment="CENTER" prefHeight="600.0" prefWidth="200.0" styleClass="menu-lateral" AnchorPane.bottomAnchor="0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" AnchorPane.topAnchor="0">
+                    <padding>
+                        <Insets top="40" />
+                    </padding>
+                    <children>
+                        <ImageView fitHeight="125.0" fitWidth="130.0" pickOnBounds="true" preserveRatio="true">
+                            <image>
+                                <Image url="@images/ChatGPT%20Image%2011%20ago%202025,%2019_29_52.png" />
+                            </image>
+                        </ImageView>
+                        <Text fill="WHITE" text="Bienvenido !!">
+                            <font>
+                                <Font size="15" />
+                            </font>
+                            <VBox.margin>
+                                <Insets bottom="10.0" top="8.0" />
+                            </VBox.margin>
+                        </Text>
+                        <Line endX="100" startX="0" />
+                        
+                        <Button fx:id="BtnHome" mnemonicParsing="false" onAction="#onActionBtnHome" prefHeight="43.0" prefWidth="200.0" styleClass="boton-menu" text="Inicio" textAlignment="CENTER">
+                            <graphic>
+                                <ImageView fitHeight="25.0" fitWidth="71.0" pickOnBounds="true" preserveRatio="true">
+                                    <image>
+                                        <Image url="@images/icons8-home-48.png" />
+                                    </image>
+                                </ImageView>
+                            </graphic>
+                            <VBox.margin>
+                                <Insets top="10.0" />
+                            </VBox.margin>
+                        </Button>
+
+                        <Button fx:id="BtnVentana1" onAction="#onActionBtnVentana1" prefHeight="44.0" prefWidth="200.0" styleClass="boton-menu" text="Ventana1">
+                            <VBox.margin>
+                                <Insets top="10" />
+                            </VBox.margin>
+                            <graphic>
+                                <ImageView fitHeight="26" fitWidth="33" pickOnBounds="true" preserveRatio="true">
+                                    <image>
+                                        <Image url="@../controller/Images/icons8-skyscrapers-50.png" />
+                                    </image>
+                                </ImageView>
+                            </graphic>
+                        </Button>
+
+                        <Button fx:id="BtnVentana2" onAction="#onActionBtnVentana2" prefHeight="40.0" prefWidth="200.0" styleClass="boton-menu" text="Ventana2">
+                            <VBox.margin>
+                                <Insets top="10.0" />
+                            </VBox.margin>
+                            <graphic>
+                                <ImageView fitHeight="22" fitWidth="25" pickOnBounds="true" preserveRatio="true">
+                                    <image>
+                                        <Image url="@../controller/Images/icons8-account-settings-32.png" />
+                                    </image>
+                                </ImageView>
+                            </graphic>
+                        </Button>
+
+                        <Button fx:id="BtnVentana3" onAction="#onActionBtnVentana3" prefHeight="40.0" prefWidth="200.0" styleClass="boton-menu" text="Ventana3">
+                            <VBox.margin>
+                                <Insets top="10" />
+                            </VBox.margin>
+                            <graphic>
+                                <ImageView fitHeight="28" fitWidth="22" pickOnBounds="true" preserveRatio="true">
+                                    <image>
+                                        <Image url="@../controller/Images/icons8-add-user-female-32.png" />
+                                    </image>
+                                </ImageView>
+                            </graphic>
+                        </Button>
+
+                        <Button fx:id="BtnVentana4" onAction="#onActionBtnVentana4" prefHeight="36.0" prefWidth="200.0" styleClass="boton-menu" text="Ventana4">
+                            <VBox.margin>
+                                <Insets top="10" />
+                            </VBox.margin>
+                            <graphic>
+                                <ImageView fitHeight="18" fitWidth="18" pickOnBounds="true" preserveRatio="true">
+                                    <image>
+                                        <Image url="@../controller/Images/icons8-event-accepted-50.png" />
+                                    </image>
+                                </ImageView>
+                            </graphic>
+                        </Button>
+
+                        <Button fx:id="BtnVentana5" onAction="#onActionBtnVentana5" prefHeight="38.0" prefWidth="200.0" styleClass="boton-menu" text="Ventana5">
+                            <VBox.margin>
+                                <Insets top="10" />
+                            </VBox.margin>
+                            <graphic>
+                                <ImageView fitHeight="20" fitWidth="20" pickOnBounds="true" preserveRatio="true">
+                                    <image>
+                                        <Image url="@../controller/Images/icons8-statistic-64.png" />
+                                    </image>
+                                </ImageView>
+                            </graphic>
+                        </Button>
+
+                        <Button fx:id="btnSalir" onAction="#onActionBtnSalir" prefHeight="38.0" prefWidth="145.0" styleClass="boton-cerrar-sesion" text="Cerrar sesión">
+                            <VBox.margin>
+                                <Insets top="20" />
+                            </VBox.margin>
+                            <graphic>
+                                <ImageView fitHeight="20" fitWidth="43" pickOnBounds="true" preserveRatio="true">
+                                    <image>
+                                        <Image url="@images/icons8-logout-50.png" />
+                                    </image>
+                                </ImageView>
+                            </graphic>
+                        </Button>
+                    </children>
+                </VBox>
+
+            </children>
+        </AnchorPane>
+    </left>
+
+</BorderPane>

@@ -1,0 +1,56 @@
+<?xml version='1.0' encoding='UTF-8'?><!-- Published by XML-WS Runtime (https://github.com/eclipse-ee4j/metro-jax-ws). Runtime's version is Eclipse Metro/4.0.3.payara-p1 (metro-4.0.3.payara-maintenance-004e4e3; 2023-11-08T12:59:53+0000) XMLWS-Impl/4.0.2 XMLWS-API/4.0.1 XMLB-Impl/4.0.4 XMLB-API/4.0.1 git-revision#004e4e3. --><xs:schema xmlns:tns="http://ws.admproyectosws.una.ac.cr/" xmlns:xs="http://www.w3.org/2001/XMLSchema" version="1.0" targetNamespace="http://ws.admproyectosws.una.ac.cr/">
+
+<xs:element name="administradorDto" type="tns:administradorDto"/>
+
+<xs:element name="login" type="tns:login"/>
+
+<xs:element name="loginResponse" type="tns:loginResponse"/>
+
+<xs:element name="ping" type="tns:ping"/>
+
+<xs:element name="pingResponse" type="tns:pingResponse"/>
+
+<xs:element name="respuestaLogin" type="tns:respuestaLogin"/>
+
+<xs:complexType name="login">
+<xs:sequence>
+<xs:element name="username" type="xs:string" minOccurs="0"/>
+<xs:element name="password" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="loginResponse">
+<xs:sequence>
+<xs:element name="return" type="tns:respuestaLogin" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="respuestaLogin">
+<xs:sequence>
+<xs:element name="ok" type="xs:boolean"/>
+<xs:element name="mensaje" type="xs:string" minOccurs="0"/>
+<xs:element name="administrador" type="tns:administradorDto" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="administradorDto">
+<xs:sequence>
+<xs:element name="id" type="xs:long" minOccurs="0"/>
+<xs:element name="nombre" type="xs:string" minOccurs="0"/>
+<xs:element name="apellidos" type="xs:string" minOccurs="0"/>
+<xs:element name="usuario" type="xs:string" minOccurs="0"/>
+<xs:element name="correo" type="xs:string" minOccurs="0"/>
+<xs:element name="estado" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="ping">
+<xs:sequence/>
+</xs:complexType>
+
+<xs:complexType name="pingResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:schema>

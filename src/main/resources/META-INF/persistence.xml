@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence version="3.1" xmlns="https://jakarta.ee/xml/ns/persistence">
+  <persistence-unit name="ProyectoPU" transaction-type="JTA">
+    <!-- Usa el recurso JNDI creado en Payara -->
+    <jta-data-source>jdbc/AdmProyectos</jta-data-source>
+    <!-- Deja que JPA escanee tus entidades automáticamente -->
+    <class>cr.ac.una.admproyectosws.model.Administrador</class>
+    <exclude-unlisted-classes>false</exclude-unlisted-classes>
+    <properties>
+      <!-- Proveedor Jakarta (EclipseLink 4.x en Payara 6) -->
+      <property name="jakarta.persistence.provider" value="org.eclipse.persistence.jpa.PersistenceProvider"/>
+      <!-- Logging útil durante desarrollo (cámbialo a INFO en producción) -->
+      <property name="eclipselink.logging.level" value="INFO"/>
+      <!-- Optimiza para Oracle -->
+      <property name="eclipselink.target-database" value="Oracle"/>
+      <!-- Evita requisitos de weaving/agents con Java 21 -->
+      <property name="eclipselink.weaving" value="false"/>
+      <!-- No generes el DDL: los scripts/tabla los controlas tú -->
+      <property name="eclipselink.ddl-generation" value="none"/>
+    </properties>
+  </persistence-unit>
+</persistence>

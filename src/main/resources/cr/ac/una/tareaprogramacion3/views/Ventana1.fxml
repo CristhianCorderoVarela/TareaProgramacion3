@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="cr.ac.una.proyectosfx.controllers.ActivitiesBoardController">
+    <top>
+        <ToolBar>
+            <items>
+                <Label text="Actividades del Proyecto"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button text="Nueva" fx:id="btnNueva"/>
+                <Button text="Editar" fx:id="btnEditar"/>
+                <Button text="Eliminar" fx:id="btnEliminar"/>
+            </items>
+        </ToolBar>
+    </top>
+
+    <center>
+        <TableView fx:id="tblActividades">
+            <columns>
+                <TableColumn text="#" fx:id="colOrden" prefWidth="60"/>
+                <TableColumn text="Descripción" fx:id="colDescripcion" prefWidth="260"/>
+                <TableColumn text="Encargado" fx:id="colEncargado" prefWidth="160"/>
+                <TableColumn text="Estado" fx:id="colEstado" prefWidth="120"/>
+                <TableColumn text="Inicio (Plan/Real)" fx:id="colInicio" prefWidth="180"/>
+                <TableColumn text="Fin (Plan/Real)" fx:id="colFin" prefWidth="180"/>
+            </columns>
+        </TableView>
+        <!-- El drag&drop del orden se implementa en el controller con setRowFactory -->
+    </center>
+</BorderPane>
