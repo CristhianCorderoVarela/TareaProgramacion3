@@ -8,6 +8,6 @@ package cr.ac.una.tareaprogramacion3.model;
  *
  * @author dylan
  */
-public class ProyectoDTO {
+public class AdministradorModel {
     
 }

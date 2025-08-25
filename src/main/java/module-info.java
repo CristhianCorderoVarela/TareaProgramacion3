@@ -18,7 +18,7 @@ module cr.ac.una.administradorproyectos {
     exports cr.ac.una.tareaprogramacion3.model;
     exports cr.ac.una.tareaprogramacion3.service;
     exports cr.ac.una.tareaprogramacion3.util;
-    exports cr.ac.una.tareaprogramacion3.enums;
+    
 
     
     opens cr.ac.una.tareaprogramacion3 to javafx.fxml;

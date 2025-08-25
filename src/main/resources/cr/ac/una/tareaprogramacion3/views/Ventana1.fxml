@@ -1,33 +1,108 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?import javafx.scene.control.*?>
+
 <?import javafx.scene.layout.*?>
-<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.Insets?>
 
-<BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="cr.ac.una.proyectosfx.controllers.ActivitiesBoardController">
-    <top>
-        <ToolBar>
-            <items>
-                <Label text="Actividades del Proyecto"/>
-                <Region HBox.hgrow="ALWAYS"/>
-                <Button text="Nueva" fx:id="btnNueva"/>
-                <Button text="Editar" fx:id="btnEditar"/>
-                <Button text="Eliminar" fx:id="btnEliminar"/>
-            </items>
-        </ToolBar>
-    </top>
+<StackPane xmlns="http://javafx.com/javafx/23.0.1"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="cr.ac.una.tareaprogramacion3.controller.Ventana1Controller">
 
-    <center>
-        <TableView fx:id="tblActividades">
-            <columns>
-                <TableColumn text="#" fx:id="colOrden" prefWidth="60"/>
-                <TableColumn text="Descripción" fx:id="colDescripcion" prefWidth="260"/>
-                <TableColumn text="Encargado" fx:id="colEncargado" prefWidth="160"/>
-                <TableColumn text="Estado" fx:id="colEstado" prefWidth="120"/>
-                <TableColumn text="Inicio (Plan/Real)" fx:id="colInicio" prefWidth="180"/>
-                <TableColumn text="Fin (Plan/Real)" fx:id="colFin" prefWidth="180"/>
-            </columns>
-        </TableView>
-        <!-- El drag&drop del orden se implementa en el controller con setRowFactory -->
-    </center>
-</BorderPane>
+    <children>
+        <BorderPane prefWidth="800" prefHeight="600">
+
+            
+            <center>
+                <TabPane tabClosingPolicy="UNAVAILABLE">
+
+                    
+                    <Tab text="Proyectos">
+                        <BorderPane>
+                            <top>
+                                <HBox alignment="CENTER_RIGHT">
+                                    <padding>
+                                        <Insets top="10" right="10" bottom="10" left="10"/>
+                                    </padding>
+                                    <Button text="+ Nuevo Proyecto"
+                                            style="-fx-background-color: #27ae60; -fx-text-fill: white;"/>
+                                </HBox>
+                            </top>
+
+                            <center>
+                                <HBox spacing="20">
+                                    <padding>
+                                        <Insets top="15" right="15" bottom="15" left="15"/>
+                                    </padding>
+
+                                    
+                                    <VBox spacing="10" prefWidth="250" style="-fx-background-color: #ecf0f1; -fx-border-color: gray; -fx-border-width: 1;">
+                                        <padding>
+                                            <Insets top="10" right="10" bottom="10" left="10"/>
+                                        </padding>
+                                        <Label text="Finalizados" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+                                    </VBox>
+
+                                    
+                                    <VBox spacing="10" prefWidth="250" style="-fx-background-color: #ecf0f1; -fx-border-color: gray; -fx-border-width: 1;">
+                                        <padding>
+                                            <Insets top="10" right="10" bottom="10" left="10"/>
+                                        </padding>
+                                        <Label text="En Proceso" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+                                    </VBox>
+
+                                    
+                                    <VBox spacing="10" prefWidth="250" style="-fx-background-color: #ecf0f1; -fx-border-color: gray; -fx-border-width: 1;">
+                                        <padding>
+                                            <Insets top="10" right="10" bottom="10" left="10"/>
+                                        </padding>
+                                        <Label text="En Pausa" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+                                    </VBox>
+
+                                </HBox>
+                            </center>
+                        </BorderPane>
+                    </Tab>
+
+                    
+                    <Tab text="Nuevo Proyecto">
+                        <BorderPane>
+                            <top>
+                                <HBox alignment="CENTER_LEFT">
+                                    <padding>
+                                        <Insets top="10" right="10" bottom="10" left="10"/>
+                                    </padding>
+                                    <Button text="← Volver"
+                                            style="-fx-background-color: #c0392b; -fx-text-fill: white;"/>
+                                </HBox>
+                            </top>
+
+                            <center>
+                                <GridPane hgap="10" vgap="10">
+                                    <padding>
+                                        <Insets top="20" right="20" bottom="20" left="20"/>
+                                    </padding>
+
+                                    <Label text="Nombre:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                                    <TextField GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+                                    <Label text="Empresa Encargada:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                                    <TextField GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+                                    <Label text="Fecha de Inicio:" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                                    <DatePicker GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+
+                                    <Label text="Características:" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                                    <TextArea GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+
+                                    <Button text="Guardar Proyecto" GridPane.rowIndex="4" GridPane.columnIndex="1"
+                                            style="-fx-background-color: #27ae60; -fx-text-fill: white;"/>
+                                </GridPane>
+                            </center>
+                        </BorderPane>
+                    </Tab>
+
+                </TabPane>
+            </center>
+        </BorderPane>
+    </children>
+</StackPane>

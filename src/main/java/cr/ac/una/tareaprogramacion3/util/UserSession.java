@@ -17,3 +17,4 @@ public final class UserSession {
     public void setAdmin(AdministradorDto admin) { this.admin = admin; }
     public void clear() { this.admin = null; }
 }
+

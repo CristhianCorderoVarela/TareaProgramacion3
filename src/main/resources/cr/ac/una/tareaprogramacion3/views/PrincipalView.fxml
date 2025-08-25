@@ -56,7 +56,7 @@
                             </VBox.margin>
                         </Button>
 
-                        <Button fx:id="BtnVentana1" onAction="#onActionBtnVentana1" prefHeight="44.0" prefWidth="200.0" styleClass="boton-menu" text="Ventana1">
+                        <Button fx:id="BtnVentana1" onAction="#onActionBtnVentana1" prefHeight="44.0" prefWidth="200.0" styleClass="boton-menu" text="Admin Proyectos">
                             <VBox.margin>
                                 <Insets top="10" />
                             </VBox.margin>

@@ -8,6 +8,6 @@ package cr.ac.una.tareaprogramacion3.service;
  *
  * @author dylan
  */
-public class WebServiceClient {
+public class ExcelExportService {
     
 }
