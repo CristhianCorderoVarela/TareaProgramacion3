@@ -1,15 +1,80 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.layout.StackPane?>
-<?import javafx.scene.text.Font?>
-<?import javafx.scene.text.Text?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
 
-<StackPane xmlns="http://javafx.com/javafx/23.0.1"
-           xmlns:fx="http://javafx.com/fxml/1"
-           fx:controller="cr.ac.una.tareaprogramacion3.controller.Ventana3Controller">
-    <children>
-        <Text text="VENTANA 3">
-            <font><Font size="36"/></font>
-        </Text>
-    </children>
-</StackPane>
+<BorderPane xmlns="http://javafx.com/javafx/23.0.1"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="cr.ac.una.tareaprogramacion3.controller.Ventana3Controller"
+            prefWidth="900" prefHeight="600">
+
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="15">
+            <padding>
+                <Insets top="10" right="10" bottom="10" left="10"/>
+            </padding>
+            <Label text="Proyecto:" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
+            <ComboBox fx:id="cbProyectos" prefWidth="300"/>
+            <Button fx:id="btnCargarActividades" text="Cargar Actividades"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button fx:id="btnNuevaActividad" text="+ Nueva Actividad" 
+                    style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;"/>
+        </HBox>
+    </top>
+
+    <center>
+        <SplitPane dividerPositions="0.6">
+            
+            <!-- Lista de actividades con drag and drop -->
+            <VBox spacing="10">
+                <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
+                <Label text="Actividades del Proyecto" style="-fx-font-weight: bold; -fx-font-size: 16px;"/>
+                <ListView fx:id="listaActividades" prefHeight="500"/>
+            </VBox>
+            
+            <!-- Formulario de actividad -->
+            <VBox spacing="10">
+                <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
+                <Label text="Detalles de Actividad" style="-fx-font-weight: bold; -fx-font-size: 16px;"/>
+                
+                <GridPane hgap="10" vgap="12">
+                    <Label text="Descripción:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                    <TextArea fx:id="txtDescripcion" prefRowCount="3" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                    
+                    <Label text="Encargado:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtEncargado" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                    
+                    <Label text="Estado:" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                    <ComboBox fx:id="cbEstadoActividad" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                    
+                    <Label text="Fecha Inicio Planificada:" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                    <DatePicker fx:id="fechaInicioPlanificada" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                    
+                    <Label text="Fecha Fin Planificada:" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+                    <DatePicker fx:id="fechaFinPlanificada" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+                    
+                    <Label text="Fecha Inicio Real:" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
+                    <DatePicker fx:id="fechaInicioReal" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
+                    
+                    <Label text="Fecha Fin Real:" GridPane.rowIndex="6" GridPane.columnIndex="0"/>
+                    <DatePicker fx:id="fechaFinReal" GridPane.rowIndex="6" GridPane.columnIndex="1"/>
+                    
+                    <Label text="Orden de Ejecución:" GridPane.rowIndex="7" GridPane.columnIndex="0"/>
+                    <Spinner fx:id="spinnerOrden" GridPane.rowIndex="7" GridPane.columnIndex="1"/>
+                </GridPane>
+                
+                <HBox spacing="10" alignment="CENTER">
+                    <Button fx:id="btnGuardarActividad" text="Guardar Actividad" 
+                            style="-fx-background-color: #27ae60; -fx-text-fill: white;"/>
+                    <Button fx:id="btnEditarActividad" text="Editar Actividad"/>
+                    <Button fx:id="btnEliminarActividad" text="Eliminar Actividad" 
+                            style="-fx-background-color: #e74c3c; -fx-text-fill: white;"/>
+                    <Button fx:id="btnLimpiar" text="Limpiar"/>
+                </HBox>
+                
+            </VBox>
+        </SplitPane>
+    </center>
+
+</BorderPane>

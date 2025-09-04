@@ -1,15 +1,95 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.layout.StackPane?>
-<?import javafx.scene.text.Font?>
-<?import javafx.scene.text.Text?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.chart.*?>
 
-<StackPane xmlns="http://javafx.com/javafx/23.0.1"
-           xmlns:fx="http://javafx.com/fxml/1"
-           fx:controller="cr.ac.una.tareaprogramacion3.controller.Ventana5Controller">
-    <children>
-        <Text text="VENTANA 5">
-            <font><Font size="36"/></font>
-        </Text>
-    </children>
-</StackPane>
+<BorderPane xmlns="http://javafx.com/javafx/23.0.1"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="cr.ac.una.tareaprogramacion3.controller.Ventana5Controller"
+            prefWidth="900" prefHeight="600">
+
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="15">
+            <padding>
+                <Insets top="15" right="15" bottom="15" left="15"/>
+            </padding>
+            <Label text="Dashboard de Proyectos" style="-fx-font-weight: bold; -fx-font-size: 20px;"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button fx:id="btnActualizar" text="🔄 Actualizar" style="-fx-font-size: 12px;"/>
+        </HBox>
+    </top>
+
+    <center>
+        <ScrollPane fitToWidth="true">
+            <VBox spacing="20">
+                <padding>
+                    <Insets top="20" right="20" bottom="20" left="20"/>
+                </padding>
+                
+                <!-- Indicadores principales -->
+                <HBox spacing="20" alignment="CENTER">
+                    <VBox alignment="CENTER" spacing="5" style="-fx-background-color: #3498db; -fx-background-radius: 10; -fx-padding: 15;">
+                        <Label fx:id="lblTotalProyectos" text="0" style="-fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: bold;"/>
+                        <Label text="Total Proyectos" style="-fx-text-fill: white; -fx-font-size: 12px;"/>
+                    </VBox>
+                    
+                    <VBox alignment="CENTER" spacing="5" style="-fx-background-color: #27ae60; -fx-background-radius: 10; -fx-padding: 15;">
+                        <Label fx:id="lblProyectosActivos" text="0" style="-fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: bold;"/>
+                        <Label text="Proyectos Activos" style="-fx-text-fill: white; -fx-font-size: 12px;"/>
+                    </VBox>
+                    
+                    <VBox alignment="CENTER" spacing="5" style="-fx-background-color: #f39c12; -fx-background-radius: 10; -fx-padding: 15;">
+                        <Label fx:id="lblProyectosFinalizados" text="0" style="-fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: bold;"/>
+                        <Label text="Proyectos Finalizados" style="-fx-text-fill: white; -fx-font-size: 12px;"/>
+                    </VBox>
+                    
+                    <VBox alignment="CENTER" spacing="5" style="-fx-background-color: #e74c3c; -fx-background-radius: 10; -fx-padding: 15;">
+                        <Label fx:id="lblAvancePromedio" text="0%" style="-fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: bold;"/>
+                        <Label text="Avance Promedio" style="-fx-text-fill: white; -fx-font-size: 12px;"/>
+                    </VBox>
+                </HBox>
+                
+                <!-- Gráfico de progreso y tabla -->
+                <HBox spacing="20" VBox.vgrow="ALWAYS">
+                    
+                    <!-- Gráfico circular de proyectos -->
+                    <VBox spacing="10" prefWidth="400">
+                        <Label text="Estado de Proyectos" style="-fx-font-weight: bold; -fx-font-size: 16px;"/>
+                        <PieChart fx:id="graficoEstadoProyectos" prefHeight="300"/>
+                    </VBox>
+                    
+                    <!-- Tabla de proyectos activos -->
+                    <VBox spacing="10" HBox.hgrow="ALWAYS">
+                        <Label text="Proyectos Activos - Último Seguimiento" style="-fx-font-weight: bold; -fx-font-size: 16px;"/>
+                        <TableView fx:id="tablaProyectosActivos" prefHeight="300">
+                            <columns>
+                                <TableColumn fx:id="colProyecto" text="Proyecto" prefWidth="200"/>
+                                <TableColumn fx:id="colAvance" text="% Avance" prefWidth="80"/>
+                                <TableColumn fx:id="colUltimoSeguimiento" text="Último Seguimiento" prefWidth="120"/>
+                                <TableColumn fx:id="colEstado" text="Estado" prefWidth="100"/>
+                                <TableColumn fx:id="colAcciones" text="Acciones" prefWidth="100"/>
+                            </columns>
+                        </TableView>
+                    </VBox>
+                </HBox>
+                
+                <!-- Gráfico de barras de avance -->
+                <VBox spacing="10">
+                    <Label text="Progreso de Proyectos Activos" style="-fx-font-weight: bold; -fx-font-size: 16px;"/>
+                    <BarChart fx:id="graficoAvanceProyectos" prefHeight="250">
+                        <xAxis>
+                            <CategoryAxis side="BOTTOM"/>
+                        </xAxis>
+                        <yAxis>
+                            <NumberAxis side="LEFT" lowerBound="0" upperBound="100" tickUnit="10"/>
+                        </yAxis>
+                    </BarChart>
+                </VBox>
+                
+            </VBox>
+        </ScrollPane>
+    </center>
+
+</BorderPane>

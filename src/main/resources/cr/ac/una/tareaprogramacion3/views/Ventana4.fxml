@@ -1,15 +1,78 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.layout.StackPane?>
-<?import javafx.scene.text.Font?>
-<?import javafx.scene.text.Text?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
 
-<StackPane xmlns="http://javafx.com/javafx/23.0.1"
-           xmlns:fx="http://javafx.com/fxml/1"
-           fx:controller="cr.ac.una.tareaprogramacion3.controller.Ventana4Controller">
-    <children>
-        <Text text="VENTANA 4">
-            <font><Font size="36"/></font>
-        </Text>
-    </children>
-</StackPane>
+<BorderPane xmlns="http://javafx.com/javafx/23.0.1"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="cr.ac.una.tareaprogramacion3.controller.Ventana4Controller"
+            prefWidth="900" prefHeight="600">
+
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="15">
+            <padding>
+                <Insets top="10" right="10" bottom="10" left="10"/>
+            </padding>
+            <Label text="Proyecto:" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
+            <ComboBox fx:id="cbProyectos" prefWidth="300"/>
+            <Button fx:id="btnCargarSeguimientos" text="Cargar Seguimientos"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button fx:id="btnNuevoSeguimiento" text="+ Nuevo Seguimiento" 
+                    style="-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-weight: bold;"/>
+        </HBox>
+    </top>
+
+    <center>
+        <SplitPane dividerPositions="0.5" orientation="VERTICAL">
+            
+            <!-- Lista de seguimientos -->
+            <VBox spacing="10">
+                <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
+                <Label text="Historial de Seguimientos" style="-fx-font-weight: bold; -fx-font-size: 16px;"/>
+                <TableView fx:id="tablaSeguimientos">
+                    <columns>
+                        <TableColumn fx:id="colFecha" text="Fecha" prefWidth="120"/>
+                        <TableColumn fx:id="colPorcentaje" text="% Avance" prefWidth="100"/>
+                        <TableColumn fx:id="colObservaciones" text="Observaciones" prefWidth="400"/>
+                        <TableColumn fx:id="colResponsable" text="Responsable" prefWidth="150"/>
+                    </columns>
+                </TableView>
+            </VBox>
+            
+            <!-- Formulario de seguimiento -->
+            <VBox spacing="15">
+                <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
+                <Label text="Nuevo Seguimiento" style="-fx-font-weight: bold; -fx-font-size: 16px;"/>
+                
+                <GridPane hgap="10" vgap="12">
+                    <Label text="Fecha del Seguimiento:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                    <DatePicker fx:id="fechaSeguimiento" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                    
+                    <Label text="Porcentaje de Avance:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                    <HBox spacing="10" GridPane.rowIndex="1" GridPane.columnIndex="1">
+                        <Slider fx:id="sliderPorcentaje" min="0" max="100" value="0" showTickLabels="true" showTickMarks="true" majorTickUnit="25"/>
+                        <Label fx:id="lblPorcentaje" text="0%" style="-fx-font-weight: bold;"/>
+                    </HBox>
+                    
+                    <Label text="Observaciones:" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                    <TextArea fx:id="txtObservaciones" prefRowCount="4" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                    
+                    <Label text="Responsable del Seguimiento:" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtResponsable" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                </GridPane>
+                
+                <HBox spacing="10" alignment="CENTER">
+                    <Button fx:id="btnGuardarSeguimiento" text="Guardar Seguimiento" 
+                            style="-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-weight: bold;"/>
+                    <Button fx:id="btnEditarSeguimiento" text="Editar Seguimiento"/>
+                    <Button fx:id="btnEliminarSeguimiento" text="Eliminar Seguimiento" 
+                            style="-fx-background-color: #e74c3c; -fx-text-fill: white;"/>
+                    <Button fx:id="btnLimpiarSeguimiento" text="Limpiar"/>
+                </HBox>
+                
+            </VBox>
+        </SplitPane>
+    </center>
+
+</BorderPane>
