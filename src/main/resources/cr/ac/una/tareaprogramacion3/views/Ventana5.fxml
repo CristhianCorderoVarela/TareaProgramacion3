@@ -66,7 +66,7 @@
                         <TableView fx:id="tablaProyectosActivos" prefHeight="300">
                             <columns>
                                 <TableColumn fx:id="colProyecto" text="Proyecto" prefWidth="200"/>
-                                <TableColumn fx:id="colAvance" text="% Avance" prefWidth="80"/>
+                                <TableColumn fx:id="colAvance" text="\% Avance" prefWidth="80"/>
                                 <TableColumn fx:id="colUltimoSeguimiento" text="Último Seguimiento" prefWidth="120"/>
                                 <TableColumn fx:id="colEstado" text="Estado" prefWidth="100"/>
                                 <TableColumn fx:id="colAcciones" text="Acciones" prefWidth="100"/>

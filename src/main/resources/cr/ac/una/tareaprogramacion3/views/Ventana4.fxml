@@ -33,7 +33,7 @@
                 <TableView fx:id="tablaSeguimientos">
                     <columns>
                         <TableColumn fx:id="colFecha" text="Fecha" prefWidth="120"/>
-                        <TableColumn fx:id="colPorcentaje" text="% Avance" prefWidth="100"/>
+                        <TableColumn fx:id="colPorcentaje" text="\% Avance" prefWidth="100"/>
                         <TableColumn fx:id="colObservaciones" text="Observaciones" prefWidth="400"/>
                         <TableColumn fx:id="colResponsable" text="Responsable" prefWidth="150"/>
                     </columns>
