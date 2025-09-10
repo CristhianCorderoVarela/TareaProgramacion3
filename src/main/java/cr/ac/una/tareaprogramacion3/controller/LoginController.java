@@ -1,7 +1,7 @@
 package cr.ac.una.tareaprogramacion3.controller;
 
 import cr.ac.una.client.soap.AdministradorDto;
-import cr.ac.una.tareaprogramacion3.service.AdministradorService;
+import cr.ac.una.tareaprogramacion3.service.AuthServiceCliente;
 import cr.ac.una.tareaprogramacion3.util.Controller;
 import cr.ac.una.tareaprogramacion3.util.FlowController;
 import cr.ac.una.tareaprogramacion3.util.UserSession;
@@ -29,7 +29,7 @@ public class LoginController extends Controller {
     @FXML private Label lblEstadoWS;
 
     private final BooleanProperty bloqueando = new SimpleBooleanProperty(false);
-    private final AdministradorService adminService = new AdministradorService();
+    private final AuthServiceCliente adminService = new AuthServiceCliente();
 
     public LoginController() {}
 

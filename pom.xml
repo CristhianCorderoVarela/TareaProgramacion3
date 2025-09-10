@@ -158,7 +158,63 @@
               -->
             </configuration>
           </execution>
-        </executions>
+          
+     <execution>
+      <id>wsimport-adminws</id>
+      <phase>generate-sources</phase>
+      <goals><goal>wsimport</goal></goals>
+      <configuration>
+        <wsdlUrls>
+          <wsdlUrl>http://localhost:8080/AdministradorService/AdministradorWS?wsdl</wsdlUrl>
+        </wsdlUrls>
+        <packageName>cr.ac.una.client.soap</packageName>
+        <xnocompile>true</xnocompile>
+        <vmArgs><vmArg>-Djakarta.xml.accessExternalSchema=all</vmArg></vmArgs>
+      </configuration>
+    </execution>
+
+    <execution>
+      <id>wsimport-proyectows</id>
+      <phase>generate-sources</phase>
+      <goals><goal>wsimport</goal></goals>
+      <configuration>
+        <wsdlUrls>
+          <wsdlUrl>http://localhost:8080/ProyectoService/ProyectoWS?wsdl</wsdlUrl>
+        </wsdlUrls>
+        <packageName>cr.ac.una.client.soap</packageName>
+        <xnocompile>true</xnocompile>
+        <vmArgs><vmArg>-Djakarta.xml.accessExternalSchema=all</vmArg></vmArgs>
+      </configuration>
+    </execution>
+
+    <execution>
+      <id>wsimport-actividadws</id>
+      <phase>generate-sources</phase>
+      <goals><goal>wsimport</goal></goals>
+      <configuration>
+        <wsdlUrls>
+          <wsdlUrl>http://localhost:8080/ActividadService/ActividadWS?wsdl</wsdlUrl>
+        </wsdlUrls>
+        <packageName>cr.ac.una.client.soap</packageName>
+        <xnocompile>true</xnocompile>
+        <vmArgs><vmArg>-Djakarta.xml.accessExternalSchema=all</vmArg></vmArgs>
+      </configuration>
+    </execution>
+
+    <execution>
+      <id>wsimport-seguimientows</id>
+      <phase>generate-sources</phase>
+      <goals><goal>wsimport</goal></goals>
+      <configuration>
+        <wsdlUrls>
+          <wsdlUrl>http://localhost:8080/SeguimientoService/SeguimientoWS?wsdl</wsdlUrl>
+        </wsdlUrls>
+        <packageName>cr.ac.una.client.soap</packageName>
+        <xnocompile>true</xnocompile>
+        <vmArgs><vmArg>-Djakarta.xml.accessExternalSchema=all</vmArg></vmArgs>
+      </configuration>
+    </execution>
+  </executions>
       </plugin>
     </plugins>
   </build>
