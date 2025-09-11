@@ -111,7 +111,7 @@
 
                                     
                                     <Label text="Estado del Proyecto:" GridPane.rowIndex="9" GridPane.columnIndex="0"/>
-                                    <ComboBox fx:id="cbEstadoProyecto" GridPane.rowIndex="9" GridPane.columnIndex="1"/>
+                                    <ComboBox fx:id="cmbEstado" GridPane.rowIndex="9" GridPane.columnIndex="1"/>
 
                                     
                                     <Button text="Guardar Proyecto"
