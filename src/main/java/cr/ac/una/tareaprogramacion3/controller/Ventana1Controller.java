@@ -2,13 +2,13 @@ package cr.ac.una.tareaprogramacion3.controller;
 
 import cr.ac.una.tareaprogramacion3.util.Controller;
 
-// ===== Stubs generados por tu wsimport =====
-import cr.ac.una.client.soap.ProyectoService;       // clase Service generada
-import cr.ac.una.client.soap.ProyectoWS;            // interfaz del Port
+// Stubs generados por wsimport
+import cr.ac.una.client.soap.ProyectoService;
+import cr.ac.una.client.soap.ProyectoWS;
 import cr.ac.una.client.soap.ProyectoDto;
-import cr.ac.una.client.soap.RespuestaGeneralLista; // respuesta para listas (stubs devuelven Object en getData)
-// ===========================================
+import cr.ac.una.client.soap.RespuestaGeneralLista;
 
+import jakarta.xml.bind.JAXBElement;
 import jakarta.xml.ws.BindingProvider;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -20,9 +20,10 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class Ventana1Controller extends Controller {
@@ -39,21 +40,24 @@ public class Ventana1Controller extends Controller {
 
     @Override
     public void initialize() {
-        // Si tu Payara anuncia DESKTOP-NLRO95A en el log, puedes usarlo en lugar de localhost.
-        crearPort("http://localhost:8080/ProyectoService/ProyectoWS");
-
+        crearPort("http://desktop-nlro95a:8080/ProyectoService/ProyectoWS");
         prepararLista(listaEnProceso, dataEnProceso);
         prepararLista(listaEnPausa, dataEnPausa);
         prepararLista(listaFinalizados, dataFinalizados);
-
         cargarTodos();
     }
 
     private void crearPort(String endpointUrl) {
         ProyectoService svc = new ProyectoService();
         this.port = svc.getProyectoWSPort();
-        ((BindingProvider) port).getRequestContext()
-                .put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, endpointUrl);
+        Map<String, Object> ctx = ((BindingProvider) port).getRequestContext();
+        ctx.put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, endpointUrl);
+
+        try {
+            System.out.println("[ProyectoWS.ping] => " + port.ping());
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
     }
 
     private void prepararLista(ListView<ProyectoDto> lv, ObservableList<ProyectoDto> backing) {
@@ -62,24 +66,30 @@ public class Ventana1Controller extends Controller {
         lv.setCellFactory(v -> new ListCell<>() {
             @Override protected void updateItem(ProyectoDto p, boolean empty) {
                 super.updateItem(p, empty);
-                if (empty || p == null) {
-                    setText(null);
-                } else {
-                    String nombre = nvl(p.getNombre());
-                    String estado = nvl(p.getEstado());
-                    setText(estado.isEmpty() ? nombre : nombre + "  ·  " + estado);
-                }
+                if (empty || p == null) { setText(null); return; }
+                String nombre = nvl(p.getNombre());
+                String estado = nvl(p.getEstado());
+                setText(estado.isEmpty() ? nombre : nombre + "  ·  " + estado);
             }
         });
     }
 
-    /** Llama ProyectoWS.obtenerTodosProyectos() y distribuye por estado. */
+    /** Carga todos los proyectos usando obtenerTodosProyectos() */
     private void cargarTodos() {
         Task<List<ProyectoDto>> task = new Task<>() {
             @Override protected List<ProyectoDto> call() {
                 RespuestaGeneralLista r = port.obtenerTodosProyectos();
-                validarRespuesta(r, "Sin respuesta del servidor");
-                return extraerLista(r.getData());
+                if (r == null) throw new RuntimeException("Sin respuesta del servidor");
+
+                System.out.println("[WS] ok=" + r.isOk() + " mensaje=" + r.getMensaje());
+                if (!Boolean.TRUE.equals(r.isOk())) {
+                    String msj = (r.getMensaje() == null ? "Operación no exitosa" : r.getMensaje());
+                    throw new RuntimeException(msj);
+                }
+
+                List<ProyectoDto> lista = tryGetListRobusto(r);
+                System.out.println("[WS] obtenerTodosProyectos -> " + (lista == null ? 0 : lista.size()) + " proyectos");
+                return (lista == null ? List.of() : lista);
             }
         };
         task.setOnSucceeded(e -> distribuirPorEstado(task.getValue()));
@@ -87,74 +97,98 @@ public class Ventana1Controller extends Controller {
         new Thread(task, "ws-cargar-todos").start();
     }
 
-    /** Búsqueda usando el método con Streams del WS. */
-    @SuppressWarnings("unused")
-    private void buscar(String filtro) {
-        Task<List<ProyectoDto>> task = new Task<>() {
-            @Override protected List<ProyectoDto> call() {
-                RespuestaGeneralLista r = (filtro == null || filtro.isBlank())
-                        ? port.buscarProyectosActivos()
-                        : port.buscarProyectosConStreams(filtro.trim());
-                validarRespuesta(r, "Sin respuesta del servidor");
-                return extraerLista(r.getData());
-            }
-        };
-        task.setOnSucceeded(e -> distribuirPorEstado(task.getValue()));
-        task.setOnFailed(e -> mostrarError("No se pudo realizar la búsqueda", task.getException()));
-        new Thread(task, "ws-buscar").start();
-    }
+    // ----------------- EXTRACTOR ROBUSTO DE LA LISTA -----------------
 
-    private void validarRespuesta(RespuestaGeneralLista r, String mensajeNulo) {
-        if (r == null) throw new RuntimeException(mensajeNulo);
-        Boolean ok = r.isOk();
-        if (ok == null ? false : !ok) {
-            String msj = r.getMensaje();
-            throw new RuntimeException(msj == null ? "Operación no exitosa" : msj);
-        }
-    }
-
-    /**
-     * Convierte el Object de getData() a List<ProyectoDto>.
-     * - Si ya es List -> lo retorna.
-     * - Si viene envuelto (ej. ArrayOfProyectoDto) intenta llamar getItem() por reflexión.
-     */
     @SuppressWarnings("unchecked")
-    private List<ProyectoDto> extraerLista(Object data) {
-        if (data == null) return List.of();
-        if (data instanceof List<?>) {
-            return (List<ProyectoDto>) data;
+    private List<ProyectoDto> tryGetListRobusto(Object obj) {
+        if (obj == null) return List.of();
+
+        // 0) Desempaquetar JAXBElement si viniera así
+        if (obj instanceof JAXBElement<?> j) {
+            return tryGetListRobusto(j.getValue());
         }
-        // Intento común con wrappers generados por wsimport: getItem()
-        try {
-            Method m = data.getClass().getMethod("getItem");
-            Object value = m.invoke(data);
-            if (value instanceof List<?>) {
-                return (List<ProyectoDto>) value;
+
+        // 1) Si ya es una List, depurar tipos y listo
+        if (obj instanceof List<?> l) {
+            List<ProyectoDto> out = new ArrayList<>();
+            for (Object o : l) if (o instanceof ProyectoDto p) out.add(p);
+            return out;
+        }
+
+        Class<?> c = obj.getClass();
+
+        // 2) Intentos por nombres más comunes del stub
+        for (String mname : new String[]{"getData", "getItems", "getItem"}) {
+            try {
+                Method m = c.getMethod(mname);
+                Object val = m.invoke(obj);
+                List<ProyectoDto> res = tryGetListRobusto(val); // recursivo: puede ser wrapper o lista
+                if (!res.isEmpty()) return res;
+                // si está vacío, igual puede ser la respuesta correcta; la devolvemos
+                if (val instanceof List) return res;
+            } catch (NoSuchMethodException ignore) {
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        } catch (ReflectiveOperationException ignore) {
-            // seguimos abajo
         }
-        // Último recurso: no se reconoce el tipo -> lista vacía (evita romper la UI)
+
+        // 3) Si getItems() devuelve un wrapper con getItem()
+        try {
+            Method mItems = c.getMethod("getItems");
+            Object itemsWrapper = mItems.invoke(obj);
+            if (itemsWrapper != null) {
+                // buscar getItem() dentro del wrapper
+                try {
+                    Method mItem = itemsWrapper.getClass().getMethod("getItem");
+                    Object list = mItem.invoke(itemsWrapper);
+                    List<ProyectoDto> res = tryGetListRobusto(list);
+                    if (!res.isEmpty() || list instanceof List) return res;
+                } catch (NoSuchMethodException ignore) {
+                }
+            }
+        } catch (NoSuchMethodException ignore) {
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // 4) Fallback: buscar cualquier getter público que retorne List
+        for (Method m : c.getMethods()) {
+            if (m.getParameterCount() == 0 &&
+                m.getName().startsWith("get") &&
+                List.class.isAssignableFrom(m.getReturnType())) {
+                try {
+                    Object val = m.invoke(obj);
+                    List<ProyectoDto> res = tryGetListRobusto(val);
+                    if (!res.isEmpty() || val instanceof List) return res;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        // 5) Log diagnóstico para saber qué expone el stub
+        System.out.println("[WARN] No pude interpretar el tipo de data. Clase: " + c.getName());
+        System.out.println("       Métodos disponibles: " + Arrays.stream(c.getMethods())
+                .map(Method::getName).distinct().sorted().collect(Collectors.joining(", ")));
         return List.of();
     }
 
+    // -----------------------------------------------------------------
+
+    /** Distribuye por estado. 'SUSPENDIDO' se muestra en la columna 'En Pausa'. */
     private void distribuirPorEstado(List<ProyectoDto> lista) {
         if (lista == null) lista = List.of();
 
-        final String EN_CURSO   = "EN_CURSO";
-        final String EN_PAUSA   = "EN_PAUSA";
-        final String FINALIZADO = "FINALIZADO";
-
         var enProceso = lista.stream()
-                .filter(p -> EN_CURSO.equalsIgnoreCase(nvl(p.getEstado())))
+                .filter(p -> "EN_CURSO".equalsIgnoreCase(nvl(p.getEstado())))
                 .collect(Collectors.toList());
 
         var enPausa = lista.stream()
-                .filter(p -> EN_PAUSA.equalsIgnoreCase(nvl(p.getEstado())))
+                .filter(p -> "SUSPENDIDO".equalsIgnoreCase(nvl(p.getEstado())))
                 .collect(Collectors.toList());
 
         var finalizados = lista.stream()
-                .filter(p -> FINALIZADO.equalsIgnoreCase(nvl(p.getEstado())))
+                .filter(p -> "FINALIZADO".equalsIgnoreCase(nvl(p.getEstado())))
                 .collect(Collectors.toList());
 
         Platform.runLater(() -> {
