@@ -9,61 +9,55 @@
            fx:controller="cr.ac.una.tareaprogramacion3.controller.Ventana1Controller">
 
     <children>
-        <BorderPane prefWidth="1000" prefHeight="650">
+        <BorderPane prefWidth="1100" prefHeight="700">
 
-            <!-- Barra de acciones -->
+            <!-- Barra superior con acciones -->
             <top>
-                <HBox alignment="CENTER_RIGHT" spacing="8">
+                <HBox spacing="10" alignment="CENTER_LEFT">
                     <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
 
-                    <!-- (Opcional) campo de búsqueda: si luego quieres usarlo, agrega el handler en el controller -->
-                    <!--
-                    <TextField fx:id="txtFiltro" promptText="Buscar proyectos..."/>
-                    <Button text="Buscar" onAction="#onBuscar"/>
-                    <Separator orientation="VERTICAL"/>
-                    -->
-
-                    <Button text="+ Nuevo Proyecto"
-                            onAction="#onNuevoProyecto"
+                    <Button text="+ Nuevo" onAction="#onNuevoProyecto"
                             style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;"/>
 
-                    <Button text="Editar"
-                            onAction="#onEditarSeleccion"
-                            style="-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-weight: bold;"/>
+                    <Button text="Editar" onAction="#onEditarSeleccion"
+                            style="-fx-background-color: #2980b9; -fx-text-fill: white; -fx-font-weight: bold;"/>
 
-                    <Button text="Refrescar"
-                            onAction="#onRefrescar"
+                    <Button text="Refrescar" onAction="#onRefrescar"
                             style="-fx-background-color: #7f8c8d; -fx-text-fill: white; -fx-font-weight: bold;"/>
                 </HBox>
             </top>
 
-            <!-- Tres columnas con las listas -->
+            <!-- 4 columnas de estado -->
             <center>
                 <HBox spacing="20">
                     <padding><Insets top="15" right="15" bottom="15" left="15"/></padding>
 
-                    <!-- Finalizados -->
-                    <VBox spacing="10" prefWidth="300"
-                          style="-fx-background-color: #ecf0f1; -fx-border-color: gray; -fx-border-width: 1;">
+                    <!-- PLANIFICADO -->
+                    <VBox spacing="10" prefWidth="250" style="-fx-background-color: #ecf0f1; -fx-border-color: #bdc3c7; -fx-border-width: 1;">
+                        <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
+                        <Label text="Planificados" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+                        <ListView fx:id="listaPlanificados" prefHeight="580"/>
+                    </VBox>
+
+                    <!-- EN CURSO -->
+                    <VBox spacing="10" prefWidth="250" style="-fx-background-color: #ecf0f1; -fx-border-color: #bdc3c7; -fx-border-width: 1;">
+                        <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
+                        <Label text="En Curso" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+                        <ListView fx:id="listaEnProceso" prefHeight="580"/>
+                    </VBox>
+
+                    <!-- SUSPENDIDO -->
+                    <VBox spacing="10" prefWidth="250" style="-fx-background-color: #ecf0f1; -fx-border-color: #bdc3c7; -fx-border-width: 1;">
+                        <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
+                        <Label text="Suspendidos" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+                        <ListView fx:id="listaSuspendidos" prefHeight="580"/>
+                    </VBox>
+
+                    <!-- FINALIZADO -->
+                    <VBox spacing="10" prefWidth="250" style="-fx-background-color: #ecf0f1; -fx-border-color: #bdc3c7; -fx-border-width: 1;">
                         <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
                         <Label text="Finalizados" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
-                        <ListView fx:id="listaFinalizados" prefHeight="500"/>
-                    </VBox>
-
-                    <!-- En Proceso -->
-                    <VBox spacing="10" prefWidth="300"
-                          style="-fx-background-color: #ecf0f1; -fx-border-color: gray; -fx-border-width: 1;">
-                        <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
-                        <Label text="En Proceso" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
-                        <ListView fx:id="listaEnProceso" prefHeight="500"/>
-                    </VBox>
-
-                    <!-- En Pausa -->
-                    <VBox spacing="10" prefWidth="300"
-                          style="-fx-background-color: #ecf0f1; -fx-border-color: gray; -fx-border-width: 1;">
-                        <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
-                        <Label text="En Pausa" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
-                        <ListView fx:id="listaEnPausa" prefHeight="500"/>
+                        <ListView fx:id="listaFinalizados" prefHeight="580"/>
                     </VBox>
 
                 </HBox>
