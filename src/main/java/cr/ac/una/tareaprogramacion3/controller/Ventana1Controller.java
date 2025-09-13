@@ -2,26 +2,23 @@ package cr.ac.una.tareaprogramacion3.controller;
 
 import cr.ac.una.tareaprogramacion3.util.Controller;
 import cr.ac.una.tareaprogramacion3.util.FlowController;
+
+import cr.ac.una.client.soap.ProyectoDto;
 import cr.ac.una.client.soap.ProyectoService;
 import cr.ac.una.client.soap.ProyectoWS;
-import cr.ac.una.client.soap.ProyectoDto;
 import cr.ac.una.client.soap.RespuestaGeneralLista;
+
 import jakarta.xml.ws.BindingProvider;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
-import javafx.scene.layout.Region;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
+import javafx.stage.Window;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -69,10 +66,11 @@ public class Ventana1Controller extends Controller {
             }
         });
 
+        // doble click -> editar
         lv.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2) {
                 ProyectoDto sel = lv.getSelectionModel().getSelectedItem();
-                if (sel != null) abrirDialogo(sel);
+                if (sel != null) onEditarSeleccion();
             }
         });
     }
@@ -90,7 +88,6 @@ public class Ventana1Controller extends Controller {
                 RespuestaGeneralLista r = port.obtenerTodosProyectos();
                 if (r == null || !Boolean.TRUE.equals(r.isOk()))
                     throw new RuntimeException(r == null ? "Sin respuesta del servidor" : nvl(r.getMensaje()));
-
                 return extraerProyectos(r);
             }
         };
@@ -130,14 +127,14 @@ public class Ventana1Controller extends Controller {
         });
     }
 
-    // === Botones (conectados desde FXML) ===
-    @FXML private void onNuevoProyecto()   { abrirDialogo(null); }
+    // === Botones ===
+    @FXML private void onNuevoProyecto()    { abrirDialogoViaFlow(null); }
+    @FXML private void onRefrescar()        { cargarTodos(); }
     @FXML private void onEditarSeleccion() {
         ProyectoDto sel = obtenerSeleccion();
         if (sel == null) { alerta("Seleccione un proyecto en cualquiera de las listas."); return; }
-        abrirDialogo(sel);
+        abrirDialogoViaFlow(sel);
     }
-    @FXML private void onRefrescar()       { cargarTodos(); }
 
     private ProyectoDto obtenerSeleccion() {
         ProyectoDto p;
@@ -148,39 +145,30 @@ public class Ventana1Controller extends Controller {
         return null;
     }
 
-    /** Abre el diálogo: intenta con FlowController y si no, usa FXMLLoader. */
-    private void abrirDialogo(ProyectoDto dto) {
-        // --- Intento con FlowController (sin 'put', porque tu clase no lo tiene) ---
-        try {
-            FlowController fc = FlowController.getInstance();
-            // Ajusta al método real que tengas disponible:
-            fc.goViewInWindowModal("ProyectoDialog", getStage(), Boolean.FALSE);
-            // No podemos pasar el dto por FlowController porque tu API no lo expone.
-            // Por eso dejamos el fallback abajo que sí inyecta el dto.
-        } catch (Throwable ignore) {
-            // seguimos al fallback
+    /** Abre el modal usando FlowController, pasando endpoint y dto al controller. */
+private void abrirDialogoViaFlow(ProyectoDto dto) {
+    try {
+        FlowController fc = FlowController.getInstance();
+
+        // 1) Obtener el controller tipado desde el Flow
+        ProyectoDialogController dialogCtrl =
+                (ProyectoDialogController) fc.getController("ProyectoDialog");
+
+        // 2) Pasar datos (dto puede ser null para NUEVO)
+        dialogCtrl.init(endpoint, dto);
+
+        // 3) Abrir modal (bloquea hasta cerrar)
+        fc.goViewInWindowModal("ProyectoDialog", getStage(), false);
+
+        // 4) Si guardó, refrescar
+        if (dialogCtrl.isGuardado()) {
+            cargarTodos();
         }
-
-        // --- Fallback garantizado con FXMLLoader (pasa endpoint y dto) ---
-        try {
-            FXMLLoader l = new FXMLLoader(getClass().getResource("/cr/ac/una/tareaprogramacion3/view/ProyectoDialog.fxml"));
-            Region root = l.load();
-            ProyectoDialogController ctrl = l.getController();
-            ctrl.init(endpoint, dto); // dto puede ser null (nuevo)
-
-            Stage st = new Stage();
-            st.setTitle(dto == null ? "Nuevo Proyecto" : "Editar Proyecto");
-            st.initModality(Modality.APPLICATION_MODAL);
-            st.initOwner(getStage());
-            st.setScene(new Scene(root));
-            st.setResizable(false);
-            st.showAndWait();
-
-            if (ctrl.isGuardado()) cargarTodos();
-        } catch (IOException ex) {
-            mostrarError("No se pudo abrir el diálogo", ex);
-        }
+    } catch (Exception ex) {
+        mostrarError("No se pudo abrir el diálogo", ex);
     }
+}
+
 
     private void mostrarError(String titulo, Throwable ex) {
         String msg = (ex != null && ex.getMessage() != null) ? ex.getMessage() : "Error desconocido";

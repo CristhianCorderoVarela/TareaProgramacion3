@@ -1,5 +1,7 @@
 package cr.ac.una.tareaprogramacion3.controller;
 
+import cr.ac.una.tareaprogramacion3.util.Controller;
+
 import cr.ac.una.client.soap.ProyectoDto;
 import cr.ac.una.client.soap.ProyectoService;
 import cr.ac.una.client.soap.ProyectoWS;
@@ -17,21 +19,26 @@ import java.time.ZoneId;
 import java.util.GregorianCalendar;
 import java.util.Map;
 
-public class ProyectoDialogController {
+public class ProyectoDialogController extends Controller {
 
     @FXML private TextField txtNombre;
     @FXML private ComboBox<String> cmbEstado;
     @FXML private TextField txtPatrocinador;
     @FXML private TextField txtLiderUsuario;
     @FXML private TextField txtLiderTecnico;
-    @FXML private TextArea  txtCorreos; // visual solamente; el DTO no tiene este campo
+    @FXML private TextArea  txtCorreos; // visual; el DTO no lo tiene
     @FXML private DatePicker dpInicioPlan, dpFinPlan, dpInicioReal, dpFinReal;
 
     private ProyectoWS port;
-    private ProyectoDto modelo;       // dto que se edita/crea
-    private boolean guardado = false; // indica si se guardó correctamente
+    private ProyectoDto modelo;
+    private boolean guardado = false;
 
-    // Configurable desde el caller (Ventana1Controller)
+    @Override
+    public void initialize() {
+        // no-op; FlowController la invoca al abrir
+    }
+
+    /** Llamado por Ventana1Controller antes de abrir el modal */
     public void init(String endpointUrl, ProyectoDto dto) {
         ProyectoService svc = new ProyectoService();
         this.port = svc.getProyectoWSPort();
@@ -40,8 +47,7 @@ public class ProyectoDialogController {
 
         this.modelo = (dto != null) ? dto : new ProyectoDto();
 
-        // poblar UI
-        cmbEstado.getItems().setAll("PLANIFICADO", "EN_CURSO", "EN_PAUSA", "FINALIZADO");
+        cmbEstado.getItems().setAll("PLANIFICADO", "EN_CURSO", "SUSPENDIDO", "FINALIZADO");
         txtNombre.setText(nv(modelo.getNombre()));
         cmbEstado.getSelectionModel().select(nv(modelo.getEstado()).isEmpty() ? "PLANIFICADO" : modelo.getEstado());
         txtPatrocinador.setText(nv(modelo.getPatrocinadorNombre()));
@@ -75,7 +81,6 @@ public class ProyectoDialogController {
 
     @FXML
     private void onGuardar() {
-        // Validaciones mínimas
         if (txtNombre.getText()==null || txtNombre.getText().isBlank()){
             alerta("Validación", "El nombre es obligatorio."); return;
         }
@@ -83,30 +88,22 @@ public class ProyectoDialogController {
             alerta("Validación", "Seleccione un estado."); return;
         }
 
-        // Pasar UI -> DTO
         modelo.setNombre(txtNombre.getText().trim());
         modelo.setEstado(cmbEstado.getValue());
         modelo.setPatrocinadorNombre(nv(txtPatrocinador.getText()).trim());
         modelo.setLiderUsuarioNombre(nv(txtLiderUsuario.getText()).trim());
         modelo.setLiderTecnicoNombre(nv(txtLiderTecnico.getText()).trim());
-        // El DTO no expone 'correos' -> se omite
 
         modelo.setFechaInicioPlanificada(toXml(dpInicioPlan.getValue()));
         modelo.setFechaFinalPlanificada(toXml(dpFinPlan.getValue()));
         modelo.setFechaInicioReal(toXml(dpInicioReal.getValue()));
         modelo.setFechaFinalReal(toXml(dpFinReal.getValue()));
 
-        // Firmas reales del stub:
-        // crearProyecto(ProyectoDto, Long)   ← requiere id de administrador
-        // actualizarProyecto(ProyectoDto)    ← solo el dto
-        Long idAdministrador = 1L; // TODO: reemplazar por el id real de tu sesión
+        Long idAdministrador = 1L; // TODO: reemplazar por id real de sesión
 
-        RespuestaGeneral r;
-        if (modelo.getId()==null){
-            r = port.crearProyecto(modelo, idAdministrador);
-        } else {
-            r = port.actualizarProyecto(modelo);
-        }
+        RespuestaGeneral r = (modelo.getId()==null)
+                ? port.crearProyecto(modelo, idAdministrador)
+                : port.actualizarProyecto(modelo);
 
         if (r==null || !Boolean.TRUE.equals(r.isOk())){
             error("Error", (r==null) ? "Sin respuesta del servidor" : nv(r.getMensaje()));
