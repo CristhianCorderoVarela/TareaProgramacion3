@@ -71,6 +71,10 @@ public class Ventana3Controller extends Controller {
         configurarListaActividades();
         configurarSpinner();
         conectarEventos();
+        
+        // Configurar botones inicialmente para nueva actividad
+        configurarBotonesParaNuevaActividad();
+        
         cargarProyectos();
     }
 
@@ -159,7 +163,10 @@ public class Ventana3Controller extends Controller {
 
     private void conectarEventos() {
         btnCargarActividades.setOnAction(e -> cargarActividades());
-        btnNuevaActividad.setOnAction(e -> limpiarFormulario());
+        btnNuevaActividad.setOnAction(e -> {
+            limpiarFormulario(); // Esto también configura los botones correctamente
+            txtDescripcion.requestFocus(); // Enfocar el primer campo para empezar a escribir
+        });
         btnGuardarActividad.setOnAction(e -> guardarActividad());
         btnEditarActividad.setOnAction(e -> editarActividad());
         btnEliminarActividad.setOnAction(e -> eliminarActividad());
@@ -237,7 +244,7 @@ public class Ventana3Controller extends Controller {
         task.setOnSucceeded(e -> {
             Platform.runLater(() -> {
                 actividades.setAll(task.getValue());
-                limpiarFormulario();
+                limpiarFormulario(); // Esto ya configura los botones para nueva actividad
                 System.out.println("Actividades cargadas: " + actividades.size());
                 
                 if (actividades.isEmpty()) {
@@ -270,6 +277,9 @@ public class Ventana3Controller extends Controller {
         if (actividad.getOrdenEjecucion() != null) {
             spinnerOrden.getValueFactory().setValue(actividad.getOrdenEjecucion());
         }
+        
+        // Configurar botones para edición
+        configurarBotonesParaEdicion();
     }
 
     private void limpiarFormulario() {
@@ -284,6 +294,9 @@ public class Ventana3Controller extends Controller {
         fechaFinReal.setValue(null);
         spinnerOrden.getValueFactory().setValue(1);
         listaActividades.getSelectionModel().clearSelection();
+        
+        // Configurar botones para nueva actividad
+        configurarBotonesParaNuevaActividad();
     }
 
     private void guardarActividad() {
@@ -470,6 +483,27 @@ public class Ventana3Controller extends Controller {
         }
         
         return true;
+    }
+
+    /**
+     * Configura los botones para cuando se está creando una nueva actividad
+     */
+    private void configurarBotonesParaNuevaActividad() {
+        btnGuardarActividad.setVisible(true);
+        btnGuardarActividad.setDisable(false);
+        btnEditarActividad.setVisible(false);
+        btnEliminarActividad.setVisible(false);
+    }
+    
+    /**
+     * Configura los botones para cuando se está editando una actividad existente
+     */
+    private void configurarBotonesParaEdicion() {
+        btnGuardarActividad.setVisible(false);
+        btnEditarActividad.setVisible(true);
+        btnEditarActividad.setDisable(false);
+        btnEliminarActividad.setVisible(true);
+        btnEliminarActividad.setDisable(false);
     }
 
     @SuppressWarnings("unchecked")
