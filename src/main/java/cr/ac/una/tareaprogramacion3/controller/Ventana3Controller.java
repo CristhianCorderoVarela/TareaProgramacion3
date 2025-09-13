@@ -41,6 +41,7 @@ public class Ventana3Controller extends Controller {
     // Formulario de actividad
     @FXML private TextArea txtDescripcion;
     @FXML private TextField txtEncargado;
+    @FXML private TextField txtEncargadoCorreo; 
     @FXML private ComboBox<String> cbEstadoActividad;
     @FXML private DatePicker fechaInicioPlanificada;
     @FXML private DatePicker fechaFinPlanificada;
@@ -115,7 +116,7 @@ public class Ventana3Controller extends Controller {
             }
         });
     }
-
+        
     private void configurarComboEstados() {
         cbEstadoActividad.getItems().addAll(
             "PLANIFICADA", "EN_CURSO", "POSTERGADA", "FINALIZADA"
@@ -209,15 +210,27 @@ public class Ventana3Controller extends Controller {
             return;
         }
 
-        // TEMPORAL: Hasta que agregues los métodos al ProyectoWS del servidor
         Task<List<ActividadDto>> task = new Task<List<ActividadDto>>() {
             @Override
             protected List<ActividadDto> call() throws Exception {
                 System.out.println("Cargando actividades del proyecto ID: " + proyectoSeleccionado.getId());
                 
-                // TEMPORAL: Devolver lista vacía hasta que agregues los métodos al servidor
-                System.out.println("Método obtenerActividadesPorProyecto no disponible aún en el WS");
-                return new ArrayList<>();
+                // Usar el método del WebService para obtener actividades
+                RespuestaGeneralLista r = port.obtenerActividadesPorProyecto(proyectoSeleccionado.getId());
+                
+                if (r == null) {
+                    throw new RuntimeException("Sin respuesta del servidor");
+                }
+                
+                System.out.println("[WS] ok=" + r.isOk() + " mensaje=" + r.getMensaje());
+                if (!Boolean.TRUE.equals(r.isOk())) {
+                    String msj = r.getMensaje() != null ? r.getMensaje() : "Error al cargar actividades";
+                    throw new RuntimeException(msj);
+                }
+                
+                List<ActividadDto> lista = tryGetListRobusto(r);
+                System.out.println("[WS] obtenerActividadesPorProyecto -> " + (lista != null ? lista.size() : 0) + " actividades");
+                return lista != null ? lista : new ArrayList<>();
             }
         };
         
@@ -226,6 +239,10 @@ public class Ventana3Controller extends Controller {
                 actividades.setAll(task.getValue());
                 limpiarFormulario();
                 System.out.println("Actividades cargadas: " + actividades.size());
+                
+                if (actividades.isEmpty()) {
+                    mostrarInformacion("No se encontraron actividades para este proyecto");
+                }
             });
         });
         
@@ -241,6 +258,7 @@ public class Ventana3Controller extends Controller {
         
         txtDescripcion.setText(nvl(actividad.getDescripcion()));
         txtEncargado.setText(nvl(actividad.getEncargadoNombre()));
+        txtEncargadoCorreo.setText(nvl(actividad.getEncargadoCorreo()));
         cbEstadoActividad.setValue(nvl(actividad.getEstado()));
         
         // Convertir fechas usando DateUtil
@@ -258,6 +276,7 @@ public class Ventana3Controller extends Controller {
         actividadActual = null;
         txtDescripcion.clear();
         txtEncargado.clear();
+        txtEncargadoCorreo.clear();
         cbEstadoActividad.setValue("PLANIFICADA");
         fechaInicioPlanificada.setValue(null);
         fechaFinPlanificada.setValue(null);
@@ -276,8 +295,40 @@ public class Ventana3Controller extends Controller {
             return;
         }
 
-        // TEMPORAL: Hasta que agregues los métodos al ProyectoWS del servidor
-        mostrarInformacion("Funcionalidad de crear actividad pendiente.\nPrimero agrega los métodos al ProyectoWS del servidor.");
+        Task<ActividadDto> task = new Task<ActividadDto>() {
+            @Override
+            protected ActividadDto call() throws Exception {
+                ActividadDto nuevaActividad = crearActividadDesdeFormulario();
+                nuevaActividad.setProyectoId(proyecto.getId());
+                
+                RespuestaGeneral r = port.crearActividad(nuevaActividad);
+                
+                if (r == null) {
+                    throw new RuntimeException("Sin respuesta del servidor");
+                }
+                
+                if (!Boolean.TRUE.equals(r.isOk())) {
+                    String msj = r.getMensaje() != null ? r.getMensaje() : "Error al crear actividad";
+                    throw new RuntimeException(msj);
+                }
+                
+                return (ActividadDto) r.getData();
+            }
+        };
+        
+        task.setOnSucceeded(e -> {
+            Platform.runLater(() -> {
+                mostrarInformacion("Actividad creada exitosamente");
+                cargarActividades(); // Recargar la lista
+                limpiarFormulario();
+            });
+        });
+        
+        task.setOnFailed(e -> {
+            mostrarError("Error creando actividad", task.getException());
+        });
+        
+        new Thread(task, "crear-actividad").start();
     }
 
     private void editarActividad() {
@@ -288,8 +339,41 @@ public class Ventana3Controller extends Controller {
         
         if (!validarFormulario()) return;
         
-        // TEMPORAL
-        mostrarInformacion("Funcionalidad de editar actividad pendiente.\nPrimero agrega los métodos al ProyectoWS del servidor.");
+        Task<ActividadDto> task = new Task<ActividadDto>() {
+            @Override
+            protected ActividadDto call() throws Exception {
+                ActividadDto actividadModificada = crearActividadDesdeFormulario();
+                actividadModificada.setId(actividadActual.getId());
+                actividadModificada.setProyectoId(actividadActual.getProyectoId());
+                
+                RespuestaGeneral r = port.actualizarActividad(actividadModificada);
+                
+                if (r == null) {
+                    throw new RuntimeException("Sin respuesta del servidor");
+                }
+                
+                if (!Boolean.TRUE.equals(r.isOk())) {
+                    String msj = r.getMensaje() != null ? r.getMensaje() : "Error al actualizar actividad";
+                    throw new RuntimeException(msj);
+                }
+                
+                return (ActividadDto) r.getData();
+            }
+        };
+        
+        task.setOnSucceeded(e -> {
+            Platform.runLater(() -> {
+                mostrarInformacion("Actividad actualizada exitosamente");
+                cargarActividades(); // Recargar la lista
+                limpiarFormulario();
+            });
+        });
+        
+        task.setOnFailed(e -> {
+            mostrarError("Error actualizando actividad", task.getException());
+        });
+        
+        new Thread(task, "actualizar-actividad").start();
     }
 
     private void eliminarActividad() {
@@ -304,8 +388,37 @@ public class Ventana3Controller extends Controller {
         
         confirmacion.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
-                // TEMPORAL
-                mostrarInformacion("Funcionalidad de eliminar actividad pendiente.\nPrimero agrega los métodos al ProyectoWS del servidor.");
+                Task<Void> task = new Task<Void>() {
+                    @Override
+                    protected Void call() throws Exception {
+                        RespuestaGeneral r = port.eliminarActividad(actividadActual.getId());
+                        
+                        if (r == null) {
+                            throw new RuntimeException("Sin respuesta del servidor");
+                        }
+                        
+                        if (!Boolean.TRUE.equals(r.isOk())) {
+                            String msj = r.getMensaje() != null ? r.getMensaje() : "Error al eliminar actividad";
+                            throw new RuntimeException(msj);
+                        }
+                        
+                        return null;
+                    }
+                };
+                
+                task.setOnSucceeded(e -> {
+                    Platform.runLater(() -> {
+                        mostrarInformacion("Actividad eliminada exitosamente");
+                        cargarActividades(); // Recargar la lista
+                        limpiarFormulario();
+                    });
+                });
+                
+                task.setOnFailed(e -> {
+                    mostrarError("Error eliminando actividad", task.getException());
+                });
+                
+                new Thread(task, "eliminar-actividad").start();
             }
         });
     }
@@ -314,6 +427,7 @@ public class Ventana3Controller extends Controller {
         ActividadDto actividad = new ActividadDto();
         actividad.setDescripcion(txtDescripcion.getText().trim());
         actividad.setEncargadoNombre(txtEncargado.getText().trim());
+        actividad.setEncargadoCorreo(txtEncargadoCorreo.getText().trim());
         actividad.setEstado(cbEstadoActividad.getValue());
         
         // Convertir fechas usando DateUtil
@@ -334,8 +448,14 @@ public class Ventana3Controller extends Controller {
         }
         
         if (txtEncargado.getText().trim().isEmpty()) {
-            mostrarAdvertencia("El encargado es obligatorio");
+            mostrarAdvertencia("El nombre del encargado es obligatorio");
             txtEncargado.requestFocus();
+            return false;
+        }
+        
+        if (txtEncargadoCorreo.getText().trim().isEmpty()) {
+            mostrarAdvertencia("El correo del encargado es obligatorio");
+            txtEncargadoCorreo.requestFocus();
             return false;
         }
         
