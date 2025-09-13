@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx/23"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="cr.ac.una.tareaprogramacion3.controller.WelcomeViewController"
+      alignment="CENTER"
+      spacing="16.0"
+      prefWidth="800" prefHeight="600"
+      style="-fx-background-color: white;">
+    <children>
+        <Label text="¡Bienvenido/a!" style="-fx-font-size: 24px; -fx-font-weight: bold;"/>
+        <Label text="Selecciona una opción del menú para comenzar."
+               style="-fx-text-fill: #666666; -fx-font-size: 14px;"/>
+    </children>
+    <padding>
+        <Insets topRightBottomLeft="24"/>
+    </padding>
+</VBox>

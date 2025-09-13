@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="cr.ac.una.tareaprogramacion3.controller.ProyectoDialogController"
+            prefWidth="560" prefHeight="420">
+
+   <center>
+    <GridPane hgap="10" vgap="10" BorderPane.alignment="CENTER">
+        <padding><Insets top="20" right="20" bottom="10" left="20"/></padding>
+
+        <columnConstraints>
+            <ColumnConstraints percentWidth="35"/>
+            <ColumnConstraints percentWidth="65"/>
+        </columnConstraints>
+
+        <!-- 0 -->
+        <Label text="Nombre:"                GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+        <TextField fx:id="txtNombre"         GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+        <!-- 1 -->
+        <Label text="Estado:"                GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+        <ComboBox fx:id="cmbEstado"          GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+        <!-- 2-3 Patrocinador -->
+        <Label text="Patrocinador (Nombre):" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+        <TextField fx:id="txtPatrocinador"   GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+
+        <Label text="Patrocinador (Correo):" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+        <TextField fx:id="txtCorreoPatrocinador" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+
+        <!-- 4-5 Líder Usuario -->
+        <Label text="Líder Usuario (Nombre):" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+        <TextField fx:id="txtLiderUsuario"    GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+
+        <Label text="Líder Usuario (Correo):" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
+        <TextField fx:id="txtCorreoLiderUsuario" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
+
+        <!-- 6-7 Líder Técnico -->
+        <Label text="Líder Técnico (Nombre):" GridPane.rowIndex="6" GridPane.columnIndex="0"/>
+        <TextField fx:id="txtLiderTecnico"    GridPane.rowIndex="6" GridPane.columnIndex="1"/>
+
+        <Label text="Líder Técnico (Correo):" GridPane.rowIndex="7" GridPane.columnIndex="0"/>
+        <TextField fx:id="txtCorreoLiderTecnico" GridPane.rowIndex="7" GridPane.columnIndex="1"/>
+
+        <!-- 8-11 Fechas -->
+        <Label text="Inicio Plan:"           GridPane.rowIndex="8"  GridPane.columnIndex="0"/>
+        <DatePicker fx:id="dpInicioPlan"     GridPane.rowIndex="8"  GridPane.columnIndex="1"/>
+
+        <Label text="Fin Plan:"              GridPane.rowIndex="9"  GridPane.columnIndex="0"/>
+        <DatePicker fx:id="dpFinPlan"        GridPane.rowIndex="9"  GridPane.columnIndex="1"/>
+
+        <Label text="Inicio Real:"           GridPane.rowIndex="10" GridPane.columnIndex="0"/>
+        <DatePicker fx:id="dpInicioReal"     GridPane.rowIndex="10" GridPane.columnIndex="1"/>
+
+        <Label text="Fin Real:"              GridPane.rowIndex="11" GridPane.columnIndex="0"/>
+        <DatePicker fx:id="dpFinReal"        GridPane.rowIndex="11" GridPane.columnIndex="1"/>
+    </GridPane>
+</center>
+
+
+    <bottom>
+        <HBox spacing="10" alignment="CENTER_RIGHT" BorderPane.alignment="CENTER">
+            <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
+            <Button fx:id="btnGuardar" text="Guardar" onAction="#onGuardar"/>
+            <Button fx:id="btnCancelar" text="Cancelar" onAction="#onCancelar"/>
+        </HBox>
+    </bottom>
+</BorderPane>

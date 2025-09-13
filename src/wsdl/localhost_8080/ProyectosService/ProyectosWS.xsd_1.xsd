@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='UTF-8'?><!-- Published by XML-WS Runtime (https://github.com/eclipse-ee4j/metro-jax-ws). Runtime's version is Eclipse Metro/4.0.3.payara-p1 (metro-4.0.3.payara-maintenance-004e4e3; 2023-11-08T12:59:53+0000) XMLWS-Impl/4.0.2 XMLWS-API/4.0.1 XMLB-Impl/4.0.4 XMLB-API/4.0.1 git-revision#004e4e3. --><xs:schema xmlns:tns="http://ws.admproyectosws.una.ac.cr/" xmlns:xs="http://www.w3.org/2001/XMLSchema" version="1.0" targetNamespace="http://ws.admproyectosws.una.ac.cr/">
+
+<xs:element name="ping" type="tns:ping"/>
+
+<xs:element name="pingResponse" type="tns:pingResponse"/>
+
+<xs:element name="pruebaJPA" type="tns:pruebaJPA"/>
+
+<xs:element name="pruebaJPAResponse" type="tns:pruebaJPAResponse"/>
+
+<xs:complexType name="ping">
+<xs:sequence/>
+</xs:complexType>
+
+<xs:complexType name="pingResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+
+<xs:complexType name="pruebaJPA">
+<xs:sequence/>
+</xs:complexType>
+
+<xs:complexType name="pruebaJPAResponse">
+<xs:sequence>
+<xs:element name="return" type="xs:string" minOccurs="0"/>
+</xs:sequence>
+</xs:complexType>
+</xs:schema>
