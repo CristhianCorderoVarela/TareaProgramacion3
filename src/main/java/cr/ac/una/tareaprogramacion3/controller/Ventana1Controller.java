@@ -35,8 +35,8 @@ public class Ventana1Controller extends Controller {
     private final ObservableList<ProyectoDto> dataFinalizados  = FXCollections.observableArrayList();
 
     private ProyectoWS port;
-    private final String endpoint = "http://DESKTOP-NLRO95A:8080/ProyectoService/ProyectoWS";
-
+    private final String endpoint = "http://localhost:8080/ProyectoService/ProyectoWS";
+    //private final String endpoint = "http://DESKTOP-NLRO95A:8080/ProyectoService/ProyectoWS";       
     @Override
     public void initialize() {
         crearPort(endpoint);
