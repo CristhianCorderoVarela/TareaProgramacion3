@@ -21,38 +21,59 @@ import java.util.Map;
 
 public class ProyectoDialogController extends Controller {
 
+    // ===== Controles =====
     @FXML private TextField txtNombre;
     @FXML private ComboBox<String> cmbEstado;
+
     @FXML private TextField txtPatrocinador;
+    @FXML private TextField txtCorreoPatrocinador;
+
     @FXML private TextField txtLiderUsuario;
+    @FXML private TextField txtCorreoLiderUsuario;
+
     @FXML private TextField txtLiderTecnico;
-    @FXML private TextArea  txtCorreos; // visual; el DTO no lo tiene
+    @FXML private TextField txtCorreoLiderTecnico;
+
+    // (si en tu FXML todavía existe, no hace nada; puedes eliminarlo del FXML)
+    @FXML private TextArea txtCorreos;
+
     @FXML private DatePicker dpInicioPlan, dpFinPlan, dpInicioReal, dpFinReal;
 
+    // ===== Estado =====
     private ProyectoWS port;
     private ProyectoDto modelo;
     private boolean guardado = false;
 
     @Override
     public void initialize() {
-        // no-op; FlowController la invoca al abrir
+        // FlowController la invoca al abrir; no necesitamos lógica aquí.
     }
 
     /** Llamado por Ventana1Controller antes de abrir el modal */
     public void init(String endpointUrl, ProyectoDto dto) {
+        // Configurar stub y endpoint
         ProyectoService svc = new ProyectoService();
         this.port = svc.getProyectoWSPort();
-        Map<String,Object> ctx = ((BindingProvider) port).getRequestContext();
+        Map<String, Object> ctx = ((BindingProvider) port).getRequestContext();
         ctx.put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, endpointUrl);
 
+        // DTO (nuevo o edición)
         this.modelo = (dto != null) ? dto : new ProyectoDto();
 
+        // Poblar combos y campos
         cmbEstado.getItems().setAll("PLANIFICADO", "EN_CURSO", "SUSPENDIDO", "FINALIZADO");
+
         txtNombre.setText(nv(modelo.getNombre()));
         cmbEstado.getSelectionModel().select(nv(modelo.getEstado()).isEmpty() ? "PLANIFICADO" : modelo.getEstado());
+
         txtPatrocinador.setText(nv(modelo.getPatrocinadorNombre()));
+        txtCorreoPatrocinador.setText(nv(modelo.getPatrocinadorCorreo()));
+
         txtLiderUsuario.setText(nv(modelo.getLiderUsuarioNombre()));
+        txtCorreoLiderUsuario.setText(nv(modelo.getLiderUsuarioCorreo()));
+
         txtLiderTecnico.setText(nv(modelo.getLiderTecnicoNombre()));
+        txtCorreoLiderTecnico.setText(nv(modelo.getLiderTecnicoCorreo()));
 
         setDate(dpInicioPlan, modelo.getFechaInicioPlanificada());
         setDate(dpFinPlan,    modelo.getFechaFinalPlanificada());
@@ -60,17 +81,18 @@ public class ProyectoDialogController extends Controller {
         setDate(dpFinReal,    modelo.getFechaFinalReal());
     }
 
-    private String nv(String s){ return s==null?"":s; }
+    // ===== Utilitarios =====
+    private String nv(String s) { return s == null ? "" : s; }
 
-    private void setDate(DatePicker dp, XMLGregorianCalendar xcal){
-        if (dp==null) return;
-        if (xcal==null){ dp.setValue(null); return;}
+    private void setDate(DatePicker dp, XMLGregorianCalendar xcal) {
+        if (dp == null) return;
+        if (xcal == null) { dp.setValue(null); return; }
         LocalDate ld = xcal.toGregorianCalendar().toZonedDateTime().toLocalDate();
         dp.setValue(ld);
     }
 
-    private XMLGregorianCalendar toXml(LocalDate ld){
-        if (ld==null) return null;
+    private XMLGregorianCalendar toXml(LocalDate ld) {
+        if (ld == null) return null;
         try {
             GregorianCalendar gc = GregorianCalendar.from(ld.atStartOfDay(ZoneId.systemDefault()));
             return DatatypeFactory.newInstance().newXMLGregorianCalendar(gc);
@@ -79,34 +101,64 @@ public class ProyectoDialogController extends Controller {
         }
     }
 
+    private boolean blank(String s) { return s == null || s.isBlank(); }
+
+    private boolean emailOk(String s) {
+        if (blank(s)) return false;
+        // Validación simple y suficiente para el caso
+        return s.contains("@") && s.indexOf('@') > 0 && s.indexOf('@') < s.length() - 1;
+    }
+
+    // ===== Acciones =====
     @FXML
     private void onGuardar() {
-        if (txtNombre.getText()==null || txtNombre.getText().isBlank()){
-            alerta("Validación", "El nombre es obligatorio."); return;
+        // --- Validaciones mínimas (coinciden con NOT NULL de la tabla) ---
+        if (blank(txtNombre.getText())) { warn("Validación", "El nombre es obligatorio."); return; }
+        if (cmbEstado.getValue() == null) { warn("Validación", "Seleccione un estado."); return; }
+
+        if (blank(txtPatrocinador.getText())) { warn("Validación", "El nombre del patrocinador es obligatorio."); return; }
+        if (!emailOk(txtCorreoPatrocinador.getText())) { warn("Validación", "El correo del patrocinador es obligatorio y debe ser válido."); return; }
+
+        if (blank(txtLiderUsuario.getText())) { warn("Validación", "El nombre del líder de usuario es obligatorio."); return; }
+        if (!emailOk(txtCorreoLiderUsuario.getText())) { warn("Validación", "El correo del líder de usuario es obligatorio y debe ser válido."); return; }
+
+        if (blank(txtLiderTecnico.getText())) { warn("Validación", "El nombre del líder técnico es obligatorio."); return; }
+        if (!emailOk(txtCorreoLiderTecnico.getText())) { warn("Validación", "El correo del líder técnico es obligatorio y debe ser válido."); return; }
+
+        if (dpInicioPlan.getValue() == null || dpFinPlan.getValue() == null) {
+            warn("Validación", "Las fechas planificadas (inicio y fin) son obligatorias."); return;
         }
-        if (cmbEstado.getValue()==null){
-            alerta("Validación", "Seleccione un estado."); return;
+        if (dpFinPlan.getValue().isBefore(dpInicioPlan.getValue())) {
+            warn("Validación", "La fecha fin planificada no puede ser menor que la fecha inicio planificada."); return;
         }
 
+        // --- UI -> DTO ---
         modelo.setNombre(txtNombre.getText().trim());
         modelo.setEstado(cmbEstado.getValue());
+
         modelo.setPatrocinadorNombre(nv(txtPatrocinador.getText()).trim());
+        modelo.setPatrocinadorCorreo(nv(txtCorreoPatrocinador.getText()).trim());
+
         modelo.setLiderUsuarioNombre(nv(txtLiderUsuario.getText()).trim());
+        modelo.setLiderUsuarioCorreo(nv(txtCorreoLiderUsuario.getText()).trim());
+
         modelo.setLiderTecnicoNombre(nv(txtLiderTecnico.getText()).trim());
+        modelo.setLiderTecnicoCorreo(nv(txtCorreoLiderTecnico.getText()).trim());
 
         modelo.setFechaInicioPlanificada(toXml(dpInicioPlan.getValue()));
         modelo.setFechaFinalPlanificada(toXml(dpFinPlan.getValue()));
         modelo.setFechaInicioReal(toXml(dpInicioReal.getValue()));
         modelo.setFechaFinalReal(toXml(dpFinReal.getValue()));
 
-        Long idAdministrador = 1L; // TODO: reemplazar por id real de sesión
+        // --- Guardar vía WS ---
+        Long idAdministrador = 1L; // TODO: reemplazar por el id real de sesión si corresponde
 
-        RespuestaGeneral r = (modelo.getId()==null)
+        RespuestaGeneral r = (modelo.getId() == null)
                 ? port.crearProyecto(modelo, idAdministrador)
                 : port.actualizarProyecto(modelo);
 
-        if (r==null || !Boolean.TRUE.equals(r.isOk())){
-            error("Error", (r==null) ? "Sin respuesta del servidor" : nv(r.getMensaje()));
+        if (r == null || !Boolean.TRUE.equals(r.isOk())) {
+            error("Error", (r == null) ? "Sin respuesta del servidor" : nv(r.getMensaje()));
             return;
         }
 
@@ -120,21 +172,23 @@ public class ProyectoDialogController extends Controller {
         cerrar();
     }
 
-    private void cerrar(){
+    private void cerrar() {
         Stage st = (Stage) txtNombre.getScene().getWindow();
         st.close();
     }
 
-    public boolean isGuardado(){ return guardado; }
+    public boolean isGuardado() { return guardado; }
 
-    private void alerta(String titulo, String msg){
-        var a = new Alert(Alert.AlertType.WARNING);
+    // ===== Alerts =====
+    private void warn(String titulo, String msg) {
+        Alert a = new Alert(Alert.AlertType.WARNING);
         a.setHeaderText(titulo);
         a.setContentText(msg);
         a.showAndWait();
     }
-    private void error(String titulo, String msg){
-        var a = new Alert(Alert.AlertType.ERROR);
+
+    private void error(String titulo, String msg) {
+        Alert a = new Alert(Alert.AlertType.ERROR);
         a.setHeaderText(titulo);
         a.setContentText(msg);
         a.showAndWait();
