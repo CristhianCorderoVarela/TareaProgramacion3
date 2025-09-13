@@ -11,6 +11,7 @@ module cr.ac.una.administradorproyectos {
     
     requires jakarta.persistence;
     requires java.logging;
+    requires java.base;
 
    
     exports cr.ac.una.tareaprogramacion3;

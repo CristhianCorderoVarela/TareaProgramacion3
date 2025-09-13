@@ -2,7 +2,6 @@ package cr.ac.una.tareaprogramacion3.controller;
 
 import cr.ac.una.tareaprogramacion3.util.Controller;
 
-// Stubs generados por wsimport
 import cr.ac.una.client.soap.ProyectoService;
 import cr.ac.una.client.soap.ProyectoWS;
 import cr.ac.una.client.soap.ProyectoDto;
@@ -15,15 +14,16 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.Region;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 
-import java.lang.reflect.Method;
+import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 public class Ventana1Controller extends Controller {
@@ -37,27 +37,25 @@ public class Ventana1Controller extends Controller {
     private final ObservableList<ProyectoDto> dataFinalizados = FXCollections.observableArrayList();
 
     private ProyectoWS port;
+    // Usa el endpoint que te muestra Payara en los logs:
+    private String endpoint = "http://DESKTOP-NLRO95A:8080/ProyectoService/ProyectoWS";
 
     @Override
     public void initialize() {
-        crearPort("http://desktop-nlro95a:8080/ProyectoService/ProyectoWS");
+        crearPort(endpoint);
+
         prepararLista(listaEnProceso, dataEnProceso);
         prepararLista(listaEnPausa, dataEnPausa);
         prepararLista(listaFinalizados, dataFinalizados);
+
         cargarTodos();
     }
 
     private void crearPort(String endpointUrl) {
         ProyectoService svc = new ProyectoService();
         this.port = svc.getProyectoWSPort();
-        Map<String, Object> ctx = ((BindingProvider) port).getRequestContext();
-        ctx.put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, endpointUrl);
-
-        try {
-            System.out.println("[ProyectoWS.ping] => " + port.ping());
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
+        ((BindingProvider) port).getRequestContext()
+                .put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, endpointUrl);
     }
 
     private void prepararLista(ListView<ProyectoDto> lv, ObservableList<ProyectoDto> backing) {
@@ -66,30 +64,33 @@ public class Ventana1Controller extends Controller {
         lv.setCellFactory(v -> new ListCell<>() {
             @Override protected void updateItem(ProyectoDto p, boolean empty) {
                 super.updateItem(p, empty);
-                if (empty || p == null) { setText(null); return; }
-                String nombre = nvl(p.getNombre());
-                String estado = nvl(p.getEstado());
-                setText(estado.isEmpty() ? nombre : nombre + "  ·  " + estado);
+                setText(empty || p == null ? null : render(p));
+            }
+        });
+
+        // doble clic -> editar
+        lv.setOnMouseClicked(e -> {
+            if (e.getClickCount() == 2) {
+                ProyectoDto sel = lv.getSelectionModel().getSelectedItem();
+                if (sel != null) abrirDialogo(sel);
             }
         });
     }
 
-    /** Carga todos los proyectos usando obtenerTodosProyectos() */
+    private String render(ProyectoDto p){
+        String nombre = nvl(p.getNombre());
+        String estado = nvl(p.getEstado());
+        return estado.isEmpty() ? nombre : nombre + "  ·  " + estado;
+    }
+    private String nvl(String s){ return s==null?"":s; }
+
     private void cargarTodos() {
         Task<List<ProyectoDto>> task = new Task<>() {
             @Override protected List<ProyectoDto> call() {
                 RespuestaGeneralLista r = port.obtenerTodosProyectos();
-                if (r == null) throw new RuntimeException("Sin respuesta del servidor");
-
-                System.out.println("[WS] ok=" + r.isOk() + " mensaje=" + r.getMensaje());
-                if (!Boolean.TRUE.equals(r.isOk())) {
-                    String msj = (r.getMensaje() == null ? "Operación no exitosa" : r.getMensaje());
-                    throw new RuntimeException(msj);
-                }
-
-                List<ProyectoDto> lista = tryGetListRobusto(r);
-                System.out.println("[WS] obtenerTodosProyectos -> " + (lista == null ? 0 : lista.size()) + " proyectos");
-                return (lista == null ? List.of() : lista);
+                if (r == null || !Boolean.TRUE.equals(r.isOk()))
+                    throw new RuntimeException(r == null ? "Sin respuesta del servidor" : nvl(r.getMensaje()));
+                return toProyectoList(r);
             }
         };
         task.setOnSucceeded(e -> distribuirPorEstado(task.getValue()));
@@ -97,116 +98,134 @@ public class Ventana1Controller extends Controller {
         new Thread(task, "ws-cargar-todos").start();
     }
 
-    // ----------------- EXTRACTOR ROBUSTO DE LA LISTA -----------------
-
     @SuppressWarnings("unchecked")
-    private List<ProyectoDto> tryGetListRobusto(Object obj) {
-        if (obj == null) return List.of();
+    private List<ProyectoDto> toProyectoList(RespuestaGeneralLista r){
+        var items = (r == null) ? null : r.getItems();
+        if (items == null || items.getItem() == null) return List.of();
 
-        // 0) Desempaquetar JAXBElement si viniera así
-        if (obj instanceof JAXBElement<?> j) {
-            return tryGetListRobusto(j.getValue());
-        }
-
-        // 1) Si ya es una List, depurar tipos y listo
-        if (obj instanceof List<?> l) {
-            List<ProyectoDto> out = new ArrayList<>();
-            for (Object o : l) if (o instanceof ProyectoDto p) out.add(p);
-            return out;
-        }
-
-        Class<?> c = obj.getClass();
-
-        // 2) Intentos por nombres más comunes del stub
-        for (String mname : new String[]{"getData", "getItems", "getItem"}) {
-            try {
-                Method m = c.getMethod(mname);
-                Object val = m.invoke(obj);
-                List<ProyectoDto> res = tryGetListRobusto(val); // recursivo: puede ser wrapper o lista
-                if (!res.isEmpty()) return res;
-                // si está vacío, igual puede ser la respuesta correcta; la devolvemos
-                if (val instanceof List) return res;
-            } catch (NoSuchMethodException ignore) {
-            } catch (Exception e) {
-                e.printStackTrace();
+        List<ProyectoDto> out = new ArrayList<>();
+        for (Object o : items.getItem()) {
+            if (o instanceof ProyectoDto) {
+                out.add((ProyectoDto) o);
+            } else if (o instanceof JAXBElement) {
+                Object v = ((JAXBElement<?>) o).getValue();
+                if (v instanceof ProyectoDto) out.add((ProyectoDto) v);
             }
         }
+        return out;
+    }
 
-        // 3) Si getItems() devuelve un wrapper con getItem()
+   private void distribuirPorEstado(List<ProyectoDto> lista) {
+    if (lista == null) lista = List.of();
+
+    var enProceso = lista.stream()
+            .filter(p -> "EN_CURSO".equalsIgnoreCase(nvl(p.getEstado())))
+            .collect(Collectors.toList());
+
+    var enPausa = lista.stream()
+            .filter(p -> {
+                String e = nvl(p.getEstado()).trim().toUpperCase();
+                e = e.replace('Á','A');         // quitar acento por si acaso
+                // aceptar variantes comunes
+                return e.equals("EN_PAUSA") || e.equals("EN PAUSA") || e.equals("PAUSA") || e.equals("PAUSADO");
+            })
+            .collect(Collectors.toList());
+
+    var finalizados = lista.stream()
+            .filter(p -> {
+                String e = nvl(p.getEstado()).trim().toUpperCase();
+                return e.equals("FINALIZADO") || e.equals("FINALIZADA");
+            })
+            .collect(Collectors.toList());
+
+    // (opcional) log para ver qué viene realmente
+    // lista.stream().map(p -> nvl(p.getEstado())).collect(Collectors.toSet()).forEach(s -> System.out.println("ESTADO -> " + s));
+
+    Platform.runLater(() -> {
+        dataEnProceso.setAll(enProceso);
+        dataEnPausa.setAll(enPausa);
+        dataFinalizados.setAll(finalizados);
+    });
+}
+
+
+    @FXML
+    private void onNuevoProyecto() { abrirDialogo(null); }
+
+    @FXML
+    private void onEditarSeleccion() {
+        ProyectoDto sel = obtenerSeleccion();
+        if (sel == null) {
+            alerta("Seleccione un proyecto en cualquiera de las listas.");
+            return;
+        }
+        abrirDialogo(sel);
+    }
+
+    @FXML
+    private void onRefrescar() { cargarTodos(); }
+
+    private ProyectoDto obtenerSeleccion() {
+        ProyectoDto p = null;
+        if (listaEnProceso != null && (p = listaEnProceso.getSelectionModel().getSelectedItem()) != null) return p;
+        if (listaEnPausa   != null && (p = listaEnPausa.getSelectionModel().getSelectedItem())   != null) return p;
+        if (listaFinalizados != null && (p = listaFinalizados.getSelectionModel().getSelectedItem()) != null) return p;
+        return null;
+    }
+
+    private void abrirDialogo(ProyectoDto dto) {
         try {
-            Method mItems = c.getMethod("getItems");
-            Object itemsWrapper = mItems.invoke(obj);
-            if (itemsWrapper != null) {
-                // buscar getItem() dentro del wrapper
-                try {
-                    Method mItem = itemsWrapper.getClass().getMethod("getItem");
-                    Object list = mItem.invoke(itemsWrapper);
-                    List<ProyectoDto> res = tryGetListRobusto(list);
-                    if (!res.isEmpty() || list instanceof List) return res;
-                } catch (NoSuchMethodException ignore) {
-                }
-            }
-        } catch (NoSuchMethodException ignore) {
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+            FXMLLoader l = new FXMLLoader(getClass().getResource("/cr/ac/una/tareaprogramacion3/view/ProyectoDialog.fxml"));
+            Region root = l.load();
+            ProyectoDialogController ctrl = l.getController();
+            ctrl.init(endpoint, dto == null ? null : clonar(dto)); // copia defensiva
 
-        // 4) Fallback: buscar cualquier getter público que retorne List
-        for (Method m : c.getMethods()) {
-            if (m.getParameterCount() == 0 &&
-                m.getName().startsWith("get") &&
-                List.class.isAssignableFrom(m.getReturnType())) {
-                try {
-                    Object val = m.invoke(obj);
-                    List<ProyectoDto> res = tryGetListRobusto(val);
-                    if (!res.isEmpty() || val instanceof List) return res;
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+            Stage st = new Stage();
+            st.setTitle(dto == null ? "Nuevo Proyecto" : "Editar Proyecto");
+            st.initModality(Modality.APPLICATION_MODAL);
+            st.setScene(new Scene(root));
+            st.setResizable(false);
+            st.showAndWait();
 
-        // 5) Log diagnóstico para saber qué expone el stub
-        System.out.println("[WARN] No pude interpretar el tipo de data. Clase: " + c.getName());
-        System.out.println("       Métodos disponibles: " + Arrays.stream(c.getMethods())
-                .map(Method::getName).distinct().sorted().collect(Collectors.joining(", ")));
-        return List.of();
+            if (ctrl.isGuardado()) {
+                cargarTodos(); // refresca
+            }
+        } catch (IOException ex) {
+            mostrarError("No se pudo abrir el diálogo", ex);
+        }
     }
 
-    // -----------------------------------------------------------------
-
-    /** Distribuye por estado. 'SUSPENDIDO' se muestra en la columna 'En Pausa'. */
-    private void distribuirPorEstado(List<ProyectoDto> lista) {
-        if (lista == null) lista = List.of();
-
-        var enProceso = lista.stream()
-                .filter(p -> "EN_CURSO".equalsIgnoreCase(nvl(p.getEstado())))
-                .collect(Collectors.toList());
-
-        var enPausa = lista.stream()
-                .filter(p -> "SUSPENDIDO".equalsIgnoreCase(nvl(p.getEstado())))
-                .collect(Collectors.toList());
-
-        var finalizados = lista.stream()
-                .filter(p -> "FINALIZADO".equalsIgnoreCase(nvl(p.getEstado())))
-                .collect(Collectors.toList());
-
-        Platform.runLater(() -> {
-            dataEnProceso.setAll(enProceso);
-            dataEnPausa.setAll(enPausa);
-            dataFinalizados.setAll(finalizados);
-        });
+    private ProyectoDto clonar(ProyectoDto p) {
+        ProyectoDto x = new ProyectoDto();
+        x.setId(p.getId());
+        x.setNombre(p.getNombre());
+        x.setEstado(p.getEstado());
+        x.setPatrocinadorNombre(p.getPatrocinadorNombre());
+        x.setLiderUsuarioNombre(p.getLiderUsuarioNombre());
+        x.setLiderTecnicoNombre(p.getLiderTecnicoNombre());
+        x.setDescripcion(p.getDescripcion());
+        x.setFechaInicioPlanificada(p.getFechaInicioPlanificada());
+        x.setFechaFinalPlanificada(p.getFechaFinalPlanificada());
+        x.setFechaInicioReal(p.getFechaInicioReal());
+        x.setFechaFinalReal(p.getFechaFinalReal());
+        x.setPorcentajeAvance(p.getPorcentajeAvance());
+        return x;
     }
-
-    private String nvl(String s) { return s == null ? "" : s; }
 
     private void mostrarError(String titulo, Throwable ex) {
         String msg = (ex != null && ex.getMessage() != null) ? ex.getMessage() : "Error desconocido";
         Platform.runLater(() -> {
-            Alert a = new Alert(Alert.AlertType.ERROR);
+            var a = new Alert(Alert.AlertType.ERROR);
             a.setHeaderText(titulo);
             a.setContentText(msg);
             a.showAndWait();
         });
+    }
+
+    private void alerta(String msg){
+        var a = new Alert(Alert.AlertType.INFORMATION);
+        a.setHeaderText(null);
+        a.setContentText(msg);
+        a.showAndWait();
     }
 }
