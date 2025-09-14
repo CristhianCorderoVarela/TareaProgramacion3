@@ -56,7 +56,7 @@
                             </VBox.margin>
                         </Button>
 
-                        <Button fx:id="BtnVentana1" onAction="#onActionBtnVentana1" prefHeight="44.0" prefWidth="200.0" styleClass="boton-menu" text="Admin Proyectos">
+                        <Button fx:id="BtnVentana1" onAction="#onActionBtnVentana1" prefHeight="44.0" prefWidth="200.0" styleClass="boton-menu" text=" Proyectos">
                             <VBox.margin>
                                 <Insets top="10" />
                             </VBox.margin>
@@ -69,7 +69,7 @@
                             </graphic>
                         </Button>
 
-                        <Button fx:id="BtnVentana2" onAction="#onActionBtnVentana2" prefHeight="40.0" prefWidth="200.0" styleClass="boton-menu" text="Ventana2">
+                        <Button fx:id="BtnVentana2" onAction="#onActionBtnVentana2" prefHeight="40.0" prefWidth="200.0" styleClass="boton-menu" text="Administradores">
                             <VBox.margin>
                                 <Insets top="10.0" />
                             </VBox.margin>
@@ -82,7 +82,7 @@
                             </graphic>
                         </Button>
 
-                        <Button fx:id="BtnVentana3" onAction="#onActionBtnVentana3" prefHeight="40.0" prefWidth="200.0" styleClass="boton-menu" text="Ventana3">
+                        <Button fx:id="BtnVentana3" onAction="#onActionBtnVentana3" prefHeight="40.0" prefWidth="200.0" styleClass="boton-menu" text="Actividades">
                             <VBox.margin>
                                 <Insets top="10" />
                             </VBox.margin>
