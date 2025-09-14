@@ -19,44 +19,55 @@ import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.Dragboard;
+import javafx.scene.input.TransferMode;
 
 import java.lang.reflect.Method;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Ventana3Controller extends Controller {
 
-    // Elementos del FXML
+    // Top bar
     @FXML private ComboBox<ProyectoDto> cbProyectos;
     @FXML private Button btnCargarActividades;
     @FXML private Button btnNuevaActividad;
-    @FXML private ListView<ActividadDto> listaActividades;
-    
+
+    // Kanban: 4 columnas
+    @FXML private ListView<ActividadDto> lvPlanificada;
+    @FXML private ListView<ActividadDto> lvEnCurso;
+    @FXML private ListView<ActividadDto> lvPostergada;
+    @FXML private ListView<ActividadDto> lvFinalizada;
+
     // Formulario de actividad
     @FXML private TextArea txtDescripcion;
     @FXML private TextField txtEncargado;
-    @FXML private TextField txtEncargadoCorreo; 
+    @FXML private TextField txtEncargadoCorreo;
     @FXML private ComboBox<String> cbEstadoActividad;
     @FXML private DatePicker fechaInicioPlanificada;
     @FXML private DatePicker fechaFinPlanificada;
     @FXML private DatePicker fechaInicioReal;
     @FXML private DatePicker fechaFinReal;
     @FXML private Spinner<Integer> spinnerOrden;
-    
+
     @FXML private Button btnGuardarActividad;
     @FXML private Button btnEditarActividad;
     @FXML private Button btnEliminarActividad;
     @FXML private Button btnLimpiar;
 
     // Datos observables
-    private final ObservableList<ProyectoDto> proyectos = FXCollections.observableArrayList();
-    private final ObservableList<ActividadDto> actividades = FXCollections.observableArrayList();
+    private final ObservableList<ProyectoDto> proyectos  = FXCollections.observableArrayList();
+
+    private final ObservableList<ActividadDto> planificadas = FXCollections.observableArrayList();
+    private final ObservableList<ActividadDto> enCurso      = FXCollections.observableArrayList();
+    private final ObservableList<ActividadDto> postergadas  = FXCollections.observableArrayList();
+    private final ObservableList<ActividadDto> finalizadas  = FXCollections.observableArrayList();
+
+    // Índice por id para DnD/actualizaciones
+    private final Map<Long, ActividadDto> porId = new ConcurrentHashMap<>();
 
     private ProyectoWS port;
     private ActividadDto actividadActual = null;
@@ -64,17 +75,16 @@ public class Ventana3Controller extends Controller {
     @Override
     public void initialize() {
         System.out.println("Inicializando Ventana3Controller...");
-        
+
         crearPort("http://localhost:8080/ProyectoService/ProyectoWS");
         configurarComboProyectos();
         configurarComboEstados();
-        configurarListaActividades();
+        configurarColumnasKanban();    // Kanban + DnD
         configurarSpinner();
         conectarEventos();
-        
-        // Configurar botones inicialmente para nueva actividad
         configurarBotonesParaNuevaActividad();
-        
+        enlazarEstadoConFormulario();  // mueve la tarjeta si se cambia el estado en el formulario
+
         cargarProyectos();
     }
 
@@ -84,10 +94,10 @@ public class Ventana3Controller extends Controller {
             this.port = svc.getProyectoWSPort();
             Map<String, Object> ctx = ((BindingProvider) port).getRequestContext();
             ctx.put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, endpointUrl);
-            
+
             System.out.println("[ProyectoWS.ping] => " + port.ping());
         } catch (Exception ex) {
-            System.err.println("Error creando conexión WebSocket:");
+            System.err.println("Error creando conexión con ProyectoWS:");
             ex.printStackTrace();
             mostrarError("Error de conexión", ex);
         }
@@ -95,66 +105,30 @@ public class Ventana3Controller extends Controller {
 
     private void configurarComboProyectos() {
         cbProyectos.setItems(proyectos);
-        
+
         cbProyectos.setCellFactory(listView -> new ListCell<ProyectoDto>() {
             @Override
             protected void updateItem(ProyectoDto proyecto, boolean empty) {
                 super.updateItem(proyecto, empty);
-                if (empty || proyecto == null) {
-                    setText(null);
-                } else {
-                    setText(nvl(proyecto.getNombre()));
-                }
+                setText((empty || proyecto == null) ? null : nvl(proyecto.getNombre()));
             }
         });
-        
+
         cbProyectos.setButtonCell(new ListCell<ProyectoDto>() {
             @Override
             protected void updateItem(ProyectoDto proyecto, boolean empty) {
                 super.updateItem(proyecto, empty);
-                if (empty || proyecto == null) {
-                    setText("Seleccionar proyecto...");
-                } else {
-                    setText(nvl(proyecto.getNombre()));
-                }
+                setText((empty || proyecto == null) ? "Seleccionar proyecto..." : nvl(proyecto.getNombre()));
             }
         });
     }
-        
+
+    // <<<<<< CAMBIO AQUÍ: evita duplicados en el ComboBox de estado >>>>>
     private void configurarComboEstados() {
-        cbEstadoActividad.getItems().addAll(
-            "PLANIFICADA", "EN_CURSO", "POSTERGADA", "FINALIZADA"
-        );
+        cbEstadoActividad.getItems().setAll("PLANIFICADA", "EN_CURSO", "POSTERGADA", "FINALIZADA");
         cbEstadoActividad.setValue("PLANIFICADA");
     }
-
-    private void configurarListaActividades() {
-        listaActividades.setItems(actividades);
-        
-        listaActividades.setCellFactory(listView -> new ListCell<ActividadDto>() {
-            @Override
-            protected void updateItem(ActividadDto actividad, boolean empty) {
-                super.updateItem(actividad, empty);
-                if (empty || actividad == null) {
-                    setText(null);
-                } else {
-                    String desc = nvl(actividad.getDescripcion());
-                    String estado = nvl(actividad.getEstado());
-                    String orden = actividad.getOrdenEjecucion() != null ? 
-                                  " (#" + actividad.getOrdenEjecucion() + ")" : "";
-                    setText(desc + orden + " - " + estado);
-                }
-            }
-        });
-
-        listaActividades.getSelectionModel().selectedItemProperty().addListener(
-            (observable, oldValue, newValue) -> {
-                if (newValue != null) {
-                    cargarActividadEnFormulario(newValue);
-                }
-            }
-        );
-    }
+    // <<<<<< FIN DEL CAMBIO >>>>>
 
     private void configurarSpinner() {
         spinnerOrden.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 999, 1));
@@ -164,8 +138,8 @@ public class Ventana3Controller extends Controller {
     private void conectarEventos() {
         btnCargarActividades.setOnAction(e -> cargarActividades());
         btnNuevaActividad.setOnAction(e -> {
-            limpiarFormulario(); // Esto también configura los botones correctamente
-            txtDescripcion.requestFocus(); // Enfocar el primer campo para empezar a escribir
+            limpiarFormulario();
+            txtDescripcion.requestFocus();
         });
         btnGuardarActividad.setOnAction(e -> guardarActividad());
         btnEditarActividad.setOnAction(e -> editarActividad());
@@ -173,40 +147,237 @@ public class Ventana3Controller extends Controller {
         btnLimpiar.setOnAction(e -> limpiarFormulario());
     }
 
+    private void configurarColumnasKanban() {
+        lvPlanificada.setItems(planificadas);
+        lvEnCurso.setItems(enCurso);
+        lvPostergada.setItems(postergadas);
+        lvFinalizada.setItems(finalizadas);
+
+        // Factory común de celdas con DnD
+        javafx.util.Callback<ListView<ActividadDto>, ListCell<ActividadDto>> factory = lv -> {
+            ListCell<ActividadDto> cell = new ListCell<>() {
+                @Override
+                protected void updateItem(ActividadDto a, boolean empty) {
+                    super.updateItem(a, empty);
+                    if (empty || a == null) {
+                        setText(null);
+                        setGraphic(null);
+                    } else {
+                        String orden = a.getOrdenEjecucion() != null ? ("#" + a.getOrdenEjecucion() + " ") : "";
+                        setText(orden + nvl(a.getDescripcion()));
+                    }
+                }
+            };
+
+            // Drag start
+            cell.setOnDragDetected(e -> {
+                ActividadDto a = cell.getItem();
+                if (a == null) return;
+                Dragboard db = cell.startDragAndDrop(TransferMode.MOVE);
+                ClipboardContent cc = new ClipboardContent();
+                cc.putString(String.valueOf(a.getId()));
+                db.setContent(cc);
+                e.consume();
+            });
+
+            // Drag over (acepta)
+            cell.setOnDragOver(e -> {
+                Dragboard db = e.getDragboard();
+                if (db.hasString()) e.acceptTransferModes(TransferMode.MOVE);
+                e.consume();
+            });
+
+            // Drop sobre una celda específica (inserción en índice)
+            cell.setOnDragDropped(e -> {
+                Dragboard db = e.getDragboard();
+                boolean success = false;
+                if (db.hasString()) {
+                    Long id = Long.valueOf(db.getString());
+                    ActividadDto dragged = porId.get(id);
+                    if (dragged != null) {
+                        @SuppressWarnings("unchecked")
+                        ListView<ActividadDto> targetList = (ListView<ActividadDto>) cell.getListView();
+                        ObservableList<ActividadDto> targetItems = targetList.getItems();
+
+                        ObservableList<ActividadDto> sourceItems = listOfEstado(dragged.getEstado());
+                        int dropIndex = cell.getIndex();
+                        if (dropIndex < 0 || dropIndex > targetItems.size()) dropIndex = targetItems.size();
+
+                        String nuevoEstado = estadoDeListView(targetList);
+                        moverEntreListas(dragged, sourceItems, targetItems, dropIndex, nuevoEstado);
+                        success = true;
+                    }
+                }
+                e.setDropCompleted(success);
+                e.consume();
+            });
+
+            // Click para cargar en formulario
+            cell.setOnMouseClicked(e -> {
+                if (cell.getItem() != null && e.getClickCount() == 1) {
+                    cargarActividadEnFormulario(cell.getItem());
+                }
+            });
+
+            return cell;
+        };
+
+        lvPlanificada.setCellFactory(factory);
+        lvEnCurso.setCellFactory(factory);
+        lvPostergada.setCellFactory(factory);
+        lvFinalizada.setCellFactory(factory);
+
+        // Drop en zona vacía (al final)
+        java.util.function.Consumer<ListView<ActividadDto>> setupEmptyDrop = lv -> {
+            lv.setOnDragOver(e -> {
+                if (e.getDragboard().hasString()) e.acceptTransferModes(TransferMode.MOVE);
+                e.consume();
+            });
+            lv.setOnDragDropped(e -> {
+                Dragboard db = e.getDragboard();
+                boolean success = false;
+                if (db.hasString()) {
+                    Long id = Long.valueOf(db.getString());
+                    ActividadDto dragged = porId.get(id);
+                    if (dragged != null) {
+                        ObservableList<ActividadDto> targetItems = lv.getItems();
+                        ObservableList<ActividadDto> sourceItems = listOfEstado(dragged.getEstado());
+                        int dropIndex = targetItems.size();
+                        String nuevoEstado = estadoDeListView(lv);
+                        moverEntreListas(dragged, sourceItems, targetItems, dropIndex, nuevoEstado);
+                        success = true;
+                    }
+                }
+                e.setDropCompleted(success);
+                e.consume();
+            });
+        };
+
+        setupEmptyDrop.accept(lvPlanificada);
+        setupEmptyDrop.accept(lvEnCurso);
+        setupEmptyDrop.accept(lvPostergada);
+        setupEmptyDrop.accept(lvFinalizada);
+    }
+
+    private void enlazarEstadoConFormulario() {
+        cbEstadoActividad.valueProperty().addListener((obs, oldV, newV) -> {
+            if (actividadActual == null || newV == null) return;
+            ObservableList<ActividadDto> source = listOfEstado(actividadActual.getEstado());
+            ObservableList<ActividadDto> target = listOfEstado(newV);
+            if (source != target) {
+                source.remove(actividadActual);
+                target.add(actividadActual);
+                actividadActual.setEstado(newV);
+                recomputarOrden(source);
+                recomputarOrden(target);
+            }
+        });
+    }
+
+    private ObservableList<ActividadDto> listOfEstado(String estado) {
+        return switch (estado) {
+            case "PLANIFICADA" -> planificadas;
+            case "EN_CURSO"    -> enCurso;
+            case "POSTERGADA"  -> postergadas;
+            case "FINALIZADA"  -> finalizadas;
+            default -> planificadas;
+        };
+    }
+
+    private String estadoDeListView(ListView<ActividadDto> lv) {
+        if (lv == lvPlanificada) return "PLANIFICADA";
+        if (lv == lvEnCurso)    return "EN_CURSO";
+        if (lv == lvPostergada) return "POSTERGADA";
+        if (lv == lvFinalizada) return "FINALIZADA";
+        return "PLANIFICADA";
+    }
+
+    private void moverEntreListas(ActividadDto a,
+                                  ObservableList<ActividadDto> source,
+                                  ObservableList<ActividadDto> target,
+                                  int dropIndex,
+                                  String nuevoEstado) {
+        // quitar de origen (si estaba)
+        source.remove(a);
+
+        // añadir al destino en índice indicado
+        if (dropIndex < 0 || dropIndex > target.size()) dropIndex = target.size();
+        target.add(dropIndex, a);
+
+        // actualizar estado si cambia
+        if (!nuevoEstado.equals(a.getEstado())) {
+            a.setEstado(nuevoEstado);
+        }
+
+        // recomputar orden en ambas listas
+        recomputarOrden(source);
+        recomputarOrden(target);
+
+        // persistir cambios (estado + orden)
+        persistirEstadoYOrden(a);
+    }
+
+    private void recomputarOrden(ObservableList<ActividadDto> items) {
+        for (int i = 0; i < items.size(); i++) {
+            items.get(i).setOrdenEjecucion(i + 1);
+        }
+    }
+
+    private void persistirEstadoYOrden(ActividadDto a) {
+        Task<ActividadDto> t = new Task<>() {
+            @Override
+            protected ActividadDto call() throws Exception {
+                RespuestaGeneral r = port.actualizarActividad(a);
+                if (r == null || !Boolean.TRUE.equals(r.isOk())) {
+                    String msj = (r != null && r.getMensaje() != null) ? r.getMensaje() : "Error al actualizar";
+                    throw new RuntimeException(msj);
+                }
+                return (ActividadDto) r.getData();
+            }
+        };
+        t.setOnSucceeded(ev -> {
+            ActividadDto actualizado = t.getValue();
+            if (actualizado != null && actualizado.getId() != null) {
+                porId.put(actualizado.getId(), actualizado);
+                ObservableList<ActividadDto> list = listOfEstado(actualizado.getEstado());
+                for (int i = 0; i < list.size(); i++) {
+                    if (Objects.equals(list.get(i).getId(), actualizado.getId())) {
+                        list.set(i, actualizado);
+                        break;
+                    }
+                }
+            }
+        });
+        t.setOnFailed(ev -> mostrarError("No se pudo actualizar actividad", t.getException()));
+        new Thread(t, "persistir-estado-orden").start();
+    }
+
     private void cargarProyectos() {
-        Task<List<ProyectoDto>> task = new Task<List<ProyectoDto>>() {
+        Task<List<ProyectoDto>> task = new Task<>() {
             @Override
             protected List<ProyectoDto> call() throws Exception {
                 System.out.println("Cargando proyectos...");
                 RespuestaGeneralLista r = port.obtenerTodosProyectos();
-                
-                if (r == null) {
-                    throw new RuntimeException("Sin respuesta del servidor");
-                }
-                
+                if (r == null) throw new RuntimeException("Sin respuesta del servidor");
+
                 System.out.println("[WS] ok=" + r.isOk() + " mensaje=" + r.getMensaje());
                 if (!Boolean.TRUE.equals(r.isOk())) {
                     String msj = r.getMensaje() != null ? r.getMensaje() : "Error al cargar proyectos";
                     throw new RuntimeException(msj);
                 }
-                
+
                 List<ProyectoDto> lista = tryGetListRobusto(r);
                 System.out.println("[WS] obtenerTodosProyectos -> " + (lista != null ? lista.size() : 0) + " proyectos");
                 return lista != null ? lista : new ArrayList<>();
             }
         };
-        
-        task.setOnSucceeded(e -> {
-            Platform.runLater(() -> {
-                proyectos.setAll(task.getValue());
-                System.out.println("Proyectos cargados: " + proyectos.size());
-            });
-        });
-        
-        task.setOnFailed(e -> {
-            mostrarError("Error cargando proyectos", task.getException());
-        });
-        
+
+        task.setOnSucceeded(e -> Platform.runLater(() -> {
+            proyectos.setAll(task.getValue());
+            System.out.println("Proyectos cargados: " + proyectos.size());
+        }));
+
+        task.setOnFailed(e -> mostrarError("Error cargando proyectos", task.getException()));
         new Thread(task, "cargar-proyectos").start();
     }
 
@@ -217,68 +388,89 @@ public class Ventana3Controller extends Controller {
             return;
         }
 
-        Task<List<ActividadDto>> task = new Task<List<ActividadDto>>() {
+        Task<List<ActividadDto>> task = new Task<>() {
             @Override
             protected List<ActividadDto> call() throws Exception {
                 System.out.println("Cargando actividades del proyecto ID: " + proyectoSeleccionado.getId());
-                
-                // Usar el método del WebService para obtener actividades
                 RespuestaGeneralLista r = port.obtenerActividadesPorProyecto(proyectoSeleccionado.getId());
-                
-                if (r == null) {
-                    throw new RuntimeException("Sin respuesta del servidor");
-                }
-                
+                if (r == null) throw new RuntimeException("Sin respuesta del servidor");
+
                 System.out.println("[WS] ok=" + r.isOk() + " mensaje=" + r.getMensaje());
                 if (!Boolean.TRUE.equals(r.isOk())) {
                     String msj = r.getMensaje() != null ? r.getMensaje() : "Error al cargar actividades";
                     throw new RuntimeException(msj);
                 }
-                
+
                 List<ActividadDto> lista = tryGetListRobusto(r);
                 System.out.println("[WS] obtenerActividadesPorProyecto -> " + (lista != null ? lista.size() : 0) + " actividades");
                 return lista != null ? lista : new ArrayList<>();
             }
         };
-        
-        task.setOnSucceeded(e -> {
-            Platform.runLater(() -> {
-                actividades.setAll(task.getValue());
-                limpiarFormulario(); // Esto ya configura los botones para nueva actividad
-                System.out.println("Actividades cargadas: " + actividades.size());
-                
-                if (actividades.isEmpty()) {
-                    mostrarInformacion("No se encontraron actividades para este proyecto");
+
+        task.setOnSucceeded(e -> Platform.runLater(() -> {
+            List<ActividadDto> lista = task.getValue();
+
+            planificadas.clear();
+            enCurso.clear();
+            postergadas.clear();
+            finalizadas.clear();
+            porId.clear();
+
+            for (ActividadDto a : lista) {
+                if (a.getId() != null) porId.put(a.getId(), a);
+                String est = nvl(a.getEstado());
+                switch (est) {
+                    case "PLANIFICADA" -> planificadas.add(a);
+                    case "EN_CURSO"    -> enCurso.add(a);
+                    case "POSTERGADA"  -> postergadas.add(a);
+                    case "FINALIZADA"  -> finalizadas.add(a);
+                    default            -> planificadas.add(a);
                 }
-            });
-        });
-        
-        task.setOnFailed(e -> {
-            mostrarError("Error cargando actividades", task.getException());
-        });
-        
+            }
+
+            ordenarPorOrden(planificadas);
+            ordenarPorOrden(enCurso);
+            ordenarPorOrden(postergadas);
+            ordenarPorOrden(finalizadas);
+
+            limpiarFormulario();
+            System.out.println("Actividades cargadas: " + lista.size());
+            if (lista.isEmpty()) {
+                mostrarInformacion("No se encontraron actividades para este proyecto");
+            }
+        }));
+
+        task.setOnFailed(e -> mostrarError("Error cargando actividades", task.getException()));
         new Thread(task, "cargar-actividades").start();
+    }
+
+    private void ordenarPorOrden(ObservableList<ActividadDto> list) {
+        FXCollections.sort(list, (a, b) -> {
+            Integer oa = a.getOrdenEjecucion() == null ? Integer.MAX_VALUE : a.getOrdenEjecucion();
+            Integer ob = b.getOrdenEjecucion() == null ? Integer.MAX_VALUE : b.getOrdenEjecucion();
+            return oa.compareTo(ob);
+        });
     }
 
     private void cargarActividadEnFormulario(ActividadDto actividad) {
         actividadActual = actividad;
-        
+
         txtDescripcion.setText(nvl(actividad.getDescripcion()));
         txtEncargado.setText(nvl(actividad.getEncargadoNombre()));
         txtEncargadoCorreo.setText(nvl(actividad.getEncargadoCorreo()));
         cbEstadoActividad.setValue(nvl(actividad.getEstado()));
-        
-        // Convertir fechas usando DateUtil
+
         fechaInicioPlanificada.setValue(dateToLocalDate(DateUtil.fromXml(actividad.getFechaInicioPlanificada())));
         fechaFinPlanificada.setValue(dateToLocalDate(DateUtil.fromXml(actividad.getFechaFinalPlanificada())));
         fechaInicioReal.setValue(dateToLocalDate(DateUtil.fromXml(actividad.getFechaInicioReal())));
         fechaFinReal.setValue(dateToLocalDate(DateUtil.fromXml(actividad.getFechaFinalReal())));
-        
+
         if (actividad.getOrdenEjecucion() != null) {
             spinnerOrden.getValueFactory().setValue(actividad.getOrdenEjecucion());
+        } else {
+            spinnerOrden.getValueFactory().setValue(1);
         }
-        
-        // Configurar botones para edición
+
         configurarBotonesParaEdicion();
     }
 
@@ -293,54 +485,42 @@ public class Ventana3Controller extends Controller {
         fechaInicioReal.setValue(null);
         fechaFinReal.setValue(null);
         spinnerOrden.getValueFactory().setValue(1);
-        listaActividades.getSelectionModel().clearSelection();
-        
-        // Configurar botones para nueva actividad
+
         configurarBotonesParaNuevaActividad();
     }
 
     private void guardarActividad() {
         if (!validarFormulario()) return;
-        
+
         ProyectoDto proyecto = cbProyectos.getValue();
         if (proyecto == null) {
             mostrarAdvertencia("Debe seleccionar un proyecto");
             return;
         }
 
-        Task<ActividadDto> task = new Task<ActividadDto>() {
+        Task<ActividadDto> task = new Task<>() {
             @Override
             protected ActividadDto call() throws Exception {
                 ActividadDto nuevaActividad = crearActividadDesdeFormulario();
                 nuevaActividad.setProyectoId(proyecto.getId());
-                
+
                 RespuestaGeneral r = port.crearActividad(nuevaActividad);
-                
-                if (r == null) {
-                    throw new RuntimeException("Sin respuesta del servidor");
-                }
-                
+                if (r == null) throw new RuntimeException("Sin respuesta del servidor");
                 if (!Boolean.TRUE.equals(r.isOk())) {
                     String msj = r.getMensaje() != null ? r.getMensaje() : "Error al crear actividad";
                     throw new RuntimeException(msj);
                 }
-                
                 return (ActividadDto) r.getData();
             }
         };
-        
-        task.setOnSucceeded(e -> {
-            Platform.runLater(() -> {
-                mostrarInformacion("Actividad creada exitosamente");
-                cargarActividades(); // Recargar la lista
-                limpiarFormulario();
-            });
-        });
-        
-        task.setOnFailed(e -> {
-            mostrarError("Error creando actividad", task.getException());
-        });
-        
+
+        task.setOnSucceeded(e -> Platform.runLater(() -> {
+            mostrarInformacion("Actividad creada exitosamente");
+            cargarActividades(); // simple y seguro
+            limpiarFormulario();
+        }));
+
+        task.setOnFailed(e -> mostrarError("Error creando actividad", task.getException()));
         new Thread(task, "crear-actividad").start();
     }
 
@@ -349,43 +529,33 @@ public class Ventana3Controller extends Controller {
             mostrarAdvertencia("Debe seleccionar una actividad para editar");
             return;
         }
-        
+
         if (!validarFormulario()) return;
-        
-        Task<ActividadDto> task = new Task<ActividadDto>() {
+
+        Task<ActividadDto> task = new Task<>() {
             @Override
             protected ActividadDto call() throws Exception {
                 ActividadDto actividadModificada = crearActividadDesdeFormulario();
                 actividadModificada.setId(actividadActual.getId());
                 actividadModificada.setProyectoId(actividadActual.getProyectoId());
-                
+
                 RespuestaGeneral r = port.actualizarActividad(actividadModificada);
-                
-                if (r == null) {
-                    throw new RuntimeException("Sin respuesta del servidor");
-                }
-                
+                if (r == null) throw new RuntimeException("Sin respuesta del servidor");
                 if (!Boolean.TRUE.equals(r.isOk())) {
                     String msj = r.getMensaje() != null ? r.getMensaje() : "Error al actualizar actividad";
                     throw new RuntimeException(msj);
                 }
-                
                 return (ActividadDto) r.getData();
             }
         };
-        
-        task.setOnSucceeded(e -> {
-            Platform.runLater(() -> {
-                mostrarInformacion("Actividad actualizada exitosamente");
-                cargarActividades(); // Recargar la lista
-                limpiarFormulario();
-            });
-        });
-        
-        task.setOnFailed(e -> {
-            mostrarError("Error actualizando actividad", task.getException());
-        });
-        
+
+        task.setOnSucceeded(e -> Platform.runLater(() -> {
+            mostrarInformacion("Actividad actualizada exitosamente");
+            cargarActividades();
+            limpiarFormulario();
+        }));
+
+        task.setOnFailed(e -> mostrarError("Error actualizando actividad", task.getException()));
         new Thread(task, "actualizar-actividad").start();
     }
 
@@ -394,61 +564,50 @@ public class Ventana3Controller extends Controller {
             mostrarAdvertencia("Debe seleccionar una actividad para eliminar");
             return;
         }
-        
+
         Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
         confirmacion.setHeaderText("Confirmar eliminación");
         confirmacion.setContentText("¿Está seguro que desea eliminar esta actividad?");
-        
+
         confirmacion.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
-                Task<Void> task = new Task<Void>() {
+                Task<Void> task = new Task<>() {
                     @Override
                     protected Void call() throws Exception {
                         RespuestaGeneral r = port.eliminarActividad(actividadActual.getId());
-                        
-                        if (r == null) {
-                            throw new RuntimeException("Sin respuesta del servidor");
-                        }
-                        
+                        if (r == null) throw new RuntimeException("Sin respuesta del servidor");
                         if (!Boolean.TRUE.equals(r.isOk())) {
                             String msj = r.getMensaje() != null ? r.getMensaje() : "Error al eliminar actividad";
                             throw new RuntimeException(msj);
                         }
-                        
                         return null;
                     }
                 };
-                
-                task.setOnSucceeded(e -> {
-                    Platform.runLater(() -> {
-                        mostrarInformacion("Actividad eliminada exitosamente");
-                        cargarActividades(); // Recargar la lista
-                        limpiarFormulario();
-                    });
-                });
-                
-                task.setOnFailed(e -> {
-                    mostrarError("Error eliminando actividad", task.getException());
-                });
-                
+
+                task.setOnSucceeded(e -> Platform.runLater(() -> {
+                    mostrarInformacion("Actividad eliminada exitosamente");
+                    cargarActividades();
+                    limpiarFormulario();
+                }));
+
+                task.setOnFailed(e -> mostrarError("Error eliminando actividad", task.getException()));
                 new Thread(task, "eliminar-actividad").start();
             }
         });
     }
-    
+
     private ActividadDto crearActividadDesdeFormulario() {
         ActividadDto actividad = new ActividadDto();
         actividad.setDescripcion(txtDescripcion.getText().trim());
         actividad.setEncargadoNombre(txtEncargado.getText().trim());
         actividad.setEncargadoCorreo(txtEncargadoCorreo.getText().trim());
         actividad.setEstado(cbEstadoActividad.getValue());
-        
-        // Convertir fechas usando DateUtil
+
         actividad.setFechaInicioPlanificada(DateUtil.toXml(localDateToDate(fechaInicioPlanificada.getValue())));
         actividad.setFechaFinalPlanificada(DateUtil.toXml(localDateToDate(fechaFinPlanificada.getValue())));
         actividad.setFechaInicioReal(DateUtil.toXml(localDateToDate(fechaInicioReal.getValue())));
         actividad.setFechaFinalReal(DateUtil.toXml(localDateToDate(fechaFinReal.getValue())));
-        
+
         actividad.setOrdenEjecucion(spinnerOrden.getValue());
         return actividad;
     }
@@ -459,45 +618,39 @@ public class Ventana3Controller extends Controller {
             txtDescripcion.requestFocus();
             return false;
         }
-        
+
         if (txtEncargado.getText().trim().isEmpty()) {
             mostrarAdvertencia("El nombre del encargado es obligatorio");
             txtEncargado.requestFocus();
             return false;
         }
-        
+
         if (txtEncargadoCorreo.getText().trim().isEmpty()) {
             mostrarAdvertencia("El correo del encargado es obligatorio");
             txtEncargadoCorreo.requestFocus();
             return false;
         }
-        
+
         if (fechaInicioPlanificada.getValue() == null) {
             mostrarAdvertencia("La fecha de inicio planificada es obligatoria");
             return false;
         }
-        
+
         if (fechaFinPlanificada.getValue() == null) {
             mostrarAdvertencia("La fecha de fin planificada es obligatoria");
             return false;
         }
-        
+
         return true;
     }
 
-    /**
-     * Configura los botones para cuando se está creando una nueva actividad
-     */
     private void configurarBotonesParaNuevaActividad() {
         btnGuardarActividad.setVisible(true);
         btnGuardarActividad.setDisable(false);
         btnEditarActividad.setVisible(false);
         btnEliminarActividad.setVisible(false);
     }
-    
-    /**
-     * Configura los botones para cuando se está editando una actividad existente
-     */
+
     private void configurarBotonesParaEdicion() {
         btnGuardarActividad.setVisible(false);
         btnEditarActividad.setVisible(true);
@@ -518,11 +671,9 @@ public class Ventana3Controller extends Controller {
             List<T> out = new ArrayList<>();
             for (Object o : l) {
                 try {
-                    @SuppressWarnings("unchecked")
                     T item = (T) o;
                     out.add(item);
-                } catch (ClassCastException ignore) {
-                }
+                } catch (ClassCastException ignore) {}
             }
             return out;
         }
@@ -544,11 +695,9 @@ public class Ventana3Controller extends Controller {
         return List.of();
     }
 
-    private String nvl(String s) { 
-        return s == null ? "" : s; 
-    }
+    private String nvl(String s) { return s == null ? "" : s; }
 
-    // Métodos simples para conversión Date <-> LocalDate (para JavaFX DatePicker)
+    // Date <-> LocalDate
     private LocalDate dateToLocalDate(Date date) {
         if (date == null) return null;
         return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
