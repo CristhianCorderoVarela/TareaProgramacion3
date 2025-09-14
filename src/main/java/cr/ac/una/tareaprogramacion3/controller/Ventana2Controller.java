@@ -1,3 +1,4 @@
+// Ventana2Controller.java
 package cr.ac.una.tareaprogramacion3.controller;
 
 import cr.ac.una.client.soap.AdministradorDto;
@@ -7,25 +8,25 @@ import cr.ac.una.tareaprogramacion3.service.AdministradorServiceCliente;
 import cr.ac.una.tareaprogramacion3.util.AdminMapper;
 import cr.ac.una.tareaprogramacion3.util.AlertUtil;
 import cr.ac.una.tareaprogramacion3.util.Controller;
-import cr.ac.una.tareaprogramacion3.util.SoapDataHelper;
 import cr.ac.una.tareaprogramacion3.util.ValidationUtil;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class Ventana2Controller extends Controller {
 
-    // === Formulario (ids EXACTOS como en tu FXML) ===
+    // === Form ===
     @FXML private TextField txtNombre;
     @FXML private TextField txtApellidos;
     @FXML private TextField txtCedula;
     @FXML private TextField txtCorreo;
     @FXML private TextField txtUsuario;
-    @FXML private PasswordField txtContrasena; // El WS de Admin no usa password en el DTO; lo dejamos visual/limpieza
+    @FXML private PasswordField txtContrasena; // visual
 
     @FXML private ComboBox<String> cbEstado;
 
@@ -43,13 +44,11 @@ public class Ventana2Controller extends Controller {
     @FXML private TableColumn<AdministradorModel, String> colUsuario;
     @FXML private TableColumn<AdministradorModel, String> colEstado;
 
-    // === Servicio y estado ===
     private final AdministradorServiceCliente adminSvc = new AdministradorServiceCliente();
     private final ObservableList<AdministradorModel> data = FXCollections.observableArrayList();
     private AdministradorModel seleccionado;
     private boolean avisoInicialMostrado = false;
 
-    // 2.2) Reemplaza initialize() por este
     @Override
     @FXML
     public void initialize() {
@@ -66,58 +65,50 @@ public class Ventana2Controller extends Controller {
         tabla.getSelectionModel().selectedItemProperty().addListener((obs, old, cur) -> {
             seleccionado = cur;
             if (cur != null) llenarFormulario(cur);
-    });
+        });
 
-    // Carga inicial segura
-    cargarTodos();
-}
+        cargarTodos();
+    }
 
-
-    // === CARGAS ===
-    // 2.3) Reemplaza cargarTodos() por este
-private void cargarTodos() {
-    try {
-        // 1) Si el servidor ni siquiera responde al ping, no intentamos cargar.
-        if (!adminSvc.isServerUp()) {
-            if (!avisoInicialMostrado) {
-                AlertUtil.warn("Aviso",
+    private void cargarTodos() {
+        try {
+            if (!adminSvc.isServerUp()) {
+                if (!avisoInicialMostrado) {
+                    AlertUtil.warn("Aviso",
                         "El servicio de Administradores no responde en:\n" +
                         adminSvc.getEndpoint() +
                         "\nAbre el servidor o corrige la ruta del servicio.");
+                    avisoInicialMostrado = true;
+                }
+                return;
+            }
+
+            List<AdministradorDto> lista = adminSvc.obtenerTodosList();
+
+            // STREAMS: ordenar por nombre y mapear a Model
+            data.setAll(
+                lista.stream()
+                     .sorted(Comparator.comparing(a -> a.getNombre() == null ? "" : a.getNombre()))
+                     .map(AdminMapper::toModel)
+                     .collect(Collectors.toList())
+            );
+
+            if (lista.isEmpty() && !avisoInicialMostrado) {
+                AlertUtil.warn("Aviso", "No hay administradores para mostrar.");
                 avisoInicialMostrado = true;
             }
-            return;
-        }
 
-        // 2) Llamada real
-        RespuestaGeneral resp = adminSvc.obtenerTodos();
-
-        // 3) Procesar respuesta
-        if (resp != null && resp.isOk()) {
-            List<AdministradorDto> lista = SoapDataHelper.asAdminList(resp.getData());
-            data.setAll(lista.stream().map(AdminMapper::toModel).collect(Collectors.toList()));
-        } else {
+        } catch (Exception ex) {
             if (!avisoInicialMostrado) {
-                String msg = (resp != null && resp.getMensaje() != null && !resp.getMensaje().isBlank())
-                        ? resp.getMensaje()
-                        : "No se pudieron cargar los administradores.";
-                AlertUtil.warn("Aviso", msg);
-                avisoInicialMostrado = true;
-            }
-        }
-    } catch (Exception ex) {
-        // Cualquier fallo tipo “Envelope”, 404, etc. -> un solo aviso
-        if (!avisoInicialMostrado) {
-            AlertUtil.error("Error",
+                AlertUtil.error("Error",
                     "Fallo al consultar el servicio en:\n" + adminSvc.getEndpoint() +
                     "\n\nDetalle: " + ex.getMessage());
-            avisoInicialMostrado = true;
+                avisoInicialMostrado = true;
+            }
         }
     }
-}
 
-
-    // === FORM ===
+    // === Form helpers ===
     private void llenarFormulario(AdministradorModel m) {
         txtNombre.setText(m.getNombre());
         txtApellidos.setText(m.getApellidos());
@@ -125,7 +116,7 @@ private void cargarTodos() {
         txtCorreo.setText(m.getCorreo());
         txtUsuario.setText(m.getUsuario());
         cbEstado.getSelectionModel().select(m.getEstado());
-        if (txtContrasena != null) txtContrasena.clear(); // El DTO no maneja password; limpiamos por seguridad
+        if (txtContrasena != null) txtContrasena.clear();
     }
 
     private AdministradorModel leerFormulario() {
@@ -160,19 +151,19 @@ private void cargarTodos() {
             & ValidationUtil.require(cbEstado,"Estado");
     }
 
-    // === BOTONES ===
+    // === Botones ===
     @FXML private void onAgregar() {
         if (!validar()) return;
-        seleccionado = null; // Forzamos "nuevo"
+        seleccionado = null;
         AdministradorDto dto = AdminMapper.toDto(leerFormulario());
         dto.setId(null);
         RespuestaGeneral resp = adminSvc.crear(dto);
-        if (resp.isOk()) {
+        if (resp != null && Boolean.TRUE.equals(resp.isOk())) {
             AlertUtil.info("Listo", msg(resp.getMensaje(), "Administrador creado."));
             cargarTodos();
             limpiarFormulario();
         } else {
-            AlertUtil.error("Error", msg(resp.getMensaje(), "No se pudo crear."));
+            AlertUtil.error("Error", msg(resp != null ? resp.getMensaje() : null, "No se pudo crear."));
         }
     }
 
@@ -183,14 +174,13 @@ private void cargarTodos() {
         }
         if (!validar()) return;
         AdministradorDto dto = AdminMapper.toDto(leerFormulario());
-        // dto.setPassword(?) -> El DTO no lo tiene. Si el WS requiere password, se maneja por otro endpoint/campo.
         RespuestaGeneral resp = adminSvc.actualizar(dto);
-        if (resp.isOk()) {
+        if (resp != null && Boolean.TRUE.equals(resp.isOk())) {
             AlertUtil.info("Listo", msg(resp.getMensaje(), "Cambios guardados."));
             cargarTodos();
             limpiarFormulario();
         } else {
-            AlertUtil.error("Error", msg(resp.getMensaje(), "No se pudo actualizar."));
+            AlertUtil.error("Error", msg(resp != null ? resp.getMensaje() : null, "No se pudo actualizar."));
         }
     }
 
@@ -202,16 +192,15 @@ private void cargarTodos() {
         if (!AlertUtil.confirm("Confirmar", "¿Eliminar el administrador seleccionado?")) return;
 
         RespuestaGeneral resp = adminSvc.eliminar(seleccionado.getId());
-        if (resp.isOk()) {
+        if (resp != null && Boolean.TRUE.equals(resp.isOk())) {
             AlertUtil.info("Listo", msg(resp.getMensaje(), "Eliminado con éxito."));
             cargarTodos();
             limpiarFormulario();
         } else {
-            AlertUtil.error("Error", msg(resp.getMensaje(), "No se pudo eliminar."));
+            AlertUtil.error("Error", msg(resp != null ? resp.getMensaje() : null, "No se pudo eliminar."));
         }
     }
 
-    // Mensaje por defecto si viene nulo/vacío
     private String msg(String original, String fallback) {
         return (original != null && !original.isBlank()) ? original : fallback;
     }

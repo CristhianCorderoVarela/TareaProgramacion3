@@ -1,3 +1,4 @@
+// AdministradorServiceCliente.java (cliente JavaFX)
 package cr.ac.una.tareaprogramacion3.service;
 
 import cr.ac.una.client.soap.AdministradorDto;
@@ -6,35 +7,40 @@ import cr.ac.una.client.soap.AdministradorWS;
 import cr.ac.una.client.soap.RespuestaGeneral;
 
 import jakarta.xml.ws.BindingProvider;
+import java.util.Collections;
+import java.util.List;
 
 public class AdministradorServiceCliente {
-    private final AdministradorWS port;
 
-    public AdministradorServiceCliente() {
-        this.port = new AdministradorService().getAdministradorWSPort();
-        // OJO: no forzamos URL. Usamos la que viene del WSDL.
-    }
+    // Usa localhost para que funcione donde se despliegue el WS localmente
+    private String endpoint = "http://localhost:8080/AdministradorService/AdministradorWS";
 
-    /** Para mostrar en mensajes a qué URL está llamando el cliente realmente. */
-    public String getEndpoint() {
-        try {
-            Object v = ((BindingProvider) port).getRequestContext()
-                    .get(BindingProvider.ENDPOINT_ADDRESS_PROPERTY);
-            return v != null ? v.toString() : "desconocido";
-        } catch (Exception e) {
-            return "desconocido";
-        }
+    public String getEndpoint() { return endpoint; }
+    public void setEndpoint(String url) { this.endpoint = url; }
+
+    private AdministradorWS port() {
+        AdministradorService svc = new AdministradorService();
+        AdministradorWS p = svc.getAdministradorWSPort();
+        ((BindingProvider)p).getRequestContext().put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, endpoint);
+        return p;
     }
 
     public boolean isServerUp() {
-        try { return port.ping() != null; } catch (Exception e) { return false; }
+        try { port().ping(); return true; } catch (Exception e) { return false; }
     }
 
-    // --- Operaciones CRUD simples (sin adornos) ---
-    public RespuestaGeneral obtenerTodos() { return port.obtenerTodosAdministradores(); }
-    public RespuestaGeneral buscar(String filtro) { return port.buscarAdministradores(filtro); }
-    public RespuestaGeneral buscarPorId(Long id) { return port.buscarAdministradorPorId(id); }
-    public RespuestaGeneral crear(AdministradorDto dto) { return port.crearAdministrador(dto); }
-    public RespuestaGeneral actualizar(AdministradorDto dto) { return port.actualizarAdministrador(dto); }
-    public RespuestaGeneral eliminar(Long id) { return port.eliminarAdministrador(id); }
+    // --- Listado plano ---
+    public List<AdministradorDto> obtenerTodosList() {
+        try {
+            List<AdministradorDto> lista = port().obtenerTodosPlano();
+            return (lista != null) ? lista : Collections.emptyList();
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
+    }
+
+    // --- CRUD envueltos en RespuestaGeneral (generados por wsimport) ---
+    public RespuestaGeneral crear(AdministradorDto dto)      { return port().crearAdministrador(dto); }
+    public RespuestaGeneral actualizar(AdministradorDto dto)  { return port().actualizarAdministrador(dto); }
+    public RespuestaGeneral eliminar(Long id)                 { return port().eliminarAdministrador(id); }
 }
