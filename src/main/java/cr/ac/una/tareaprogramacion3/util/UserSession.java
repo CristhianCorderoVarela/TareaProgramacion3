@@ -16,5 +16,13 @@ public final class UserSession {
     public AdministradorDto getAdmin() { return admin; }
     public void setAdmin(AdministradorDto admin) { this.admin = admin; }
     public void clear() { this.admin = null; }
-}
 
+    // Getters usados en Ventana4Controller
+    public Long getAdminId() { return admin != null ? admin.getId() : null; }
+    public String getAdminNombre() {
+        if (admin == null) return null;
+        String n = admin.getNombre() != null ? admin.getNombre() : "";
+        String a = admin.getApellidos() != null ? admin.getApellidos() : "";
+        return (n + " " + a).trim();
+    }
+}
