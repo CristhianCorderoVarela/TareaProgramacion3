@@ -74,8 +74,11 @@ public class Ventana4Controller extends Controller implements Initializable {
         prepararEventos();
         prepararResponsableDesdeSesion();
         limpiarFormulario();
-        cargarProyectos();               // <- carga al entrar
+        cargarProyectos();               // carga al entrar
     }
+
+    // (Método sin-args opcional; no marca @Override para evitar conflictos si la base no lo declara)
+    public void initialize() { /* no-op */ }
 
     private void prepararResponsableDesdeSesion() {
         try {
@@ -151,7 +154,7 @@ public class Ventana4Controller extends Controller implements Initializable {
         try {
             Object r = proyPort().obtenerTodosProyectos();
             debugIfEmpty("Proyectos", r);
-            List<ProyectoDto> lista = castList(respList(r));
+            List<ProyectoDto> lista = castList(respListGeneric(r));
             cbProyectos.getItems().setAll(lista);
             if (!lista.isEmpty())
                 cbProyectos.getSelectionModel().selectFirst();
@@ -167,8 +170,8 @@ public class Ventana4Controller extends Controller implements Initializable {
         if (p == null || p.getId() == null) { warn("Seleccione un proyecto."); return; }
         try {
             Object r = segPort().buscarSeguimientosPorProyecto(p.getId());
-            debugIfEmpty("Seguimientos", r);
-            List<SeguimientoProyectoDto> lista = castList(respList(r));
+            List<SeguimientoProyectoDto> lista = respListOf(r, SeguimientoProyectoDto.class);
+            System.out.println("[Ventana4] Seguimientos cargados: " + lista.size());
             tablaSeguimientos.getItems().setAll(lista);
         } catch (Exception ex) {
             error("Error consultando seguimientos", ex.getMessage());
@@ -192,12 +195,13 @@ public class Ventana4Controller extends Controller implements Initializable {
 
         try {
             Object res = segPort().crearSeguimiento(dto);
-            if (respOk(res) || !respList(res).isEmpty()) {
+            if (respOk(res)) {
                 info("Seguimiento guardado.");
                 cargarSeguimientos();
                 limpiarFormulario();
             } else {
-                warn(respMsg(res) != null ? respMsg(res) : "No se pudo guardar.");
+                String m = respMsg(res);
+                warn(m != null ? m : "No se pudo guardar.");
             }
         } catch (Exception ex) {
             error("Error al guardar", ex.getMessage());
@@ -215,11 +219,12 @@ public class Ventana4Controller extends Controller implements Initializable {
 
         try {
             Object res = segPort().actualizarSeguimiento(sel);
-            if (respOk(res) || !respList(res).isEmpty()) {
+            if (respOk(res)) {
                 info("Seguimiento actualizado.");
                 cargarSeguimientos();
             } else {
-                warn(respMsg(res) != null ? respMsg(res) : "No se pudo actualizar.");
+                String m = respMsg(res);
+                warn(m != null ? m : "No se pudo actualizar.");
             }
         } catch (Exception ex) {
             error("Error al actualizar", ex.getMessage());
@@ -239,7 +244,8 @@ public class Ventana4Controller extends Controller implements Initializable {
                 cargarSeguimientos();
                 limpiarFormulario();
             } else {
-                warn(respMsg(res) != null ? respMsg(res) : "No se pudo eliminar.");
+                String m = respMsg(res);
+                warn(m != null ? m : "No se pudo eliminar.");
             }
         } catch (Exception ex) {
             error("Error al eliminar", ex.getMessage());
@@ -270,8 +276,11 @@ public class Ventana4Controller extends Controller implements Initializable {
         return m == null ? null : String.valueOf(m);
     }
 
+    /**
+     * Lista genérica para respuestas "simples" (getData, getLista, etc.) — útil para proyectos.
+     */
     @SuppressWarnings("unchecked")
-    private static <T> List<T> respList(Object resp) {
+    private static <T> List<T> respListGeneric(Object resp) {
         Object data = callNoArg(resp,
                 "getData", "getDatos", "getLista", "getItems", "getProyectos", "getSeguimientos");
         if (data == null) return Collections.emptyList();
@@ -282,10 +291,41 @@ public class Ventana4Controller extends Controller implements Initializable {
             for (int i = 0; i < n; i++) out.add((T) Array.get(data, i));
             return out;
         }
-        // Algunos stubs devuelven envoltorios con "getItem()"
         Object item = callNoArg(data, "getItem");
         if (item instanceof List) return (List<T>) item;
         return Collections.emptyList();
+    }
+
+    /**
+     * Extrae y filtra por tipo desde respuestas "mixtas" (como RespuestaWsLista#getProyectoOrSeguimientoOrActividad()).
+     */
+    @SuppressWarnings("unchecked")
+    private static <T> List<T> respListOf(Object resp, Class<T> type) {
+        if (resp == null) return Collections.emptyList();
+
+        Object data = callNoArg(resp,
+                // genéricos
+                "getData", "getDatos", "getLista", "getItems",
+                // específico del WS generado
+                "getProyectoOrSeguimientoOrActividad"
+        );
+
+        List<T> out = new ArrayList<>();
+        if (data instanceof List<?> list) {
+            for (Object o : list) {
+                // manejar posibles JAXBElement (Jakarta JAXB en JAX-WS 4)
+                if (o instanceof jakarta.xml.bind.JAXBElement<?> j) o = j.getValue();
+                if (o != null && type.isInstance(o)) out.add(type.cast(o));
+            }
+        } else if (data != null && data.getClass().isArray()) {
+            int n = Array.getLength(data);
+            for (int i = 0; i < n; i++) {
+                Object o = Array.get(data, i);
+                if (o instanceof jakarta.xml.bind.JAXBElement<?> j) o = j.getValue();
+                if (o != null && type.isInstance(o)) out.add(type.cast(o));
+            }
+        }
+        return out;
     }
 
     private static Object callNoArg(Object target, String... names) {
@@ -333,13 +373,12 @@ public class Ventana4Controller extends Controller implements Initializable {
     // ====== Debug útil si algo viene vacío ======
     private void debugIfEmpty(String quien, Object resp) {
         try {
-            List<?> l = respList(resp);
+            List<?> l = respListGeneric(resp);
             Boolean ok = respOk(resp);
             System.out.println("[Ventana4] " + quien + " -> resp=" +
                     (resp != null ? resp.getClass().getName() : "null") +
                     " ok=" + ok + " size=" + (l != null ? l.size() : -1));
             if (l == null || l.isEmpty()) {
-                // lista getters por si necesitamos ajustar
                 if (resp != null) {
                     StringBuilder sb = new StringBuilder();
                     sb.append("Clase: ").append(resp.getClass().getName()).append("\nGetters:\n");
@@ -347,8 +386,6 @@ public class Ventana4Controller extends Controller implements Initializable {
                         if (m.getParameterCount() == 0 && (m.getName().startsWith("get") || m.getName().startsWith("is")))
                             sb.append("• ").append(m.getName()).append("\n");
                     }
-                    // Solo informa una vez visualmente
-                    // info(sb.toString());  // descomenta si quieres verlo en un popup
                     System.out.println(sb);
                 }
             }
@@ -361,10 +398,4 @@ public class Ventana4Controller extends Controller implements Initializable {
     private void info(String m){ Alert a=new Alert(Alert.AlertType.INFORMATION,"",ButtonType.OK); a.setHeaderText(null); a.setContentText(m); a.showAndWait(); }
     private void warn(String m){ Alert a=new Alert(Alert.AlertType.WARNING,"",ButtonType.OK); a.setHeaderText(null); a.setContentText(m); a.showAndWait(); }
     private void error(String t,String d){ Alert a=new Alert(Alert.AlertType.ERROR,"",ButtonType.OK); a.setHeaderText(t); a.setContentText(d!=null?d:""); a.showAndWait(); }
-
-    @Override
-public void initialize() {
-    // requerido por la clase base Controller.
-    // La configuración real se hace en initialize(URL, ResourceBundle).
-}
 }
