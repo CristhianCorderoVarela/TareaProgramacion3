@@ -1,4 +1,3 @@
-// Ventana2Controller.java
 package cr.ac.una.tareaprogramacion3.controller;
 
 import cr.ac.una.client.soap.AdministradorDto;
@@ -27,7 +26,6 @@ public class Ventana2Controller extends Controller {
     @FXML private TextField txtCorreo;
     @FXML private TextField txtUsuario;
     @FXML private PasswordField txtContrasena; // visual
-
     @FXML private ComboBox<String> cbEstado;
 
     // === Botones ===
@@ -115,7 +113,7 @@ public class Ventana2Controller extends Controller {
         txtCorreo.setText(m.getCorreo());
         txtUsuario.setText(m.getUsuario());
         cbEstado.getSelectionModel().select(m.getEstado());
-        if (txtContrasena != null) txtContrasena.clear();
+        if (txtContrasena != null) txtContrasena.clear(); // nunca mostramos la contraseña
     }
 
     private AdministradorModel leerFormulario() {
@@ -151,7 +149,7 @@ public class Ventana2Controller extends Controller {
             & ValidationUtil.require(txtUsuario,"Usuario")
             & ValidationUtil.require(cbEstado,"Estado");
 
-        // Requerir contraseña solo al crear (seleccionado == null)
+        // Contraseña obligatoria solo al crear (seleccionado == null)
         if (seleccionado == null) {
             ok &= ValidationUtil.require(txtContrasena, "Contraseña");
         }
@@ -160,22 +158,21 @@ public class Ventana2Controller extends Controller {
 
     // === Botones ===
     @FXML private void onAgregar() {
-        // IMPORTANTE: marcar como "creación" ANTES de validar
+        // marcar como "creación" ANTES de validar
         seleccionado = null;
-
         if (!validar()) return;
 
         AdministradorDto dto = AdminMapper.toDto(leerFormulario());
         dto.setId(null);
 
-        // Requiere que hayas regenerado los stubs para que exista el setter:
+        // Requiere stubs actualizados (wsimport) para que exista este setter
         dto.setPasswordPlain(txtContrasena.getText());
 
         RespuestaGeneral resp = adminSvc.crear(dto);
         if (resp != null && Boolean.TRUE.equals(resp.isOk())) {
             AlertUtil.info("Listo", msg(resp.getMensaje(), "Administrador creado."));
             cargarTodos();
-            limpiarFormulario(); // limpia también la contraseña
+            limpiarFormulario();
         } else {
             AlertUtil.error("Error", msg(resp != null ? resp.getMensaje() : null, "No se pudo crear."));
         }
@@ -190,10 +187,10 @@ public class Ventana2Controller extends Controller {
 
         AdministradorDto dto = AdminMapper.toDto(leerFormulario());
 
-        // Si quisieras permitir cambio de contraseña en edición:
-        // if (txtContrasena.getText() != null && !txtContrasena.getText().isBlank()) {
-        //     dto.setPasswordPlain(txtContrasena.getText());
-        // }
+        // Si deseas permitir cambio de contraseña en edición, descomenta:
+        if (txtContrasena.getText() != null && !txtContrasena.getText().isBlank()) {
+            dto.setPasswordPlain(txtContrasena.getText());
+        }
 
         RespuestaGeneral resp = adminSvc.actualizar(dto);
         if (resp != null && Boolean.TRUE.equals(resp.isOk())) {
