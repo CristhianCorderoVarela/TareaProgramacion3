@@ -79,7 +79,7 @@
                     <HBox spacing="10">
                         <Button fx:id="btnAgregar" text="Agregar" onAction="#onAgregar"
                                 style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;"/>
-                        <Button fx:id="btnEditar" text="Editar" onAction="#onEditar"
+                        <Button fx:id="btnEditar" text="Actualizar" onAction="#onEditar"
                                 style="-fx-background-color: #2980b9; -fx-text-fill: white; -fx-font-weight: bold;"/>
                         <Button fx:id="btnEliminar" text="Eliminar" onAction="#onEliminar"
                                 style="-fx-background-color: #c0392b; -fx-text-fill: white; -fx-font-weight: bold;"/>
