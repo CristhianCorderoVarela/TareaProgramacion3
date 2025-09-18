@@ -25,13 +25,10 @@ public class Ventana2Controller extends Controller {
     @FXML private TextField txtCedula;
     @FXML private TextField txtCorreo;
     @FXML private TextField txtUsuario;
-
+    @FXML private PasswordField txtContrasena;      // nueva/crear o cambio
+    @FXML private PasswordField txtContrasenaConf;  // confirmación
+    @FXML private CheckBox chkCambiarPass;          // habilita cambio al editar
     @FXML private ComboBox<String> cbEstado;
-
-    // Contraseña (UI)
-    @FXML private CheckBox chkCambiarPass;        // NUEVO
-    @FXML private PasswordField txtContrasena;    // NUEVO (nueva)
-    @FXML private PasswordField txtContrasenaConf;// NUEVO (confirmación)
 
     // === Botones ===
     @FXML private Button btnAgregar;
@@ -65,23 +62,70 @@ public class Ventana2Controller extends Controller {
         colEstado.setCellValueFactory(c -> c.getValue().estadoProperty());
         tabla.setItems(data);
 
+        // Listener de selección de tabla
         tabla.getSelectionModel().selectedItemProperty().addListener((obs, old, cur) -> {
             seleccionado = cur;
             if (cur != null) {
                 llenarFormulario(cur);
-                configurarModoEdicion();
+                setModoEditar();
             } else {
-                configurarModoCreacion();
+                setModoCrear();
             }
         });
 
+        // Habilitar/deshabilitar campos de contraseña al marcar el checkbox
         if (chkCambiarPass != null) {
-            chkCambiarPass.selectedProperty().addListener((o, a, b) -> updatePasswordControls());
+            chkCambiarPass.selectedProperty().addListener((o, ov, nv) -> updatePassControls());
         }
 
         cargarTodos();
-        configurarModoCreacion(); // al iniciar, sin selección => crear
+        setModoCrear(); // estado inicial
     }
+
+    /* ===================  MODO UI  =================== */
+
+    private void setModoCrear() {
+        // botones
+        btnAgregar.setDisable(false);
+        btnEditar.setDisable(true);
+        btnEliminar.setDisable(true);
+
+        // checkbox visible y desmarcado (para crear no aplica, pero dejamos activo)
+        if (chkCambiarPass != null) chkCambiarPass.setSelected(true); // crear SI requiere contraseña
+        // al crear necesitamos habilitar cajas de contraseña
+        enablePasswordFields(true);
+    }
+
+    private void setModoEditar() {
+        // botones
+        btnAgregar.setDisable(true);
+        btnEditar.setDisable(false);
+        btnEliminar.setDisable(false);
+
+        // al entrar a editar, no cambiar contraseña por defecto
+        if (chkCambiarPass != null) chkCambiarPass.setSelected(false);
+        // deshabilitar cajas hasta que marquen el check
+        enablePasswordFields(false);
+    }
+
+    private void updatePassControls() {
+        // solo relevante en edición; en creación ya están habilitadas
+        if (seleccionado != null) {
+            boolean enable = chkCambiarPass != null && chkCambiarPass.isSelected();
+            enablePasswordFields(enable);
+            if (!enable) {
+                if (txtContrasena != null) txtContrasena.clear();
+                if (txtContrasenaConf != null) txtContrasenaConf.clear();
+            }
+        }
+    }
+
+    private void enablePasswordFields(boolean enable) {
+        if (txtContrasena != null) txtContrasena.setDisable(!enable);
+        if (txtContrasenaConf != null) txtContrasenaConf.setDisable(!enable);
+    }
+
+    /* ===================  CARGA / FORM  =================== */
 
     private void cargarTodos() {
         try {
@@ -100,9 +144,9 @@ public class Ventana2Controller extends Controller {
 
             data.setAll(
                 lista.stream()
-                    .sorted(Comparator.comparing(a -> a.getNombre() == null ? "" : a.getNombre()))
-                    .map(AdminMapper::toModel)
-                    .collect(Collectors.toList())
+                     .sorted(Comparator.comparing(a -> a.getNombre() == null ? "" : a.getNombre()))
+                     .map(AdminMapper::toModel)
+                     .collect(Collectors.toList())
             );
 
             if (lista.isEmpty() && !avisoInicialMostrado) {
@@ -120,7 +164,6 @@ public class Ventana2Controller extends Controller {
         }
     }
 
-    // === Form helpers ===
     private void llenarFormulario(AdministradorModel m) {
         txtNombre.setText(m.getNombre());
         txtApellidos.setText(m.getApellidos());
@@ -128,7 +171,8 @@ public class Ventana2Controller extends Controller {
         txtCorreo.setText(m.getCorreo());
         txtUsuario.setText(m.getUsuario());
         cbEstado.getSelectionModel().select(m.getEstado());
-        clearPasswords(); // nunca mostramos contraseña actual
+        if (txtContrasena != null) txtContrasena.clear();         // nunca mostramos contraseña
+        if (txtContrasenaConf != null) txtContrasenaConf.clear(); // idem
     }
 
     private AdministradorModel leerFormulario() {
@@ -151,45 +195,14 @@ public class Ventana2Controller extends Controller {
         txtCedula.clear();
         txtCorreo.clear();
         txtUsuario.clear();
-        cbEstado.getSelectionModel().clearSelection();
-        tabla.getSelectionModel().clearSelection();
-        clearPasswords();
-        configurarModoCreacion();
-    }
-
-    private void clearPasswords() {
         if (txtContrasena != null) txtContrasena.clear();
         if (txtContrasenaConf != null) txtContrasenaConf.clear();
+        cbEstado.getSelectionModel().clearSelection();
+        tabla.getSelectionModel().clearSelection();
+        setModoCrear();
     }
 
-    // === Modo creación / edición ===
-    private void configurarModoCreacion() {
-        if (chkCambiarPass != null) {
-            chkCambiarPass.setSelected(true);  // crear => SIEMPRE pide pass
-            chkCambiarPass.setDisable(true);   // bloqueado en crear
-        }
-        updatePasswordControls();
-    }
-
-    private void configurarModoEdicion() {
-        if (chkCambiarPass != null) {
-            chkCambiarPass.setDisable(false);  // editable
-            chkCambiarPass.setSelected(false); // por defecto NO cambiar
-        }
-        updatePasswordControls();
-    }
-
-    private void updatePasswordControls() {
-        boolean needPass = (seleccionado == null) || (chkCambiarPass != null && chkCambiarPass.isSelected());
-        if (txtContrasena != null) {
-            txtContrasena.setDisable(!needPass);
-            if (!needPass) txtContrasena.clear();
-        }
-        if (txtContrasenaConf != null) {
-            txtContrasenaConf.setDisable(!needPass);
-            if (!needPass) txtContrasenaConf.clear();
-        }
-    }
+    /* ===================  VALIDACIÓN  =================== */
 
     private boolean validar() {
         boolean ok =  ValidationUtil.require(txtNombre,"Nombre")
@@ -199,15 +212,21 @@ public class Ventana2Controller extends Controller {
             & ValidationUtil.require(txtUsuario,"Usuario")
             & ValidationUtil.require(cbEstado,"Estado");
 
-        boolean needPass = (seleccionado == null) || (chkCambiarPass != null && chkCambiarPass.isSelected());
-        if (needPass) {
+        // Crear: contraseña obligatoria y debe coincidir con confirmación
+        if (seleccionado == null) {
             ok &= ValidationUtil.require(txtContrasena, "Contraseña");
             ok &= ValidationUtil.require(txtContrasenaConf, "Confirmación");
-            if (ok) {
-                String p1 = txtContrasena.getText();
-                String p2 = txtContrasenaConf.getText();
-                if (p1 != null && p2 != null && !p1.equals(p2)) {
-                    AlertUtil.warn("Atención", "Las contraseñas no coinciden.");
+            if (ok && !txtContrasena.getText().equals(txtContrasenaConf.getText())) {
+                AlertUtil.warn("Atención", "La confirmación de contraseña no coincide.");
+                ok = false;
+            }
+        } else {
+            // Editar: si marcaron cambiar, validar ambas y que coincidan
+            if (chkCambiarPass != null && chkCambiarPass.isSelected()) {
+                ok &= ValidationUtil.require(txtContrasena, "Contraseña");
+                ok &= ValidationUtil.require(txtContrasenaConf, "Confirmación");
+                if (ok && !txtContrasena.getText().equals(txtContrasenaConf.getText())) {
+                    AlertUtil.warn("Atención", "La confirmación de contraseña no coincide.");
                     ok = false;
                 }
             }
@@ -215,15 +234,16 @@ public class Ventana2Controller extends Controller {
         return ok;
     }
 
-    // === Botones ===
+    /* ===================  BOTONES  =================== */
+
     @FXML private void onAgregar() {
-        // modo creación
+        // forzar modo creación
         seleccionado = null;
         if (!validar()) return;
 
         AdministradorDto dto = AdminMapper.toDto(leerFormulario());
         dto.setId(null);
-        dto.setPasswordPlain(txtContrasena.getText()); // obligatorio al crear
+        dto.setPasswordPlain(txtContrasena.getText());
 
         RespuestaGeneral resp = adminSvc.crear(dto);
         if (resp != null && Boolean.TRUE.equals(resp.isOk())) {
@@ -243,8 +263,7 @@ public class Ventana2Controller extends Controller {
         if (!validar()) return;
 
         AdministradorDto dto = AdminMapper.toDto(leerFormulario());
-
-        // Solo enviar pass si el check está marcado (y ya validamos coincidencia)
+        // En edición, solo enviar password si marcaron cambiar
         if (chkCambiarPass != null && chkCambiarPass.isSelected()) {
             dto.setPasswordPlain(txtContrasena.getText());
         }
