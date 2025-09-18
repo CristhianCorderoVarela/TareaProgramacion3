@@ -33,8 +33,8 @@ public class PrincipalViewController extends Controller {
 
         // Carga por defecto: WelcomeView
         Platform.runLater(() -> {
-            FlowController.getInstance().limpiarLoader("WelcomeView");
-            FlowController.getInstance().goView("WelcomeView");
+            FlowController.getInstance().limpiarLoader("Ventana5");
+        FlowController.getInstance().goView("Ventana5");
         });
     }
 
@@ -42,8 +42,8 @@ public class PrincipalViewController extends Controller {
 
     @FXML
     private void onActionBtnHome(ActionEvent e) {
-        FlowController.getInstance().limpiarLoader("WelcomeView");
-        FlowController.getInstance().goView("WelcomeView");
+        FlowController.getInstance().limpiarLoader("Ventana5");
+        FlowController.getInstance().goView("Ventana5");
     }
 
     @FXML
