@@ -79,7 +79,7 @@
                     <HBox spacing="10">
                         <Button fx:id="btnAgregar" text="Agregar" onAction="#onAgregar"
                                 style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;"/>
-                        <Button fx:id="btnEditar" text="Guardar" onAction="#onEditar"
+                        <Button fx:id="btnEditar" text="Editar" onAction="#onEditar"
                                 style="-fx-background-color: #2980b9; -fx-text-fill: white; -fx-font-weight: bold;"/>
                         <Button fx:id="btnEliminar" text="Eliminar" onAction="#onEliminar"
                                 style="-fx-background-color: #c0392b; -fx-text-fill: white; -fx-font-weight: bold;"/>
@@ -87,12 +87,22 @@
                 </VBox>
             </left>
 
-            <!-- CENTER: Tabla -->
+            <!-- CENTER: Barra de búsqueda + Tabla -->
             <center>
                 <VBox spacing="10">
                     <padding>
                         <Insets top="15" right="15" bottom="15" left="0"/>
                     </padding>
+
+                    <!-- NUEVO: barra de búsqueda -->
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Label text="Buscar:"/>
+                        <TextField fx:id="txtBuscar"
+                                   promptText="Nombre, usuario, correo o cédula..."
+                                   HBox.hgrow="ALWAYS"/>
+                        <Button text="🔍" onAction="#onBuscar"/>
+                    </HBox>
+
                     <TitledPane text="Listado" expanded="true" VBox.vgrow="ALWAYS">
                         <content>
                             <TableView fx:id="tabla" prefHeight="600">

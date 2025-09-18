@@ -95,7 +95,7 @@
                             </graphic>
                         </Button>
 
-                        <Button fx:id="BtnVentana4" onAction="#onActionBtnVentana4" prefHeight="36.0" prefWidth="200.0" styleClass="boton-menu" text="Actividades ">
+                        <Button fx:id="BtnVentana4" onAction="#onActionBtnVentana4" prefHeight="36.0" prefWidth="200.0" styleClass="boton-menu" text="Seguimientos ">
                             <VBox.margin>
                                 <Insets top="10" />
                             </VBox.margin>

@@ -19,6 +19,9 @@ import java.util.stream.Collectors;
 
 public class Ventana2Controller extends Controller {
 
+    // === Búsqueda ===
+    @FXML private TextField txtBuscar;
+
     // === Form ===
     @FXML private TextField txtNombre;
     @FXML private TextField txtApellidos;
@@ -34,6 +37,8 @@ public class Ventana2Controller extends Controller {
     @FXML private Button btnAgregar;
     @FXML private Button btnEditar;
     @FXML private Button btnEliminar;
+    @FXML private Button btnBuscar;
+    @FXML private Button btnLimpiarBusqueda;
 
     // === Tabla ===
     @FXML private TableView<AdministradorModel> tabla;
@@ -62,7 +67,7 @@ public class Ventana2Controller extends Controller {
         colEstado.setCellValueFactory(c -> c.getValue().estadoProperty());
         tabla.setItems(data);
 
-        // Listener de selección de tabla
+        // Selección en tabla -> alterna modos
         tabla.getSelectionModel().selectedItemProperty().addListener((obs, old, cur) -> {
             seleccionado = cur;
             if (cur != null) {
@@ -73,7 +78,7 @@ public class Ventana2Controller extends Controller {
             }
         });
 
-        // Habilitar/deshabilitar campos de contraseña al marcar el checkbox
+        // Checkbox cambio de contraseña
         if (chkCambiarPass != null) {
             chkCambiarPass.selectedProperty().addListener((o, ov, nv) -> updatePassControls());
         }
@@ -90,9 +95,8 @@ public class Ventana2Controller extends Controller {
         btnEditar.setDisable(true);
         btnEliminar.setDisable(true);
 
-        // checkbox visible y desmarcado (para crear no aplica, pero dejamos activo)
-        if (chkCambiarPass != null) chkCambiarPass.setSelected(true); // crear SI requiere contraseña
-        // al crear necesitamos habilitar cajas de contraseña
+        // para crear: contraseñas habilitadas, sin checkbox (o seleccionado = true para que queden habilitadas)
+        if (chkCambiarPass != null) chkCambiarPass.setSelected(true);
         enablePasswordFields(true);
     }
 
@@ -104,8 +108,9 @@ public class Ventana2Controller extends Controller {
 
         // al entrar a editar, no cambiar contraseña por defecto
         if (chkCambiarPass != null) chkCambiarPass.setSelected(false);
-        // deshabilitar cajas hasta que marquen el check
         enablePasswordFields(false);
+        if (txtContrasena != null) txtContrasena.clear();
+        if (txtContrasenaConf != null) txtContrasenaConf.clear();
     }
 
     private void updatePassControls() {
@@ -235,6 +240,48 @@ public class Ventana2Controller extends Controller {
     }
 
     /* ===================  BOTONES  =================== */
+
+    @FXML
+private void onBuscar() {
+    String filtro = (txtBuscar.getText() == null) ? "" : txtBuscar.getText().trim().toLowerCase();
+
+    if (filtro.isEmpty()) {
+        // Mostrar todos otra vez
+        tabla.setItems(data);
+        return;
+    }
+
+    // Filtrar con streams
+    List<AdministradorModel> filtrados = data.stream()
+            .filter(a ->
+                (a.getNombre() != null && a.getNombre().toLowerCase().contains(filtro)) ||
+                (a.getApellidos() != null && a.getApellidos().toLowerCase().contains(filtro)) ||
+                (a.getUsuario() != null && a.getUsuario().toLowerCase().contains(filtro)) ||
+                (a.getCorreo() != null && a.getCorreo().toLowerCase().contains(filtro)) ||
+                (a.getCedula() != null && a.getCedula().toLowerCase().contains(filtro))
+            )
+            .collect(Collectors.toList());
+
+    tabla.setItems(FXCollections.observableArrayList(filtrados));
+}
+
+/** Coincidencia por nombre, apellidos, usuario, correo o cédula (case-insensitive). */
+private boolean matches(AdministradorDto a, String q) {
+    return contains(a.getNombre(), q)
+        || contains(a.getApellidos(), q)
+        || contains(a.getUsuario(), q)
+        || contains(a.getCorreo(), q)
+        || contains(a.getCedula(), q);
+}
+
+private boolean contains(String field, String q) {
+    return field != null && field.toLowerCase().contains(q);
+}
+
+    @FXML private void onLimpiarBusqueda() {
+        txtBuscar.clear();
+        cargarTodos();
+    }
 
     @FXML private void onAgregar() {
         // forzar modo creación
