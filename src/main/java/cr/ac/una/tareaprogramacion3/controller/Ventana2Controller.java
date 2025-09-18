@@ -85,6 +85,8 @@ public class Ventana2Controller extends Controller {
 
         cargarTodos();
         setModoCrear(); // estado inicial
+        
+        
     }
 
     /* ===================  MODO UI  =================== */
