@@ -38,6 +38,7 @@
       <artifactId>javafx-fxml</artifactId>
       <version>${javafx.version}</version>
     </dependency>
+    
 
     <!-- (Opcional) JPA/EclipseLink en el cliente -->
     <dependency>
