@@ -25,8 +25,13 @@ public class Ventana2Controller extends Controller {
     @FXML private TextField txtCedula;
     @FXML private TextField txtCorreo;
     @FXML private TextField txtUsuario;
-    @FXML private PasswordField txtContrasena; // visual
+
     @FXML private ComboBox<String> cbEstado;
+
+    // Contraseña (UI)
+    @FXML private CheckBox chkCambiarPass;        // NUEVO
+    @FXML private PasswordField txtContrasena;    // NUEVO (nueva)
+    @FXML private PasswordField txtContrasenaConf;// NUEVO (confirmación)
 
     // === Botones ===
     @FXML private Button btnAgregar;
@@ -62,10 +67,20 @@ public class Ventana2Controller extends Controller {
 
         tabla.getSelectionModel().selectedItemProperty().addListener((obs, old, cur) -> {
             seleccionado = cur;
-            if (cur != null) llenarFormulario(cur);
+            if (cur != null) {
+                llenarFormulario(cur);
+                configurarModoEdicion();
+            } else {
+                configurarModoCreacion();
+            }
         });
 
+        if (chkCambiarPass != null) {
+            chkCambiarPass.selectedProperty().addListener((o, a, b) -> updatePasswordControls());
+        }
+
         cargarTodos();
+        configurarModoCreacion(); // al iniciar, sin selección => crear
     }
 
     private void cargarTodos() {
@@ -85,9 +100,9 @@ public class Ventana2Controller extends Controller {
 
             data.setAll(
                 lista.stream()
-                     .sorted(Comparator.comparing(a -> a.getNombre() == null ? "" : a.getNombre()))
-                     .map(AdminMapper::toModel)
-                     .collect(Collectors.toList())
+                    .sorted(Comparator.comparing(a -> a.getNombre() == null ? "" : a.getNombre()))
+                    .map(AdminMapper::toModel)
+                    .collect(Collectors.toList())
             );
 
             if (lista.isEmpty() && !avisoInicialMostrado) {
@@ -113,7 +128,7 @@ public class Ventana2Controller extends Controller {
         txtCorreo.setText(m.getCorreo());
         txtUsuario.setText(m.getUsuario());
         cbEstado.getSelectionModel().select(m.getEstado());
-        if (txtContrasena != null) txtContrasena.clear(); // nunca mostramos la contraseña
+        clearPasswords(); // nunca mostramos contraseña actual
     }
 
     private AdministradorModel leerFormulario() {
@@ -136,9 +151,44 @@ public class Ventana2Controller extends Controller {
         txtCedula.clear();
         txtCorreo.clear();
         txtUsuario.clear();
-        if (txtContrasena != null) txtContrasena.clear();
         cbEstado.getSelectionModel().clearSelection();
         tabla.getSelectionModel().clearSelection();
+        clearPasswords();
+        configurarModoCreacion();
+    }
+
+    private void clearPasswords() {
+        if (txtContrasena != null) txtContrasena.clear();
+        if (txtContrasenaConf != null) txtContrasenaConf.clear();
+    }
+
+    // === Modo creación / edición ===
+    private void configurarModoCreacion() {
+        if (chkCambiarPass != null) {
+            chkCambiarPass.setSelected(true);  // crear => SIEMPRE pide pass
+            chkCambiarPass.setDisable(true);   // bloqueado en crear
+        }
+        updatePasswordControls();
+    }
+
+    private void configurarModoEdicion() {
+        if (chkCambiarPass != null) {
+            chkCambiarPass.setDisable(false);  // editable
+            chkCambiarPass.setSelected(false); // por defecto NO cambiar
+        }
+        updatePasswordControls();
+    }
+
+    private void updatePasswordControls() {
+        boolean needPass = (seleccionado == null) || (chkCambiarPass != null && chkCambiarPass.isSelected());
+        if (txtContrasena != null) {
+            txtContrasena.setDisable(!needPass);
+            if (!needPass) txtContrasena.clear();
+        }
+        if (txtContrasenaConf != null) {
+            txtContrasenaConf.setDisable(!needPass);
+            if (!needPass) txtContrasenaConf.clear();
+        }
     }
 
     private boolean validar() {
@@ -149,24 +199,31 @@ public class Ventana2Controller extends Controller {
             & ValidationUtil.require(txtUsuario,"Usuario")
             & ValidationUtil.require(cbEstado,"Estado");
 
-        // Contraseña obligatoria solo al crear (seleccionado == null)
-        if (seleccionado == null) {
+        boolean needPass = (seleccionado == null) || (chkCambiarPass != null && chkCambiarPass.isSelected());
+        if (needPass) {
             ok &= ValidationUtil.require(txtContrasena, "Contraseña");
+            ok &= ValidationUtil.require(txtContrasenaConf, "Confirmación");
+            if (ok) {
+                String p1 = txtContrasena.getText();
+                String p2 = txtContrasenaConf.getText();
+                if (p1 != null && p2 != null && !p1.equals(p2)) {
+                    AlertUtil.warn("Atención", "Las contraseñas no coinciden.");
+                    ok = false;
+                }
+            }
         }
         return ok;
     }
 
     // === Botones ===
     @FXML private void onAgregar() {
-        // marcar como "creación" ANTES de validar
+        // modo creación
         seleccionado = null;
         if (!validar()) return;
 
         AdministradorDto dto = AdminMapper.toDto(leerFormulario());
         dto.setId(null);
-
-        // Requiere stubs actualizados (wsimport) para que exista este setter
-        dto.setPasswordPlain(txtContrasena.getText());
+        dto.setPasswordPlain(txtContrasena.getText()); // obligatorio al crear
 
         RespuestaGeneral resp = adminSvc.crear(dto);
         if (resp != null && Boolean.TRUE.equals(resp.isOk())) {
@@ -187,8 +244,8 @@ public class Ventana2Controller extends Controller {
 
         AdministradorDto dto = AdminMapper.toDto(leerFormulario());
 
-        // Si deseas permitir cambio de contraseña en edición, descomenta:
-        if (txtContrasena.getText() != null && !txtContrasena.getText().isBlank()) {
+        // Solo enviar pass si el check está marcado (y ya validamos coincidencia)
+        if (chkCambiarPass != null && chkCambiarPass.isSelected()) {
             dto.setPasswordPlain(txtContrasena.getText());
         }
 
