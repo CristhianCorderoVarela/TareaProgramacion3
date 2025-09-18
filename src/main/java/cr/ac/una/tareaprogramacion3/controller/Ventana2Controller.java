@@ -85,7 +85,6 @@ public class Ventana2Controller extends Controller {
 
             List<AdministradorDto> lista = adminSvc.obtenerTodosList();
 
-            // STREAMS: ordenar por nombre y mapear a Model
             data.setAll(
                 lista.stream()
                      .sorted(Comparator.comparing(a -> a.getNombre() == null ? "" : a.getNombre()))
@@ -121,14 +120,16 @@ public class Ventana2Controller extends Controller {
 
     private AdministradorModel leerFormulario() {
         AdministradorModel m = (seleccionado != null) ? seleccionado : new AdministradorModel();
-        m.setNombre(txtNombre.getText());
-        m.setApellidos(txtApellidos.getText());
-        m.setCedula(txtCedula.getText());
-        m.setCorreo(txtCorreo.getText());
-        m.setUsuario(txtUsuario.getText());
+        m.setNombre(s(txtNombre.getText()));
+        m.setApellidos(s(txtApellidos.getText()));
+        m.setCedula(s(txtCedula.getText()));
+        m.setCorreo(s(txtCorreo.getText()));
+        m.setUsuario(s(txtUsuario.getText()));
         m.setEstado(cbEstado.getValue());
         return m;
     }
+
+    private static String s(String v){ return v == null ? null : v.trim(); }
 
     private void limpiarFormulario() {
         seleccionado = null;
@@ -143,25 +144,38 @@ public class Ventana2Controller extends Controller {
     }
 
     private boolean validar() {
-        return ValidationUtil.require(txtNombre,"Nombre")
+        boolean ok =  ValidationUtil.require(txtNombre,"Nombre")
             & ValidationUtil.require(txtApellidos,"Apellidos")
             & ValidationUtil.require(txtCedula,"Cédula")
             & ValidationUtil.email(txtCorreo)
             & ValidationUtil.require(txtUsuario,"Usuario")
             & ValidationUtil.require(cbEstado,"Estado");
+
+        // Requerir contraseña solo al crear (seleccionado == null)
+        if (seleccionado == null) {
+            ok &= ValidationUtil.require(txtContrasena, "Contraseña");
+        }
+        return ok;
     }
 
     // === Botones ===
     @FXML private void onAgregar() {
-        if (!validar()) return;
+        // IMPORTANTE: marcar como "creación" ANTES de validar
         seleccionado = null;
+
+        if (!validar()) return;
+
         AdministradorDto dto = AdminMapper.toDto(leerFormulario());
         dto.setId(null);
+
+        // Requiere que hayas regenerado los stubs para que exista el setter:
+        dto.setPasswordPlain(txtContrasena.getText());
+
         RespuestaGeneral resp = adminSvc.crear(dto);
         if (resp != null && Boolean.TRUE.equals(resp.isOk())) {
             AlertUtil.info("Listo", msg(resp.getMensaje(), "Administrador creado."));
             cargarTodos();
-            limpiarFormulario();
+            limpiarFormulario(); // limpia también la contraseña
         } else {
             AlertUtil.error("Error", msg(resp != null ? resp.getMensaje() : null, "No se pudo crear."));
         }
@@ -173,7 +187,14 @@ public class Ventana2Controller extends Controller {
             return;
         }
         if (!validar()) return;
+
         AdministradorDto dto = AdminMapper.toDto(leerFormulario());
+
+        // Si quisieras permitir cambio de contraseña en edición:
+        // if (txtContrasena.getText() != null && !txtContrasena.getText().isBlank()) {
+        //     dto.setPasswordPlain(txtContrasena.getText());
+        // }
+
         RespuestaGeneral resp = adminSvc.actualizar(dto);
         if (resp != null && Boolean.TRUE.equals(resp.isOk())) {
             AlertUtil.info("Listo", msg(resp.getMensaje(), "Cambios guardados."));
