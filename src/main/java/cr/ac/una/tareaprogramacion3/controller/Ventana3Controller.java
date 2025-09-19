@@ -30,6 +30,11 @@ import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+// ==== IMPORTADO DE LA VENTANA VIEJA (para notificar a Ventana1) ====
+import cr.ac.una.tareaprogramacion3.util.FlowController;
+import cr.ac.una.tareaprogramacion3.controller.Ventana1Controller;
+// ===================================================================
+
 public class Ventana3Controller extends Controller {
 
     // Top bar
@@ -299,7 +304,7 @@ public class Ventana3Controller extends Controller {
         }
     }
 
-    /** Persiste cambios de actividad y luego recalcula/actualiza el proyecto + dispara evento. */
+    /** Persiste cambios de actividad y luego recalcula/actualiza el proyecto + dispara evento + notifica Excel desactualizado. */
     private void persistirEstadoYOrden(ActividadDto a) {
         Task<ActividadDto> t = new Task<>() {
             @Override
@@ -323,8 +328,12 @@ public class Ventana3Controller extends Controller {
                         break;
                     }
                 }
+                // === NUEVO: avisar que el Excel quedó desactualizado ===
+                if (actualizado.getProyectoId() != null) {
+                    notificarExcelDesactualizado(actualizado.getProyectoId());
+                }
             }
-            // ← sincroniza proyecto
+            // sincroniza proyecto
             sincronizarProyectoConActividades();
         });
         t.setOnFailed(ev -> mostrarError("No se pudo actualizar actividad", t.getException()));
@@ -411,36 +420,36 @@ public class Ventana3Controller extends Controller {
             return oa.compareTo(ob);
         });
     }
-    
-    private void configurarBotonesParaNuevaActividad() {
-    if (btnGuardarActividad != null) {
-        btnGuardarActividad.setVisible(true);
-        btnGuardarActividad.setDisable(false);
-    }
-    if (btnEditarActividad != null) {
-        btnEditarActividad.setVisible(false);
-        btnEditarActividad.setDisable(true);
-    }
-    if (btnEliminarActividad != null) {
-        btnEliminarActividad.setVisible(false);
-        btnEliminarActividad.setDisable(true);
-    }
-}
 
-private void configurarBotonesParaEdicion() {
-    if (btnGuardarActividad != null) {
-        btnGuardarActividad.setVisible(false);
-        btnGuardarActividad.setDisable(true);
+    private void configurarBotonesParaNuevaActividad() {
+        if (btnGuardarActividad != null) {
+            btnGuardarActividad.setVisible(true);
+            btnGuardarActividad.setDisable(false);
+        }
+        if (btnEditarActividad != null) {
+            btnEditarActividad.setVisible(false);
+            btnEditarActividad.setDisable(true);
+        }
+        if (btnEliminarActividad != null) {
+            btnEliminarActividad.setVisible(false);
+            btnEliminarActividad.setDisable(true);
+        }
     }
-    if (btnEditarActividad != null) {
-        btnEditarActividad.setVisible(true);
-        btnEditarActividad.setDisable(false);
+
+    private void configurarBotonesParaEdicion() {
+        if (btnGuardarActividad != null) {
+            btnGuardarActividad.setVisible(false);
+            btnGuardarActividad.setDisable(true);
+        }
+        if (btnEditarActividad != null) {
+            btnEditarActividad.setVisible(true);
+            btnEditarActividad.setDisable(false);
+        }
+        if (btnEliminarActividad != null) {
+            btnEliminarActividad.setVisible(true);
+            btnEliminarActividad.setDisable(false);
+        }
     }
-    if (btnEliminarActividad != null) {
-        btnEliminarActividad.setVisible(true);
-        btnEliminarActividad.setDisable(false);
-    }
-}
 
     private void cargarActividadEnFormulario(ActividadDto actividad) {
         actividadActual = actividad;
@@ -450,6 +459,7 @@ private void configurarBotonesParaEdicion() {
         txtEncargadoCorreo.setText(nvl(actividad.getEncargadoCorreo()));
         cbEstadoActividad.setValue(nvl(actividad.getEstado()));
 
+        // límite de 500 caracteres (lo tenías en la nueva)
         txtDescripcion.setTextFormatter(new TextFormatter<String>(change ->
                 change.getControlNewText().length() <= 500 ? change : null));
 
@@ -506,7 +516,11 @@ private void configurarBotonesParaEdicion() {
         task.setOnSucceeded(e -> Platform.runLater(() -> {
             mostrarInformacion("Actividad creada exitosamente");
             cargarActividades();
-            sincronizarProyectoConActividades(); // ← recalcula proyecto
+            sincronizarProyectoConActividades(); // recalcula proyecto
+            // === NUEVO: avisar Excel desactualizado ===
+            if (proyecto.getId() != null) {
+                notificarExcelDesactualizado(proyecto.getId());
+            }
             limpiarFormulario();
         }));
 
@@ -520,6 +534,8 @@ private void configurarBotonesParaEdicion() {
             return;
         }
         if (!validarFormulario()) return;
+
+        final Long proyectoId = actividadActual.getProyectoId();
 
         Task<ActividadDto> task = new Task<>() {
             @Override
@@ -540,7 +556,11 @@ private void configurarBotonesParaEdicion() {
         task.setOnSucceeded(e -> Platform.runLater(() -> {
             mostrarInformacion("Actividad actualizada exitosamente");
             cargarActividades();
-            sincronizarProyectoConActividades(); // ← recalcula proyecto
+            sincronizarProyectoConActividades(); // recalcula proyecto
+            // === NUEVO: avisar Excel desactualizado ===
+            if (proyectoId != null) {
+                notificarExcelDesactualizado(proyectoId);
+            }
             limpiarFormulario();
         }));
 
@@ -553,6 +573,9 @@ private void configurarBotonesParaEdicion() {
             mostrarAdvertencia("Debe seleccionar una actividad para eliminar");
             return;
         }
+
+        final Long proyectoId = actividadActual.getProyectoId();
+
         Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
         confirmacion.setHeaderText("Confirmar eliminación");
         confirmacion.setContentText("¿Está seguro que desea eliminar esta actividad?");
@@ -573,7 +596,11 @@ private void configurarBotonesParaEdicion() {
                 task.setOnSucceeded(e -> Platform.runLater(() -> {
                     mostrarInformacion("Actividad eliminada exitosamente");
                     cargarActividades();
-                    sincronizarProyectoConActividades(); // ← recalcula proyecto
+                    sincronizarProyectoConActividades(); // recalcula proyecto
+                    // === NUEVO: avisar Excel desactualizado ===
+                    if (proyectoId != null) {
+                        notificarExcelDesactualizado(proyectoId);
+                    }
                     limpiarFormulario();
                 }));
                 task.setOnFailed(e -> mostrarError("Error eliminando actividad", task.getException()));
@@ -620,8 +647,6 @@ private void configurarBotonesParaEdicion() {
         p.setFechaInicioReal(fiReal == null ? null : DateUtil.toXml(fiReal));
         p.setFechaFinalReal(ffReal == null ? null : DateUtil.toXml(ffReal));
 
-        // === IMPORTANTE ===
-        // Si tu WS no es actualizarProyecto(ProyectoDto) cambia SOLO esta llamada:
         Task<ProyectoDto> t = new Task<>() {
             @Override
             protected ProyectoDto call() throws Exception {
@@ -636,7 +661,6 @@ private void configurarBotonesParaEdicion() {
         t.setOnSucceeded(e -> {
             ProyectoDto actualizado = t.getValue();
             if (actualizado != null) {
-                // refrescamos combo (por estética) y notificamos a otras ventanas
                 Platform.runLater(() -> {
                     int idx = proyectos.indexOf(p);
                     if (idx >= 0) proyectos.set(idx, actualizado);
@@ -770,5 +794,18 @@ private void configurarBotonesParaEdicion() {
         a.setHeaderText("Información");
         a.setContentText(mensaje);
         a.showAndWait();
+    }
+
+    // ======= NUEVO: NOTIFICACIÓN A VENTANA1 (traído de la vieja) =======
+    private void notificarExcelDesactualizado(Long proyectoId) {
+        try {
+            var fc = FlowController.getInstance();
+            Object c = fc.getController("Ventana1"); // id de la vista principal en tu Flow
+            if (c instanceof Ventana1Controller v1) {
+                v1.notificarActividadCreada(proyectoId);
+            }
+        } catch (Exception ignore) {
+            // Si no está creada la vista Ventana1, no pasa nada.
+        }
     }
 }

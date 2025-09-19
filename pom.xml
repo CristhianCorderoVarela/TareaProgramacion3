@@ -215,6 +215,19 @@
         <vmArgs><vmArg>-Djakarta.xml.accessExternalSchema=all</vmArg></vmArgs>
       </configuration>
     </execution>
+<execution>
+  <id>wsimport-reportews</id>
+  <phase>generate-sources</phase>
+  <goals><goal>wsimport</goal></goals>
+  <configuration>
+    <wsdlUrls>
+      <wsdlUrl>http://localhost:8080/ReporteWSService/ReporteWS?wsdl</wsdlUrl>
+    </wsdlUrls>
+    <packageName>cr.ac.una.client.soap</packageName>
+    <xnocompile>true</xnocompile>
+    <vmArgs><vmArg>-Djakarta.xml.accessExternalSchema=all</vmArg></vmArgs>
+  </configuration>
+</execution>
   </executions>
       </plugin>
     </plugins>

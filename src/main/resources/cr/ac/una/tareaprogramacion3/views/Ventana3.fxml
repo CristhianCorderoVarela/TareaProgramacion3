@@ -26,44 +26,65 @@
     <center>
         <SplitPane dividerPositions="0.55">
             <!-- KANBAN -->
-            <ScrollPane fitToWidth="true" fitToHeight="true">
+            <ScrollPane fitToWidth="true" fitToHeight="true"
+                        hbarPolicy="NEVER" vbarPolicy="ALWAYS">
                 <HBox spacing="12" style="-fx-background-color: #f6f8fa;">
                     <padding>
                         <Insets top="10" right="10" bottom="10" left="10"/>
                     </padding>
 
                     <!-- PLANIFICADA -->
-                    <VBox spacing="8" prefWidth="220" style="-fx-background-color: #ffffff; -fx-padding:10; -fx-background-radius:8;">
+                    <VBox spacing="8" prefWidth="220"
+                          style="-fx-background-color: #ffffff; -fx-padding:10; -fx-background-radius:8;">
                         <Label text="PLANIFICADA" style="-fx-font-weight: bold; -fx-text-fill: #2980b9; -fx-font-size: 14px;"/>
-                        <ListView fx:id="lvPlanificada" prefHeight="520"/>
+                        <ListView fx:id="lvPlanificada" prefHeight="520">
+                            <placeholder>
+                                <Label text="Sin actividades planificadas"/>
+                            </placeholder>
+                        </ListView>
                         <Label text="Arrastra para ordenar / mover" style="-fx-font-size: 10px; -fx-text-fill: #95a5a6;"/>
                     </VBox>
 
                     <!-- EN_CURSO -->
-                    <VBox spacing="8" prefWidth="220" style="-fx-background-color: #ffffff; -fx-padding:10; -fx-background-radius:8;">
+                    <VBox spacing="8" prefWidth="220"
+                          style="-fx-background-color: #ffffff; -fx-padding:10; -fx-background-radius:8;">
                         <Label text="EN_CURSO" style="-fx-font-weight: bold; -fx-text-fill: #16a085; -fx-font-size: 14px;"/>
-                        <ListView fx:id="lvEnCurso" prefHeight="520"/>
+                        <ListView fx:id="lvEnCurso" prefHeight="520">
+                            <placeholder>
+                                <Label text="Sin actividades en curso"/>
+                            </placeholder>
+                        </ListView>
                         <Label text="Arrastra para ordenar / mover" style="-fx-font-size: 10px; -fx-text-fill: #95a5a6;"/>
                     </VBox>
 
                     <!-- POSTERGADA -->
-                    <VBox spacing="8" prefWidth="220" style="-fx-background-color: #ffffff; -fx-padding:10; -fx-background-radius:8;">
+                    <VBox spacing="8" prefWidth="220"
+                          style="-fx-background-color: #ffffff; -fx-padding:10; -fx-background-radius:8;">
                         <Label text="POSTERGADA" style="-fx-font-weight: bold; -fx-text-fill: #d35400; -fx-font-size: 14px;"/>
-                        <ListView fx:id="lvPostergada" prefHeight="520"/>
+                        <ListView fx:id="lvPostergada" prefHeight="520">
+                            <placeholder>
+                                <Label text="Sin actividades postergadas"/>
+                            </placeholder>
+                        </ListView>
                         <Label text="Arrastra para ordenar / mover" style="-fx-font-size: 10px; -fx-text-fill: #95a5a6;"/>
                     </VBox>
 
                     <!-- FINALIZADA -->
-                    <VBox spacing="8" prefWidth="220" style="-fx-background-color: #ffffff; -fx-padding:10; -fx-background-radius:8;">
+                    <VBox spacing="8" prefWidth="220"
+                          style="-fx-background-color: #ffffff; -fx-padding:10; -fx-background-radius:8;">
                         <Label text="FINALIZADA" style="-fx-font-weight: bold; -fx-text-fill: #7f8c8d; -fx-font-size: 14px;"/>
-                        <ListView fx:id="lvFinalizada" prefHeight="520"/>
+                        <ListView fx:id="lvFinalizada" prefHeight="520">
+                            <placeholder>
+                                <Label text="Sin actividades finalizadas"/>
+                            </placeholder>
+                        </ListView>
                         <Label text="Arrastra para ordenar / mover" style="-fx-font-size: 10px; -fx-text-fill: #95a5a6;"/>
                     </VBox>
                 </HBox>
             </ScrollPane>
 
             <!-- FORMULARIO DE ACTIVIDAD -->
-            <ScrollPane fitToWidth="true">
+            <ScrollPane fitToWidth="true" hbarPolicy="NEVER" vbarPolicy="ALWAYS">
                 <VBox spacing="10">
                     <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
                     <Label text="Detalles de Actividad" style="-fx-font-weight: bold; -fx-font-size: 16px;"/>
@@ -75,7 +96,8 @@
                         </columnConstraints>
 
                         <Label text="Descripción:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
-                        <TextArea fx:id="txtDescripcion" prefRowCount="3" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                        <TextArea fx:id="txtDescripcion" prefRowCount="3" wrapText="true"
+                                  GridPane.rowIndex="0" GridPane.columnIndex="1"/>
 
                         <Label text="Encargado (Nombre):" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
                         <TextField fx:id="txtEncargado" GridPane.rowIndex="1" GridPane.columnIndex="1"/>

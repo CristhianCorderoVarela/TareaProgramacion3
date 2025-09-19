@@ -11,25 +11,39 @@
     <children>
         <BorderPane prefWidth="1100" prefHeight="700">
 
-            <!-- Barra superior con acciones + búsqueda -->
+            <!-- Barra superior: CRUD (izq) · Excel (centro) · Búsqueda (der) -->
             <top>
                 <HBox spacing="10" alignment="CENTER_LEFT">
-                    <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
+                    <padding>
+                        <Insets top="10" right="10" bottom="10" left="10"/>
+                    </padding>
 
+                    <!-- CRUD -->
                     <Button text="+ Nuevo" onAction="#onNuevoProyecto"
                             style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;"/>
-
                     <Button text="Editar" onAction="#onEditarSeleccion"
                             style="-fx-background-color: #2980b9; -fx-text-fill: white; -fx-font-weight: bold;"/>
-
                     <Button text="Refrescar" onAction="#onRefrescar"
                             style="-fx-background-color: #7f8c8d; -fx-text-fill: white; -fx-font-weight: bold;"/>
 
-                    <!-- separador flexible -->
+                    <Separator orientation="VERTICAL"/>
+
+                    <!-- Excel -->
+                    <Label text="Proyecto seleccionado:" style="-fx-font-weight: bold;"/>
+                    <Label fx:id="lblProyectoSeleccionado" text="Ninguno"/>
+                    <Button fx:id="btnGenerarExcel" text="Generar Excel" onAction="#onGenerarExcel"
+                            disable="true"
+                            style="-fx-background-color: #8e44ad; -fx-text-fill: white; -fx-font-weight: bold;"/>
+                    <ProgressIndicator fx:id="progressExcel" prefWidth="24" prefHeight="24" visible="false"/>
+                    <Label fx:id="lblEstadoExcel" text="" visible="false"/>
+
+                    <!-- empuja la búsqueda a la derecha -->
                     <Region HBox.hgrow="ALWAYS"/>
 
                     <!-- Búsqueda -->
-                    <TextField fx:id="txtBuscar" promptText="Buscar en todos los campos..." prefWidth="320"/>
+                    <TextField fx:id="txtBuscar"
+                               promptText="Buscar en todos los campos..."
+                               prefWidth="320"/>
                     <Button fx:id="btnBuscar" text="Buscar"/>
                     <Button fx:id="btnLimpiar" text="Limpiar"/>
                 </HBox>
@@ -38,7 +52,9 @@
             <!-- 4 columnas de estado -->
             <center>
                 <HBox spacing="20">
-                    <padding><Insets top="15" right="15" bottom="15" left="15"/></padding>
+                    <padding>
+                        <Insets top="15" right="15" bottom="15" left="15"/>
+                    </padding>
 
                     <!-- PLANIFICADO -->
                     <VBox spacing="10" prefWidth="250"
