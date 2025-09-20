@@ -23,13 +23,14 @@ import cr.ac.una.client.soap.*;
 import cr.ac.una.tareaprogramacion3.util.Controller;
 import cr.ac.una.tareaprogramacion3.util.UserSession;
 import jakarta.xml.ws.BindingProvider;
+import javafx.scene.layout.HBox;
 
 public class Ventana4Controller extends Controller implements Initializable {
 
     // --- Top bar
     @FXML private ComboBox<ProyectoDto> cbProyectos;
     @FXML private Button btnCargarSeguimientos;
-    @FXML private Button btnNuevoSeguimiento;
+    
 
     // --- Tabla
     @FXML private TableView<SeguimientoProyectoDto> tablaSeguimientos;
@@ -49,6 +50,8 @@ public class Ventana4Controller extends Controller implements Initializable {
     @FXML private Button btnEditarSeguimiento;
     @FXML private Button btnEliminarSeguimiento;
     @FXML private Button btnLimpiarSeguimiento;
+    
+    private int ultimoPct = 0; 
 
     // ===== Endpoints =====
     private <T> T withEndpoint(T port, String path) {
@@ -75,6 +78,7 @@ public class Ventana4Controller extends Controller implements Initializable {
         prepararResponsableDesdeSesion();
         limpiarFormulario();
         cargarProyectos();               // carga al entrar
+        prepararReglasFormulario();
     }
 
     // (Método sin-args opcional; no marca @Override para evitar conflictos si la base no lo declara)
@@ -93,26 +97,56 @@ public class Ventana4Controller extends Controller implements Initializable {
     }
 
     private void configurarTabla() {
-        colFecha.setCellValueFactory(data -> {
-            LocalDate ld = toLocalDate(data.getValue().getFechaSeguimiento());
-            return new SimpleObjectProperty<>(ld);
-        });
-        colPorcentaje.setCellValueFactory(d ->
-                new SimpleIntegerProperty(d.getValue().getPorcentajeAvance() == null ? 0 : d.getValue().getPorcentajeAvance()));
-        colObservaciones.setCellValueFactory(d ->
-                new SimpleStringProperty(d.getValue().getObservaciones() == null ? "" : d.getValue().getObservaciones()));
-        colResponsable.setCellValueFactory(d ->
-                new SimpleStringProperty(d.getValue().getCreadoPorNombre() == null ? "" : d.getValue().getCreadoPorNombre()));
+    colFecha.setCellValueFactory(data -> {
+        LocalDate ld = toLocalDate(data.getValue().getFechaSeguimiento());
+        return new SimpleObjectProperty<>(ld);
+    });
 
-        tablaSeguimientos.getSelectionModel().selectedItemProperty().addListener((obs, o, s) -> {
-            if (s != null) {
-                fechaSeguimiento.setValue(toLocalDate(s.getFechaSeguimiento()));
-                sliderPorcentaje.setValue(s.getPorcentajeAvance() == null ? 0 : s.getPorcentajeAvance());
-                txtObservaciones.setText(s.getObservaciones() == null ? "" : s.getObservaciones());
-                txtResponsable.setText(s.getCreadoPorNombre() == null ? "" : s.getCreadoPorNombre());
+    // Barra + porcentaje
+    colPorcentaje.setCellValueFactory(d ->
+            new SimpleIntegerProperty(d.getValue().getPorcentajeAvance() == null ? 0 : d.getValue().getPorcentajeAvance()));
+    colPorcentaje.setCellFactory(col -> new TableCell<>() {
+        private final ProgressBar bar = new ProgressBar(0);
+        private final Label lbl = new Label();
+        private final HBox box = new HBox(8, bar, lbl);
+        {
+            bar.setPrefWidth(120);
+        }
+        @Override
+        protected void updateItem(Number value, boolean empty) {
+            super.updateItem(value, empty);
+            if (empty || value == null) {
+                setGraphic(null);
+            } else {
+                int pct = Math.max(0, Math.min(100, value.intValue()));
+                bar.setProgress(pct / 100.0);
+                lbl.setText(pct + "%");
+                setGraphic(box);
             }
-        });
-    }
+        }
+    });
+
+    colObservaciones.setCellValueFactory(d ->
+            new SimpleStringProperty(d.getValue().getObservaciones() == null ? "" : d.getValue().getObservaciones()));
+    colResponsable.setCellValueFactory(d ->
+            new SimpleStringProperty(d.getValue().getCreadoPorNombre() == null ? "" : d.getValue().getCreadoPorNombre()));
+
+    tablaSeguimientos.getSelectionModel().selectedItemProperty().addListener((obs, o, s) -> {
+        if (s != null) {
+            fechaSeguimiento.setValue(toLocalDate(s.getFechaSeguimiento())); // queda bloqueada
+            int selPct = s.getPorcentajeAvance() == null ? 0 : s.getPorcentajeAvance();
+// El mínimo siempre es el porcentaje del ÚLTIMO seguimiento
+sliderPorcentaje.setMin(ultimoPct);
+sliderPorcentaje.setValue(Math.max(ultimoPct, selPct));
+            txtObservaciones.setText(s.getObservaciones() == null ? "" : s.getObservaciones());
+            txtResponsable.setText(s.getCreadoPorNombre() == null ? "" : s.getCreadoPorNombre());
+        }
+    });
+
+    // Orden por fecha DESC al cargar datos
+    tablaSeguimientos.getSortOrder().setAll(colFecha);
+    colFecha.setSortType(TableColumn.SortType.DESCENDING);
+}
 
     private void configurarBindings() {
         lblPorcentaje.textProperty().bind(sliderPorcentaje.valueProperty().asString("%.0f%%"));
@@ -138,17 +172,47 @@ public class Ventana4Controller extends Controller implements Initializable {
                 setText(empty || item == null ? "" : item.getNombre());
             }
         });
+        cbProyectos.getSelectionModel().selectedItemProperty().addListener((obs, oldP, newP) -> {
+    if (newP == null) return;
+
+    // Cargar seguimientos del proyecto y posicionar barra con el último % (o % del proyecto)
+    cargarSeguimientos();
+});
     }
 
     private void prepararEventos() {
         btnCargarSeguimientos.setOnAction(e -> cargarSeguimientos());
-        btnNuevoSeguimiento.setOnAction(e -> limpiarFormulario());
+       
         btnLimpiarSeguimiento.setOnAction(e -> limpiarFormulario());
         btnGuardarSeguimiento.setOnAction(e -> guardar());
         btnEditarSeguimiento.setOnAction(e -> editar());
         btnEliminarSeguimiento.setOnAction(e -> eliminar());
     }
+    
+    private static final int OBS_MAX = 500; // ajusta si tu columna en BD tiene otro tamaño
 
+private void prepararReglasFormulario() {
+    // Fecha = hoy, no editable
+    fechaSeguimiento.setValue(LocalDate.now());
+    fechaSeguimiento.setEditable(false);
+    fechaSeguimiento.setDisable(true);
+    fechaSeguimiento.setStyle("-fx-opacity: 1;");
+    fechaSeguimiento.setMouseTransparent(true);
+
+    // Observaciones: obligatorio y con límite de caracteres
+    txtObservaciones.setTextFormatter(new TextFormatter<String>(c -> {
+        String next = c.getControlNewText();
+        if (next != null && next.length() > OBS_MAX) return null;
+        return c;
+    }));
+
+    // Slider: ticks y entero
+    sliderPorcentaje.setBlockIncrement(1);
+    sliderPorcentaje.setMajorTickUnit(25);
+    sliderPorcentaje.setMinorTickCount(4);
+    sliderPorcentaje.setSnapToTicks(true);
+}
+    
     // ====== Cargas ======
     private void cargarProyectos() {
         try {
@@ -166,70 +230,136 @@ public class Ventana4Controller extends Controller implements Initializable {
     }
 
     private void cargarSeguimientos() {
-        ProyectoDto p = cbProyectos.getSelectionModel().getSelectedItem();
-        if (p == null || p.getId() == null) { warn("Seleccione un proyecto."); return; }
-        try {
-            Object r = segPort().buscarSeguimientosPorProyecto(p.getId());
-            List<SeguimientoProyectoDto> lista = respListOf(r, SeguimientoProyectoDto.class);
-            System.out.println("[Ventana4] Seguimientos cargados: " + lista.size());
-            tablaSeguimientos.getItems().setAll(lista);
-        } catch (Exception ex) {
-            error("Error consultando seguimientos", ex.getMessage());
+    ProyectoDto p = cbProyectos.getSelectionModel().getSelectedItem();
+    if (p == null || p.getId() == null) { warn("Seleccione un proyecto."); return; }
+
+    try {
+        Object r = segPort().buscarSeguimientosPorProyecto(p.getId());
+
+        // 1) Obtener lista tipada (¡solo una declaración!)
+        List<SeguimientoProyectoDto> lista =
+                Ventana4Controller.<SeguimientoProyectoDto>respListOf(r, SeguimientoProyectoDto.class);
+
+        // 2) Ordenar por fecha DESC
+        lista.sort(Comparator.comparing(
+                (SeguimientoProyectoDto s) -> toDate(s.getFechaSeguimiento()),
+                Comparator.nullsLast(Comparator.naturalOrder())
+        ).reversed());
+
+        // 3) Cargar en la tabla y aplicar sort visual
+        tablaSeguimientos.getItems().setAll(lista);
+        colFecha.setSortType(TableColumn.SortType.DESCENDING);
+        tablaSeguimientos.getSortOrder().setAll(colFecha);
+        tablaSeguimientos.sort();
+
+        // 4) Fijar barra de avance al valor correcto (no retrocede)
+        int base = p.getPorcentajeAvance() == null ? 0 : p.getPorcentajeAvance();
+        if (!lista.isEmpty()) {
+            Integer ult = lista.get(0).getPorcentajeAvance();  // el más reciente tras ordenar DESC
+            if (ult != null) base = Math.max(base, ult);
         }
+        sliderPorcentaje.setMin(base);
+        sliderPorcentaje.setValue(base);
+
+        // 5) Fecha visible del día (picker deshabilitado pero mostrando el valor)
+        fechaSeguimiento.setValue(LocalDate.now());
+
+    } catch (Exception ex) {
+        error("Error consultando seguimientos", ex.getMessage());
     }
+}
 
     // ====== Acciones ======
-    private void guardar() {
-        ProyectoDto p = cbProyectos.getSelectionModel().getSelectedItem();
-        if (p == null || p.getId() == null) { warn("Seleccione un proyecto."); return; }
-        Long adminId = UserSession.get().getAdminId();
-        if (adminId == null) { warn("No hay usuario autenticado en sesión."); return; }
+   private void guardar() {
+    ProyectoDto p = cbProyectos.getSelectionModel().getSelectedItem();
+    if (p == null || p.getId() == null) { warn("Seleccione un proyecto."); return; }
 
-        SeguimientoProyectoDto dto = new SeguimientoProyectoDto();
-        dto.setProyectoId(p.getId());
-        dto.setFechaSeguimiento( fechaSeguimiento.getValue() == null
-                ? toXmlCal(new Date()) : toXmlCal(fechaSeguimiento.getValue()) );
-        dto.setPorcentajeAvance((int)Math.round(sliderPorcentaje.getValue()));
-        dto.setObservaciones(txtObservaciones.getText());
-        dto.setCreadoPorId(adminId);
+    int pct = (int) Math.round(sliderPorcentaje.getValue());
+    if (pct < 0 || pct > 100) { warn("El porcentaje debe estar entre 0 y 100."); return; }
 
-        try {
-            Object res = segPort().crearSeguimiento(dto);
-            if (respOk(res)) {
-                info("Seguimiento guardado.");
-                cargarSeguimientos();
-                limpiarFormulario();
-            } else {
-                String m = respMsg(res);
-                warn(m != null ? m : "No se pudo guardar.");
+    String obs = txtObservaciones.getText() == null ? "" : txtObservaciones.getText().trim();
+    if (obs.isEmpty()) { warn("Las observaciones son obligatorias."); return; }
+    if (obs.length() > OBS_MAX) { warn("Las observaciones no deben exceder " + OBS_MAX + " caracteres."); return; }
+
+    Long adminId = UserSession.get().getAdminId();
+    if (adminId == null) { warn("No hay usuario autenticado en sesión."); return; }
+
+    SeguimientoProyectoDto dto = new SeguimientoProyectoDto();
+    dto.setProyectoId(p.getId());
+    dto.setFechaSeguimiento(toXmlCal(LocalDate.now())); // siempre hoy
+    dto.setPorcentajeAvance(pct);
+    dto.setObservaciones(obs);
+    dto.setCreadoPorId(adminId);
+
+    try {
+        Object res = segPort().crearSeguimiento(dto);
+        if (respOk(res)) {
+            // Regla: sincronizar proyecto y nunca decrementar
+            int current = p.getPorcentajeAvance() == null ? 0 : p.getPorcentajeAvance();
+            int nuevo = Math.max(current, pct);
+            if (nuevo != current) {
+                p.setPorcentajeAvance(nuevo);
+                proyPort().actualizarProyecto(p);
             }
-        } catch (Exception ex) {
-            error("Error al guardar", ex.getMessage());
+
+            info("Seguimiento guardado.");
+            cargarSeguimientos();
+            // Mantener slider mínimo en el nuevo valor (no retrocede)
+            sliderPorcentaje.setMin(nuevo);
+            sliderPorcentaje.setValue(nuevo);
+            // Notifica otras ventanas si usas eventos
+            // AppEvents.fireProyectoActualizado(p.getId());  // descomenta si ya lo usas
+            limpiarFormulario();
+        } else {
+            String m = respMsg(res);
+            warn(m != null ? m : "No se pudo guardar.");
         }
+    } catch (Exception ex) {
+        error("Error al guardar", ex.getMessage());
     }
+}
 
     private void editar() {
-        SeguimientoProyectoDto sel = tablaSeguimientos.getSelectionModel().getSelectedItem();
-        if (sel == null) { warn("Seleccione un seguimiento de la tabla."); return; }
+    ProyectoDto p = cbProyectos.getSelectionModel().getSelectedItem();
+    SeguimientoProyectoDto sel = tablaSeguimientos.getSelectionModel().getSelectedItem();
+    if (p == null || p.getId() == null) { warn("Seleccione un proyecto."); return; }
+    if (sel == null) { warn("Seleccione un seguimiento de la tabla."); return; }
 
-        sel.setFechaSeguimiento( fechaSeguimiento.getValue() == null
-                ? sel.getFechaSeguimiento() : toXmlCal(fechaSeguimiento.getValue()) );
-        sel.setPorcentajeAvance((int)Math.round(sliderPorcentaje.getValue()));
-        sel.setObservaciones(txtObservaciones.getText());
+    int pct = (int) Math.round(sliderPorcentaje.getValue());
+    if (pct < 0 || pct > 100) { warn("El porcentaje debe estar entre 0 y 100."); return; }
 
-        try {
-            Object res = segPort().actualizarSeguimiento(sel);
-            if (respOk(res)) {
-                info("Seguimiento actualizado.");
-                cargarSeguimientos();
-            } else {
-                String m = respMsg(res);
-                warn(m != null ? m : "No se pudo actualizar.");
+    String obs = txtObservaciones.getText() == null ? "" : txtObservaciones.getText().trim();
+    if (obs.isEmpty()) { warn("Las observaciones son obligatorias."); return; }
+    if (obs.length() > OBS_MAX) { warn("Las observaciones no deben exceder " + OBS_MAX + " caracteres."); return; }
+
+    // La fecha queda como está (picker bloqueado)
+    sel.setPorcentajeAvance(pct);
+    sel.setObservaciones(obs);
+
+    try {
+        Object res = segPort().actualizarSeguimiento(sel);
+        if (respOk(res)) {
+            // Sincronizar proyecto sin decrecer
+            int current = p.getPorcentajeAvance() == null ? 0 : p.getPorcentajeAvance();
+            int nuevo = Math.max(current, pct);
+            if (nuevo != current) {
+                p.setPorcentajeAvance(nuevo);
+                proyPort().actualizarProyecto(p);
             }
-        } catch (Exception ex) {
-            error("Error al actualizar", ex.getMessage());
+
+            info("Seguimiento actualizado.");
+            cargarSeguimientos();
+            sliderPorcentaje.setMin(nuevo);
+            sliderPorcentaje.setValue(nuevo);
+            // AppEvents.fireProyectoActualizado(p.getId()); // si corresponde
+        } else {
+            String m = respMsg(res);
+            warn(m != null ? m : "No se pudo actualizar.");
         }
+    } catch (Exception ex) {
+        error("Error al actualizar", ex.getMessage());
     }
+}
 
     private void eliminar() {
         SeguimientoProyectoDto sel = tablaSeguimientos.getSelectionModel().getSelectedItem();

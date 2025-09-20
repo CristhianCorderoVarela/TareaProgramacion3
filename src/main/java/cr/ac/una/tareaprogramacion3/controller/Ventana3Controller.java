@@ -700,9 +700,18 @@ public class Ventana3Controller extends Controller {
         todas.addAll(finalizadas);
 
         String nuevoEstado = calcularEstadoProyecto(todas);
-        Integer nuevoAvance = calcularAvanceProyecto(todas);
-        Date fiReal = calcularFechaInicioRealProyecto(todas);
-        Date ffReal = calcularFechaFinalRealProyecto(todas, nuevoEstado);
+
+// % calculado por actividades
+    int pAct = calcularAvanceProyecto(todas) == null ? 0 : calcularAvanceProyecto(todas);
+
+// % vigente en el proyecto (puede provenir del último seguimiento)
+    int pActual = p.getPorcentajeAvance() == null ? 0 : p.getPorcentajeAvance();
+
+// regla: NUNCA bajar
+    int nuevoAvance = Math.max(pActual, pAct);
+
+    Date fiReal = calcularFechaInicioRealProyecto(todas);
+    Date ffReal = calcularFechaFinalRealProyecto(todas, nuevoEstado);
 
         p.setEstado(nuevoEstado);
         p.setPorcentajeAvance(nuevoAvance);
