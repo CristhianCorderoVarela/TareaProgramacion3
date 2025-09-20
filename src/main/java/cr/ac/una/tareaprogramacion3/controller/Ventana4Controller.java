@@ -132,15 +132,7 @@ public class Ventana4Controller extends Controller implements Initializable {
         colResponsable.setCellValueFactory(d ->
                 new SimpleStringProperty(d.getValue().getCreadoPorNombre() == null ? "" : d.getValue().getCreadoPorNombre()));
 
-        tablaSeguimientos.getSelectionModel().selectedItemProperty().addListener((obs, o, s) -> {
-            if (s != null) {
-                txtObservaciones.setText(s.getObservaciones() == null ? "" : s.getObservaciones());
-                txtResponsable.setText(s.getCreadoPorNombre() == null ? "" : s.getCreadoPorNombre());
-                // Si quieres mostrar la fecha del seleccionado:
-                // fechaSeguimiento.setValue(toLocalDate(s.getFechaSeguimiento()));
-            }
-        });
-
+        // NO registramos aquí un listener de selección para evitar duplicarlo en recargas
         colFecha.setSortType(TableColumn.SortType.DESCENDING);
         tablaSeguimientos.getSortOrder().setAll(colFecha);
     }
@@ -218,6 +210,20 @@ public class Ventana4Controller extends Controller implements Initializable {
         }
     }
 
+    /** Listener reutilizable para selección en tabla, así evitamos duplicados. */
+    private final javafx.beans.value.ChangeListener<SeguimientoProyectoDto> tablaSelListener =
+            (obs, oldSel, sel) -> {
+                if (sel != null) {
+                    txtObservaciones.setText(sel.getObservaciones() == null ? "" : sel.getObservaciones());
+                    txtResponsable.setText(sel.getCreadoPorNombre() == null ? "" : sel.getCreadoPorNombre());
+                } else {
+                    txtObservaciones.clear();
+                    txtResponsable.clear();
+                }
+                actualizarBotonesSegunSeleccion();
+            };
+
+    /** Carga y deja todo ordenado DESC por fecha, ajusta slider y botones. */
     private void cargarSeguimientos() {
         ProyectoDto p = cbProyectos.getSelectionModel().getSelectedItem();
         if (p == null || p.getId() == null) { warn("Seleccione un proyecto."); return; }
@@ -227,14 +233,17 @@ public class Ventana4Controller extends Controller implements Initializable {
             List<SeguimientoProyectoDto> lista =
                     Ventana4Controller.<SeguimientoProyectoDto>respListOf(r, SeguimientoProyectoDto.class);
 
-            lista.sort(Comparator.comparing(
-                    (SeguimientoProyectoDto s) -> toDate(s.getFechaSeguimiento()),
-                    Comparator.nullsLast(Comparator.naturalOrder())
-            ).reversed());
+            // Ordenar DESC por fecha
+            lista = ordenarDescPorFecha(lista);
 
+            // Cargar en tabla y ordenar por columna fecha DESC
             tablaSeguimientos.getItems().setAll(lista);
-            ordenarTablaDescPorFecha();
+            colFecha.setSortable(true);
+            colFecha.setSortType(TableColumn.SortType.DESCENDING);
+            tablaSeguimientos.getSortOrder().setAll(colFecha);
+            tablaSeguimientos.sort();
 
+            // % base: max(% proyecto, % del último seguimiento)
             int base = p.getPorcentajeAvance() == null ? 0 : p.getPorcentajeAvance();
             if (!lista.isEmpty()) {
                 Integer ult = lista.get(0).getPorcentajeAvance();
@@ -246,6 +255,13 @@ public class Ventana4Controller extends Controller implements Initializable {
 
             fechaSeguimiento.setValue(LocalDate.now());
 
+            // Registrar (o re-registrar) el listener de selección una sola vez
+            tablaSeguimientos.getSelectionModel().selectedItemProperty().removeListener(tablaSelListener);
+            tablaSeguimientos.getSelectionModel().selectedItemProperty().addListener(tablaSelListener);
+
+            // Actualizar estado de botones según selección actual
+            actualizarBotonesSegunSeleccion();
+
         } catch (Exception ex) {
             error("Error consultando seguimientos", ex.getMessage());
         }
@@ -255,12 +271,13 @@ public class Ventana4Controller extends Controller implements Initializable {
     private void guardar() {
         ProyectoDto p = cbProyectos.getSelectionModel().getSelectedItem();
         if (p == null || p.getId() == null) { warn("Seleccione un proyecto."); return; }
-        
+
+        // NO permitir seguimiento si no hay actividades
         if (!proyectoTieneActividades(p.getId())) {
-    warn("Antes de registrar un seguimiento, debe existir al menos una actividad en el proyecto.");
-    return;
-}
-        
+            warn("Antes de registrar un seguimiento, debe existir al menos una actividad en el proyecto.");
+            return;
+        }
+
         int pct = (int) Math.round(sliderPorcentaje.getValue());
         pct = Math.max(pct, ultimoPct); // no decrecer
         if (pct < 0 || pct > 100) { warn("El porcentaje debe estar entre 0 y 100."); return; }
@@ -300,7 +317,7 @@ public class Ventana4Controller extends Controller implements Initializable {
 
                 info("Seguimiento guardado.");
                 cargarSeguimientos();
-                ordenarTablaDescPorFecha();
+                ordenarTablaDescPorFecha(); // redundante pero asegura UI
                 limpiarFormulario();
             } else {
                 String m = respMsg(res);
@@ -316,6 +333,12 @@ public class Ventana4Controller extends Controller implements Initializable {
         SeguimientoProyectoDto sel = tablaSeguimientos.getSelectionModel().getSelectedItem();
         if (p == null || p.getId() == null) { warn("Seleccione un proyecto."); return; }
         if (sel == null) { warn("Seleccione un seguimiento de la tabla."); return; }
+
+        // Solo permitir editar el último (más reciente)
+        if (!esUltimoSeleccionado()) {
+            warn("Solo se puede editar el último seguimiento registrado.");
+            return;
+        }
 
         int pct = (int) Math.round(sliderPorcentaje.getValue());
         pct = Math.max(pct, ultimoPct); // no decrecer
@@ -334,22 +357,26 @@ public class Ventana4Controller extends Controller implements Initializable {
                 int current = p.getPorcentajeAvance() == null ? 0 : p.getPorcentajeAvance();
                 int nuevo   = Math.max(current, pct);
                 if (pct >= 100) { nuevo = 100; try { p.setEstado("FINALIZADO"); } catch (Exception ignore) {} }
+
                 if (nuevo != current || pct >= 100) {
                     p.setPorcentajeAvance(nuevo);
                     proyPort().actualizarProyecto(p);
-                    AppEvents.fireProyectoActualizado(p.getId());
 
+                    // Notificar y mantener slider coherente
+                    AppEvents.fireProyectoActualizado(p.getId());
                     sliderPorcentaje.setMin(p.getPorcentajeAvance() == null ? 0 : p.getPorcentajeAvance());
                     sliderPorcentaje.setValue(p.getPorcentajeAvance() == null ? 0 : p.getPorcentajeAvance());
-                    limpiarFormulario();
                 }
+
                 ultimoPct = nuevo;
                 sliderPorcentaje.setMin(nuevo);
                 sliderPorcentaje.setValue(nuevo);
 
                 info("Seguimiento actualizado.");
+
+                // Recargar (volverá a ordenar DESC y a re-habilitar botones)
                 cargarSeguimientos();
-                ordenarTablaDescPorFecha();
+
             } else {
                 String m = respMsg(res);
                 warn(m != null ? m : "No se pudo actualizar.");
@@ -455,10 +482,16 @@ public class Ventana4Controller extends Controller implements Initializable {
     private void eliminar() {
         SeguimientoProyectoDto sel = tablaSeguimientos.getSelectionModel().getSelectedItem();
         if (sel == null || sel.getId() == null) { warn("Seleccione un seguimiento."); return; }
+
+        // Solo permitir eliminar el último (más reciente)
+        if (!esUltimoSeleccionado()) {
+            warn("Solo se puede eliminar el último seguimiento registrado.");
+            return;
+        }
+
         if (new Alert(Alert.AlertType.CONFIRMATION, "¿Eliminar seguimiento seleccionado?")
                 .showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) return;
 
-        // Proyecto actualmente seleccionado (lo necesitaremos tras eliminar)
         ProyectoDto pSel = cbProyectos.getSelectionModel().getSelectedItem();
 
         try {
@@ -467,16 +500,16 @@ public class Ventana4Controller extends Controller implements Initializable {
                 info("Seguimiento eliminado.");
 
                 if (pSel != null && pSel.getId() != null) {
-                    // Recalcular % del proyecto según último seguimiento restante y actividades
+                    // Recalcular % del proyecto después de eliminar (puede bajar)
                     actualizarProyectoTrasEliminarSeguimiento(pSel.getId());
-                    // Avisar a otras ventanas (1 y 3) para que refresquen
+                    // Notificar a otras ventanas
                     AppEvents.fireProyectoActualizado(pSel.getId());
                 }
 
-                // Recargar tabla y limpiar form
+                // Recargar tabla (volverá a quedar ordenada DESC) y limpiar form
                 cargarSeguimientos();
-                ordenarTablaDescPorFecha();
                 limpiarFormulario();
+
             } else {
                 String m = respMsg(res);
                 warn(m != null ? m : "No se pudo eliminar.");
@@ -623,6 +656,34 @@ public class Ventana4Controller extends Controller implements Initializable {
         return (type.isInstance(d)) ? type.cast(d) : null;
     }
 
+    /** Devuelve nueva lista ordenada DESC por fecha (más reciente primero). */
+    private List<SeguimientoProyectoDto> ordenarDescPorFecha(List<SeguimientoProyectoDto> lista) {
+        if (lista == null) return Collections.emptyList();
+        List<SeguimientoProyectoDto> out = new ArrayList<>(lista);
+        out.sort(Comparator.comparing(
+                (SeguimientoProyectoDto s) -> toDate(s.getFechaSeguimiento()),
+                Comparator.nullsLast(Comparator.naturalOrder())
+        ).reversed());
+        return out;
+    }
+
+    /** True si el seleccionado en la tabla es el PRIMERO (último seguimiento). */
+    private boolean esUltimoSeleccionado() {
+        SeguimientoProyectoDto sel = tablaSeguimientos.getSelectionModel().getSelectedItem();
+        if (sel == null) return false;
+        if (tablaSeguimientos.getItems().isEmpty()) return false;
+        return tablaSeguimientos.getItems().get(0) == sel;
+    }
+
+    /** Habilita Editar/Eliminar únicamente cuando el seleccionado es el último. */
+    private void actualizarBotonesSegunSeleccion() {
+        boolean hayItems = !tablaSeguimientos.getItems().isEmpty();
+        boolean ultimo = esUltimoSeleccionado();
+        btnEditarSeguimiento.setDisable(!(hayItems && ultimo));
+        btnEliminarSeguimiento.setDisable(!(hayItems && ultimo));
+    }
+
+    /** Reordenamiento visual redundante (por si hay cambios en caliente). */
     private void ordenarTablaDescPorFecha() {
         List<SeguimientoProyectoDto> items = new ArrayList<>(tablaSeguimientos.getItems());
         items.sort(Comparator.comparing(
@@ -636,18 +697,19 @@ public class Ventana4Controller extends Controller implements Initializable {
         tablaSeguimientos.getSortOrder().setAll(colFecha);
         tablaSeguimientos.sort();
     }
-    
+
+    /** Verifica si el proyecto tiene al menos una actividad. */
     private boolean proyectoTieneActividades(Long proyectoId) {
-    try {
-        Object rAct = proyPort().obtenerActividadesPorProyecto(proyectoId);
-        List<cr.ac.una.client.soap.ActividadDto> acts =
-                respListOf(rAct, cr.ac.una.client.soap.ActividadDto.class);
-        return acts != null && !acts.isEmpty();
-    } catch (Exception ex) {
-        warn("No se pudieron consultar las actividades del proyecto.");
-        return false;
+        try {
+            Object rAct = proyPort().obtenerActividadesPorProyecto(proyectoId);
+            List<cr.ac.una.client.soap.ActividadDto> acts =
+                    respListOf(rAct, cr.ac.una.client.soap.ActividadDto.class);
+            return acts != null && !acts.isEmpty();
+        } catch (Exception ex) {
+            warn("No se pudieron consultar las actividades del proyecto.");
+            return false;
+        }
     }
-}
 
     // ====== Alerts ======
     private void info(String m){ Alert a=new Alert(Alert.AlertType.INFORMATION,"",ButtonType.OK); a.setHeaderText(null); a.setContentText(m); a.showAndWait(); }
