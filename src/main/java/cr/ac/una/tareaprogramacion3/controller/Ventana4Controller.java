@@ -700,16 +700,15 @@ public class Ventana4Controller extends Controller implements Initializable {
 
     /** Verifica si el proyecto tiene al menos una actividad. */
     private boolean proyectoTieneActividades(Long proyectoId) {
-        try {
-            Object rAct = proyPort().obtenerActividadesPorProyecto(proyectoId);
-            List<cr.ac.una.client.soap.ActividadDto> acts =
-                    respListOf(rAct, cr.ac.una.client.soap.ActividadDto.class);
-            return acts != null && !acts.isEmpty();
-        } catch (Exception ex) {
-            warn("No se pudieron consultar las actividades del proyecto.");
-            return false;
-        }
+    try {
+        Object rAct = proyPort().obtenerActividadesPorProyecto(proyectoId);
+        List<?> acts = respListGeneric(rAct); // <— usa el extractor robusto
+        return acts != null && !acts.isEmpty();
+    } catch (Exception ex) {
+        warn("No se pudieron consultar las actividades del proyecto.");
+        return false;
     }
+}
 
     // ====== Alerts ======
     private void info(String m){ Alert a=new Alert(Alert.AlertType.INFORMATION,"",ButtonType.OK); a.setHeaderText(null); a.setContentText(m); a.showAndWait(); }

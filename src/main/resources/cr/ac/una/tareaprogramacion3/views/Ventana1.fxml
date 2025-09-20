@@ -63,6 +63,11 @@
         <TextField fx:id="txtBuscar" maxWidth="320" prefHeight="25.0" prefWidth="261.0" promptText="Buscar en todos los campos..." HBox.hgrow="NEVER" />
         <Button fx:id="btnBuscar" minWidth="57.0" prefHeight="25.0" prefWidth="57.0" text="Buscar" HBox.hgrow="NEVER" />
         <Button fx:id="btnLimpiar" minWidth="60.0" prefHeight="25.0" prefWidth="60.0" text="Limpiar" HBox.hgrow="NEVER" />
+        <Button fx:id="btnEliminar"
+        minWidth="70.0" onAction="#onEliminarSeleccion"
+        prefHeight="25.0" prefWidth="70.0"
+        style="-fx-background-color: #c0392b; -fx-text-fill: white; -fx-font-weight: bold;"
+        text="Eliminar" HBox.hgrow="NEVER"/>
     </HBox>
 </top>
 

@@ -1,18 +1,23 @@
 package cr.ac.una.tareaprogramacion3.controller;
 
+import cr.ac.una.client.soap.ActividadDto;
 import cr.ac.una.client.soap.ProyectoDto;
 import cr.ac.una.client.soap.ProyectoService;
 import cr.ac.una.client.soap.ProyectoWS;
 import cr.ac.una.client.soap.ReporteWS;
 import cr.ac.una.client.soap.ReporteWSService;
 import cr.ac.una.client.soap.RespuestaExcel;
-import cr.ac.una.client.soap.RespuestaGeneralLista;
+import cr.ac.una.client.soap.RespuestaGeneralLista; // se mantiene para los métodos que ya te funcionaban
+import cr.ac.una.client.soap.SeguimientoProyectoDto;
+import cr.ac.una.client.soap.SeguimientoService;
+import cr.ac.una.client.soap.SeguimientoWS;
 
 import cr.ac.una.tareaprogramacion3.service.ExcelExportService;
 import cr.ac.una.tareaprogramacion3.util.AppEvents;
 import cr.ac.una.tareaprogramacion3.util.Controller;
 import cr.ac.una.tareaprogramacion3.util.FlowController;
 
+import jakarta.xml.bind.JAXBElement;
 import jakarta.xml.ws.BindingProvider;
 import jakarta.xml.ws.soap.SOAPBinding;
 
@@ -26,13 +31,14 @@ import javafx.scene.layout.VBox;
 
 import javax.xml.datatype.XMLGregorianCalendar;
 import java.io.File;
+import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class Ventana1Controller extends Controller {
 
-    // ======= Búsqueda (versión nueva) =======
+    // ======= Búsqueda =======
     @FXML private TextField txtBuscar;
 
     // ======= Listas por estado =======
@@ -46,21 +52,26 @@ public class Ventana1Controller extends Controller {
     private final ObservableList<ProyectoDto> dataSuspendidos  = FXCollections.observableArrayList();
     private final ObservableList<ProyectoDto> dataFinalizados  = FXCollections.observableArrayList();
 
-    // ======= Controles Excel (opcionales en FXML) =======
+    // ======= Controles Excel / estado =======
     @FXML private Button btnGenerarExcel;
     @FXML private ProgressIndicator progressExcel;
     @FXML private Label lblEstadoExcel;
     @FXML private Label lblProyectoSeleccionado;
 
+    // ======= CRUD barra =======
+    @FXML private Button btnEliminar; // botón Eliminar del FXML
+
     // ======= WS Ports =======
     private ProyectoWS proyectoPort;
     private ReporteWS  reportePort;
+    private SeguimientoWS seguimientoPort;
 
     // ======= Endpoints =======
-    private static final String PROYECTO_ENDPOINT = "http://localhost:8080/ProyectoService/ProyectoWS";
-    private static final String REPORTE_ENDPOINT  = "http://localhost:8080/ReporteWSService/ReporteWS";
+    private static final String PROYECTO_ENDPOINT    = "http://localhost:8080/ProyectoService/ProyectoWS";
+    private static final String REPORTE_ENDPOINT     = "http://localhost:8080/ReporteWSService/ReporteWS";
+    private static final String SEGUIMIENTO_ENDPOINT = "http://localhost:8080/SeguimientoService/SeguimientoWS";
 
-    // Cache para búsqueda (versión nueva)
+    // Cache para búsqueda
     private List<ProyectoDto> cache = new ArrayList<>();
 
     // Proyecto marcado con Excel generado vigente (para resaltar)
@@ -73,6 +84,7 @@ public class Ventana1Controller extends Controller {
         // Puertos
         crearProyectoPort(PROYECTO_ENDPOINT);
         crearReportePort(REPORTE_ENDPOINT);
+        crearSeguimientoPort(SEGUIMIENTO_ENDPOINT);
 
         // Listas
         prepararLista(listaPlanificados, dataPlanificados);
@@ -85,16 +97,17 @@ public class Ventana1Controller extends Controller {
             txtBuscar.textProperty().addListener((obs, ov, nv) -> aplicarFiltro());
         }
 
-        // Excel UI estado inicial (si existen en FXML)
+        // Estado inicial
         if (btnGenerarExcel != null) btnGenerarExcel.setDisable(true);
         if (progressExcel != null)   progressExcel.setVisible(false);
         if (lblEstadoExcel != null)  lblEstadoExcel.setVisible(false);
         if (lblProyectoSeleccionado != null) lblProyectoSeleccionado.setText("Ninguno");
+        if (btnEliminar != null)     btnEliminar.setDisable(true);
 
-        // Suscripción: cuando Ventana3 u otros actualizan un proyecto, refrescamos
-        // después
-AppEvents.onProyectoActualizado(id -> Platform.runLater(this::cargarTodos));
+        // Suscripción eventos globales
+        AppEvents.onProyectoActualizado(id -> Platform.runLater(this::cargarTodos));
 
+        // Datos
         cargarTodos();
     }
 
@@ -111,9 +124,15 @@ AppEvents.onProyectoActualizado(id -> Platform.runLater(this::cargarTodos));
         this.reportePort = svc.getReporteWSPort();
         ((BindingProvider) reportePort).getRequestContext()
                 .put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, endpointUrl);
-        // MTOM para transferir el byte[] del Excel eficientemente
         SOAPBinding binding = (SOAPBinding) ((BindingProvider) reportePort).getBinding();
         binding.setMTOMEnabled(true);
+    }
+
+    private void crearSeguimientoPort(String endpointUrl) {
+        SeguimientoService svc = new SeguimientoService();
+        this.seguimientoPort = svc.getSeguimientoWSPort();
+        ((BindingProvider) seguimientoPort).getRequestContext()
+                .put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, endpointUrl);
     }
 
     // ===================== Listas y celdas =====================
@@ -156,7 +175,6 @@ AppEvents.onProyectoActualizado(id -> Platform.runLater(this::cargarTodos));
                     l3.setText(datesText(p));
                     setGraphic(box);
 
-                    // Resaltar si es el proyecto cuyo Excel está "vigente"
                     if (proyectoConExcelGenerado != null &&
                         p.getId() != null &&
                         p.getId().equals(proyectoConExcelGenerado.getId())) {
@@ -176,7 +194,7 @@ AppEvents.onProyectoActualizado(id -> Platform.runLater(this::cargarTodos));
             }
         });
 
-        // Selección: habilitar botón Excel, mostrar nombre
+        // Selección
         lv.getSelectionModel().selectedItemProperty().addListener((obs, o, n) -> {
             if (n != null) {
                 limpiarOtrasSelecciones(lv);
@@ -196,11 +214,13 @@ AppEvents.onProyectoActualizado(id -> Platform.runLater(this::cargarTodos));
         if (proyecto != null) {
             if (lblProyectoSeleccionado != null) lblProyectoSeleccionado.setText(nvl(proyecto.getNombre()));
             if (btnGenerarExcel != null)         btnGenerarExcel.setDisable(false);
+            if (btnEliminar != null)             btnEliminar.setDisable(false);
             verificarEstadoExcel(proyecto);
         } else {
             if (lblProyectoSeleccionado != null) lblProyectoSeleccionado.setText("Ninguno");
             if (btnGenerarExcel != null)         btnGenerarExcel.setDisable(true);
             if (lblEstadoExcel != null)          lblEstadoExcel.setVisible(false);
+            if (btnEliminar != null)             btnEliminar.setDisable(true);
         }
     }
 
@@ -337,7 +357,7 @@ AppEvents.onProyectoActualizado(id -> Platform.runLater(this::cargarTodos));
         });
     }
 
-    // ===================== Acciones =====================
+    // ===================== Acciones CRUD / Excel =====================
     @FXML private void onNuevoProyecto() { abrirDialogoViaFlow(null); }
 
     @FXML private void onRefrescar() { cargarTodos(); }
@@ -348,46 +368,6 @@ AppEvents.onProyectoActualizado(id -> Platform.runLater(this::cargarTodos));
         abrirDialogoViaFlow(sel);
     }
 
-    private ProyectoDto obtenerSeleccion() {
-        ProyectoDto p;
-        if (listaPlanificados!=null && (p = listaPlanificados.getSelectionModel().getSelectedItem()) != null) return p;
-        if (listaEnProceso   !=null && (p = listaEnProceso.getSelectionModel().getSelectedItem())    != null) return p;
-        if (listaSuspendidos !=null && (p = listaSuspendidos.getSelectionModel().getSelectedItem())  != null) return p;
-        if (listaFinalizados !=null && (p = listaFinalizados.getSelectionModel().getSelectedItem())  != null) return p;
-        return null;
-    }
-
-    private void abrirDialogoViaFlow(ProyectoDto dto) {
-        try {
-            FlowController fc = FlowController.getInstance();
-            ProyectoDialogController dialogCtrl =
-                    (ProyectoDialogController) fc.getController("ProyectoDialog");
-            dialogCtrl.init(PROYECTO_ENDPOINT, dto);
-            fc.goViewInWindowModal("ProyectoDialog", getStage(), false);
-
-            if (dialogCtrl.isGuardado()) {
-                cargarTodos();
-
-                // Si se modificó el proyecto que tenía Excel, avisar y desmarcar como vigente
-                if (dto != null && proyectoConExcelGenerado != null &&
-                    dto.getId() != null && dto.getId().equals(proyectoConExcelGenerado.getId())) {
-                    mostrarAviso("Excel desactualizado",
-                            "El proyecto ha sido modificado. Se recomienda regenerar el cronograma Excel.");
-                    proyectoConExcelGenerado = null;
-                    refrescarCeldasListas();
-                    if (lblEstadoExcel != null) {
-                        lblEstadoExcel.setText("Excel desactualizado");
-                        lblEstadoExcel.setStyle("-fx-text-fill: #e67e22; -fx-font-style: italic;");
-                        lblEstadoExcel.setVisible(true);
-                    }
-                }
-            }
-        } catch (Exception ex) {
-            mostrarError("No se pudo abrir el diálogo", ex);
-        }
-    }
-
-    // ===================== Excel: Generar/Guardar =====================
     @FXML
     private void onGenerarExcel() {
         ProyectoDto sel = obtenerSeleccion();
@@ -396,7 +376,6 @@ AppEvents.onProyectoActualizado(id -> Platform.runLater(this::cargarTodos));
             return;
         }
 
-        // UI progreso
         if (btnGenerarExcel != null) btnGenerarExcel.setDisable(true);
         if (progressExcel != null)   progressExcel.setVisible(true);
         if (lblEstadoExcel != null) {
@@ -419,7 +398,6 @@ AppEvents.onProyectoActualizado(id -> Platform.runLater(this::cargarTodos));
                 if (btnGenerarExcel != null) btnGenerarExcel.setDisable(false);
 
                 if (respuesta != null && respuesta.getArchivoExcel() != null && respuesta.getArchivoExcel().length > 0) {
-                    // Éxito: marcar y resaltar
                     proyectoConExcelGenerado = sel;
                     if (lblEstadoExcel != null) {
                         lblEstadoExcel.setText("Excel generado exitosamente");
@@ -428,7 +406,6 @@ AppEvents.onProyectoActualizado(id -> Platform.runLater(this::cargarTodos));
                     }
                     refrescarCeldasListas();
 
-                    // Guardar archivo (con manejo de archivo abierto / sobrescritura)
                     guardarArchivoExcel(respuesta.getArchivoExcel(), respuesta.getNombreArchivo());
                 } else {
                     if (lblEstadoExcel != null) {
@@ -456,6 +433,136 @@ AppEvents.onProyectoActualizado(id -> Platform.runLater(this::cargarTodos));
         });
 
         new Thread(task, "generar-excel").start();
+    }
+
+    // ===================== Eliminar Proyecto (cascada) =====================
+    @FXML
+    private void onEliminarSeleccion() {
+        ProyectoDto sel = obtenerSeleccion();
+        if (sel == null || sel.getId() == null) {
+            alerta("Seleccione un proyecto en cualquiera de las listas.");
+            return;
+        }
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Eliminar proyecto");
+        confirm.setHeaderText("¿Eliminar el proyecto \"" + nvl(sel.getNombre()) + "\"?");
+        confirm.setContentText("Se eliminarán también TODAS sus actividades y seguimientos. Esta acción no se puede deshacer.");
+        ButtonType btnSi = new ButtonType("Eliminar", ButtonBar.ButtonData.OK_DONE);
+        ButtonType btnNo = new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE);
+        confirm.getButtonTypes().setAll(btnSi, btnNo);
+
+        Optional<ButtonType> res = confirm.showAndWait();
+        if (res.isEmpty() || res.get() != btnSi) return;
+
+        if (btnEliminar != null) btnEliminar.setDisable(true);
+        if (btnGenerarExcel != null) btnGenerarExcel.setDisable(true);
+
+        Task<Void> task = new Task<>() {
+            @Override
+            protected Void call() throws Exception {
+                Long proyectoId = sel.getId();
+
+                // 1) Eliminar seguimientos
+                Object rSeg = seguimientoPort.buscarSeguimientosPorProyecto(proyectoId);
+                List<Object> itemsSeg = extraerLista(rSeg);
+                for (Object o : itemsSeg) {
+                    Object val = (o instanceof JAXBElement<?> j) ? j.getValue() : o;
+                    if (val instanceof SeguimientoProyectoDto s && s.getId() != null) {
+                        Object rDelSeg = seguimientoPort.eliminarSeguimiento(s.getId());
+                        if (!respOk(rDelSeg)) {
+                            throw new RuntimeException("No se pudo eliminar un seguimiento (id=" + s.getId() + "). " + nvl(respMsg(rDelSeg)));
+                        }
+                    }
+                }
+
+                // 2) Eliminar actividades
+                Object rAct = proyectoPort.obtenerActividadesPorProyecto(proyectoId);
+                List<Object> itemsAct = extraerLista(rAct);
+                for (Object o : itemsAct) {
+                    Object val = (o instanceof JAXBElement<?> j) ? j.getValue() : o;
+                    if (val instanceof ActividadDto a && a.getId() != null) {
+                        Object rDelAct = proyectoPort.eliminarActividad(a.getId());
+                        if (!respOk(rDelAct)) {
+                            throw new RuntimeException("No se pudo eliminar una actividad (id=" + a.getId() + "). " + nvl(respMsg(rDelAct)));
+                        }
+                    }
+                }
+
+                // 3) Eliminar proyecto
+                Object rDelProy = proyectoPort.eliminarProyecto(proyectoId);
+                if (!respOk(rDelProy)) {
+                    throw new RuntimeException(nvl(respMsg(rDelProy)) + " (al eliminar el proyecto).");
+                }
+
+                return null;
+            }
+        };
+
+        task.setOnSucceeded(e -> {
+            Platform.runLater(() -> {
+                mostrarInfo("Proyecto eliminado", "Se eliminó el proyecto y todos sus registros asociados.");
+                cargarTodos();
+                if (lblProyectoSeleccionado != null) lblProyectoSeleccionado.setText("Ninguno");
+                if (lblEstadoExcel != null) lblEstadoExcel.setVisible(false);
+                proyectoConExcelGenerado = null;
+
+                if (btnGenerarExcel != null) btnGenerarExcel.setDisable(true);
+                if (btnEliminar != null) btnEliminar.setDisable(true);
+
+                try { AppEvents.fireProyectoActualizado(null); } catch (Exception ignore) {}
+            });
+        });
+
+        task.setOnFailed(e -> {
+            Platform.runLater(() -> {
+                mostrarError("No se pudo eliminar", task.getException());
+                if (btnEliminar != null) btnEliminar.setDisable(false);
+                if (btnGenerarExcel != null) btnGenerarExcel.setDisable(false);
+            });
+        });
+
+        new Thread(task, "eliminar-proyecto-cascada").start();
+    }
+
+    // ===================== Auxiliares =====================
+    private ProyectoDto obtenerSeleccion() {
+        ProyectoDto p;
+        if (listaPlanificados!=null && (p = listaPlanificados.getSelectionModel().getSelectedItem()) != null) return p;
+        if (listaEnProceso   !=null && (p = listaEnProceso.getSelectionModel().getSelectedItem())    != null) return p;
+        if (listaSuspendidos !=null && (p = listaSuspendidos.getSelectionModel().getSelectedItem())  != null) return p;
+        if (listaFinalizados !=null && (p = listaFinalizados.getSelectionModel().getSelectedItem())  != null) return p;
+        return null;
+    }
+
+    private void abrirDialogoViaFlow(ProyectoDto dto) {
+        try {
+            FlowController fc = FlowController.getInstance();
+            ProyectoDialogController dialogCtrl =
+                    (ProyectoDialogController) fc.getController("ProyectoDialog");
+            dialogCtrl.init(PROYECTO_ENDPOINT, dto);
+            fc.goViewInWindowModal("ProyectoDialog", getStage(), false);
+
+            if (dialogCtrl.isGuardado()) {
+                cargarTodos();
+
+                if (dto != null && proyectoConExcelGenerado != null &&
+                    dto.getId() != null && dto.getId().equals(proyectoConExcelGenerado.getId())) {
+                    mostrarAviso("Excel desactualizado",
+                            "El proyecto ha sido modificado. Se recomienda regenerar el cronograma Excel.");
+                    proyectoConExcelGenerado = null;
+                    refrescarCeldasListas();
+                    if (lblEstadoExcel != null) {
+                        lblEstadoExcel.setText("Excel desactualizado");
+                        lblEstadoExcel.setStyle("-fx-text-fill: #e67e22; -fx-font-style: italic;");
+                        lblEstadoExcel.setVisible(true);
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            mostrarError("No se pudo abrir el diálogo", ex);
+        }
+        ;
     }
 
     private void guardarArchivoExcel(byte[] excelBytes, String nombreArchivo) {
@@ -508,7 +615,6 @@ AppEvents.onProyectoActualizado(id -> Platform.runLater(this::cargarTodos));
             return;
         }
 
-        // Existe y NO está bloqueado → preguntar sobrescritura
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Sobrescribir archivo");
         confirm.setHeaderText("El archivo ya existe:");
@@ -536,23 +642,6 @@ AppEvents.onProyectoActualizado(id -> Platform.runLater(this::cargarTodos));
         });
     }
 
-    // ===================== Integración con Ventana3 =====================
-    /** Ventana3 la puede llamar cuando crea/edita una actividad del proyecto. */
-    public void notificarActividadCreada(Long proyectoId) {
-        if (proyectoConExcelGenerado != null && proyectoId != null &&
-            proyectoId.equals(proyectoConExcelGenerado.getId())) {
-            mostrarAviso("Excel desactualizado",
-                    "Se ha agregado una nueva actividad al proyecto. El cronograma Excel necesita ser actualizado.");
-            proyectoConExcelGenerado = null; // marcar como desactualizado
-            refrescarCeldasListas();
-            if (lblEstadoExcel != null) {
-                lblEstadoExcel.setText("Excel desactualizado");
-                lblEstadoExcel.setStyle("-fx-text-fill: #e67e22; -fx-font-style: italic;");
-                lblEstadoExcel.setVisible(true);
-            }
-        }
-    }
-
     private void refrescarCeldasListas() {
         if (listaPlanificados != null) listaPlanificados.refresh();
         if (listaEnProceso    != null) listaEnProceso.refresh();
@@ -560,7 +649,6 @@ AppEvents.onProyectoActualizado(id -> Platform.runLater(this::cargarTodos));
         if (listaFinalizados  != null) listaFinalizados.refresh();
     }
 
-    // ===================== Utilitarios =====================
     private String fmtFecha(Object d) {
         if (d == null) return null;
         try {
@@ -605,5 +693,53 @@ AppEvents.onProyectoActualizado(id -> Platform.runLater(this::cargarTodos));
         a.setHeaderText(titulo);
         a.setContentText(msg);
         a.showAndWait();
+    }
+
+    /* =================== Helpers genéricos de respuesta =================== */
+
+    /** Intenta evaluar "éxito" en una respuesta cualquiera (isOk/getOk/getExito o getEstado=OK/SUCCESS). */
+    private boolean respOk(Object resp) {
+        if (resp == null) return false;
+        Boolean ok = (Boolean) callNoArgOrNull(resp, "isOk", "getOk", "getExito");
+        if (ok != null) return ok;
+        String estado = (String) callNoArgOrNull(resp, "getEstado", "getStatus");
+        return estado != null && (estado.equalsIgnoreCase("OK") || estado.equalsIgnoreCase("SUCCESS"));
+    }
+
+    /** Extrae un posible mensaje de la respuesta. */
+    private String respMsg(Object resp) {
+        Object m = callNoArgOrNull(resp, "getMensaje", "getMessage", "getDetalle");
+        return m == null ? "" : String.valueOf(m);
+    }
+
+    /** Devuelve la lista contenida en respuestas tipo RespuestaWsLista/RespuestaGeneralLista, etc. */
+    @SuppressWarnings("unchecked")
+    private List<Object> extraerLista(Object respuesta) {
+        if (respuesta == null) return List.of();
+        // Casos típicos: resp.getItems().getItem()
+        Object items = callNoArgOrNull(respuesta, "getItems", "getLista", "getDatos", "getData");
+        if (items == null) return List.of();
+        if (items instanceof JAXBElement<?> j) items = j.getValue();
+
+        // getItem() dentro de items
+        Object itemList = callNoArgOrNull(items, "getItem", "getItems", "getProyectos", "getActividades", "getSeguimientos");
+        if (itemList instanceof List<?>) return (List<Object>) itemList;
+
+        // Si items ya es List
+        if (items instanceof List<?>) return (List<Object>) items;
+
+        return List.of();
+    }
+
+    private Object callNoArgOrNull(Object target, String... names) {
+        if (target == null) return null;
+        for (String n : names) {
+            try {
+                Method m = target.getClass().getMethod(n);
+                m.setAccessible(true);
+                return m.invoke(target);
+            } catch (Exception ignore) {}
+        }
+        return null;
     }
 }
