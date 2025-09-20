@@ -81,49 +81,42 @@ public class Ventana3Controller extends Controller {
     private boolean edicionBloqueada = false;
 
     @Override
-    public void initialize() {
-        crearPort("http://localhost:8080/ProyectoService/ProyectoWS");
-        crearSegPort("http://localhost:8080/SeguimientoService/SeguimientoWS"); // NUEVO
+public void initialize() {
+    crearPort("http://localhost:8080/ProyectoService/ProyectoWS");
+    crearSegPort("http://localhost:8080/SeguimientoService/SeguimientoWS");
 
-        configurarComboProyectos();
-        configurarComboEstados();
-        configurarColumnasKanban();    // Kanban + DnD
-        conectarEventos();
-        configurarBotonesParaNuevaActividad();
-        configurarFechas();            // restricción: no fechas pasadas + coherencia
-        enlazarEstadoConFormulario();  // mueve la tarjeta si se cambia el estado en el formulario
-        cargarProyectos();
+    configurarComboProyectos();
+    configurarComboEstados();
+    configurarColumnasKanban();
+    conectarEventos();
+    configurarBotonesParaNuevaActividad();
+    configurarFechas();
+    enlazarEstadoConFormulario();
+    cargarProyectos();
 
-        Platform.runLater(this::cargarTodos);
+    Platform.runLater(this::cargarTodos);
 
-        // Refrescar cada vez que la ventana recobra foco (vuelves desde otra vista)
-        Platform.runLater(() -> {
-            if (getStage() != null) {
-                getStage().focusedProperty().addListener((obs, oldV, nowFocused) -> {
-                    if (Boolean.TRUE.equals(nowFocused)) cargarTodos();
-                });
-            }
-        });
+    // Cuando cambia el proyecto seleccionado
+    cbProyectos.getSelectionModel().selectedItemProperty().addListener((obs, oldP, newP) -> {
+        if (newP != null) {
+            aplicarBloqueo(true);                 // bloquear YA (optimista)
+            cargarActividades();
+            actualizarBloqueoPorProyectoId(newP.getId()); // confirma con WS
+        } else {
+            aplicarBloqueo(false);
+        }
+    });
 
-        // >>> NUEVO: cuando cambia el proyecto seleccionado, re-chequear bloqueo y cargar
-        cbProyectos.getSelectionModel().selectedItemProperty().addListener((obs, oldP, newP) -> {
-            if (newP != null) {
-                actualizarBloqueoPorProyectoId(newP.getId());
-                cargarActividades();
-            } else {
-                aplicarBloqueo(false);
-            }
-        });
-
-        // >>> NUEVO: escuchar evento global de Ventana4
-        AppEvents.onProyectoActualizado(proyectoId -> {
-            ProyectoDto pSel = cbProyectos.getValue();
-            if (pSel != null && Objects.equals(pSel.getId(), proyectoId)) {
-                cargarActividades();
-                actualizarBloqueoPorProyectoId(proyectoId);
-            }
-        });
-    }
+    // Cuando Ventana4 actualiza un proyecto (ej: crea seguimiento)
+    AppEvents.onProyectoActualizado(proyectoId -> {
+        ProyectoDto pSel = cbProyectos.getValue();
+        if (pSel != null && Objects.equals(pSel.getId(), proyectoId)) {
+            aplicarBloqueo(true);                 // bloquear YA
+            cargarActividades();
+            actualizarBloqueoPorProyectoId(proyectoId); // confirma con WS
+        }
+    });
+}
 
     private void crearPort(String endpointUrl) {
         try {
@@ -340,6 +333,11 @@ public class Ventana3Controller extends Controller {
         setupEmptyDrop.accept(lvEnCurso);
         setupEmptyDrop.accept(lvPostergada);
         setupEmptyDrop.accept(lvFinalizada);
+        
+        instalarFiltroBloqueo(lvPlanificada);
+instalarFiltroBloqueo(lvEnCurso);
+instalarFiltroBloqueo(lvPostergada);
+instalarFiltroBloqueo(lvFinalizada);
     }
 
     private void enlazarEstadoConFormulario() {
@@ -528,15 +526,15 @@ public class Ventana3Controller extends Controller {
     }
 
     private void ordenarPorOrden(ObservableList<ActividadDto> list) {
-        FXCollections.sort(list, (a, b) -> {
-            Integer oa = a.getOrdenEjecucion() == null ? Integer.MAX_VALUE : a.getOrdenEjecucion();
-            Integer ob = b.getOrdenEjecucion() == null ? Integer.MAX_VALUE : b.getOrdenEjecucion();
-            return oa.compareTo(ob);
-        });
-        // Reasigna consecutivo si hay huecos y lo persiste
-        recomputarOrden(list);
-        persistirOrdenes(list);
-    }
+    if (edicionBloqueada) return;
+    FXCollections.sort(list, (a, b) -> {
+        Integer oa = a.getOrdenEjecucion() == null ? Integer.MAX_VALUE : a.getOrdenEjecucion();
+        Integer ob = b.getOrdenEjecucion() == null ? Integer.MAX_VALUE : b.getOrdenEjecucion();
+        return oa.compareTo(ob);
+    });
+    recomputarOrden(list);
+    persistirOrdenes(list);
+}
 
     private void configurarBotonesParaNuevaActividad() {
         if (btnGuardarActividad != null) {
@@ -899,7 +897,10 @@ public class Ventana3Controller extends Controller {
             return out;
         }
         Class<?> c = obj.getClass();
-        for (String mname : new String[]{"getData", "getItems", "getItem", "getLista"}) {
+        for (String mname : new String[]{
+    "getData", "getItems", "getItem", "getLista",
+    "getSeguimientos", "getProyectoOrSeguimientoOrActividad"
+}) {
             try {
                 Method m = c.getMethod(mname);
                 Object val = m.invoke(obj);
@@ -964,19 +965,44 @@ public class Ventana3Controller extends Controller {
         new Thread(t, "chk-seguimientos").start();
     }
 
-    private void aplicarBloqueo(boolean bloquear) {
+    
+    
+    private void instalarFiltroBloqueo(ListView<?> lv) {
+    lv.addEventFilter(javafx.scene.input.MouseEvent.DRAG_DETECTED, e -> {
+        if (edicionBloqueada) {
+            mostrarAdvertencia("No se pueden modificar actividades porque existe un seguimiento registrado para este proyecto. Elimine el seguimiento para habilitar cambios.");
+            e.consume();
+        }
+    });
+    lv.addEventFilter(javafx.scene.input.DragEvent.ANY, e -> {
+        if (edicionBloqueada) e.consume();
+    });
+}
+
+private void aplicarBloqueo(boolean bloquear) {
+    Runnable ui = () -> {
         this.edicionBloqueada = bloquear;
 
         btnGuardarActividad.setDisable(bloquear);
         btnEditarActividad.setDisable(bloquear);
         btnEliminarActividad.setDisable(bloquear);
+        cbEstadoActividad.setDisable(bloquear);
+        fechaFinReal.setDisable(bloquear);
 
-        // Deshabilita DnD y edición visual
-        lvPlanificada.setDisable(bloquear);
-        lvEnCurso.setDisable(bloquear);
-        lvPostergada.setDisable(bloquear);
-        lvFinalizada.setDisable(bloquear);
-    }
+        // NO deshabilitar la ListView; solo hacerla “transparente” al mouse si está bloqueado
+        setListBlocked(lvPlanificada, bloquear);
+        setListBlocked(lvEnCurso, bloquear);
+        setListBlocked(lvPostergada, bloquear);
+        setListBlocked(lvFinalizada, bloquear);
+    };
+    if (Platform.isFxApplicationThread()) ui.run();
+    else Platform.runLater(ui);
+}
+
+private void setListBlocked(ListView<?> lv, boolean bloquear) {
+    lv.setDisable(false);                 // <- SIEMPRE habilitada
+    lv.setMouseTransparent(bloquear);     // <- bloquea interacción (incluye DnD) cuando hay seguimiento
+}
 
     private boolean chequearBloqueoYAdvertir() {
         if (!edicionBloqueada) return false;

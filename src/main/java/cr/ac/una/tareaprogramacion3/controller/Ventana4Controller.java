@@ -392,132 +392,117 @@ public class Ventana4Controller extends Controller implements Initializable {
      *  Permite BAJAR el % solo aquí (consistente con la eliminación).
      */
     private void actualizarProyectoTrasEliminarSeguimiento(Long proyectoId) {
-        try {
-            // 1) % por último seguimiento remanente
-            Object rSeg = segPort().buscarSeguimientosPorProyecto(proyectoId);
-            List<SeguimientoProyectoDto> segs = respListOf(rSeg, SeguimientoProyectoDto.class);
-            int pSeg = -1;
-            if (segs != null && !segs.isEmpty()) {
-                segs.sort((a,b) -> {
-                    Date da = toDate(a.getFechaSeguimiento());
-                    Date db = toDate(b.getFechaSeguimiento());
-                    if (da == null && db == null) return 0;
-                    if (da == null) return 1;
-                    if (db == null) return -1;
-                    return db.compareTo(da); // DESC
-                });
-                Integer pct = segs.get(0).getPorcentajeAvance();
-                pSeg = (pct == null) ? -1 : Math.max(0, Math.min(100, pct));
-            }
+    try {
+        // 1) % por seguimiento remanente de MAYOR porcentaje
+        Object rSeg = segPort().buscarSeguimientosPorProyecto(proyectoId);
+        List<SeguimientoProyectoDto> segs = respListOf(rSeg, SeguimientoProyectoDto.class);
+        int pSeg = -1;
+        if (segs != null && !segs.isEmpty()) {
+            pSeg = segs.stream()
+                    .map(s -> s.getPorcentajeAvance() == null ? 0 : s.getPorcentajeAvance())
+                    .max(Integer::compareTo)
+                    .orElse(0);
+        }
 
-            // 2) % por actividades actuales (vía ProyectoWS)
-            Object rAct = proyPort().obtenerActividadesPorProyecto(proyectoId);
-            List<cr.ac.una.client.soap.ActividadDto> acts =
-                    respListOf(rAct, cr.ac.una.client.soap.ActividadDto.class);
-            int pAct = 0;
-            if (acts != null && !acts.isEmpty()) {
-                long fin = acts.stream()
-                        .filter(a -> "FINALIZADA".equalsIgnoreCase(String.valueOf(a.getEstado())))
-                        .count();
-                pAct = (int) Math.floor((fin * 100.0) / acts.size());
-            }
+        // 2) % por actividades actuales (vía ProyectoWS)
+        Object rAct = proyPort().obtenerActividadesPorProyecto(proyectoId);
+        List<cr.ac.una.client.soap.ActividadDto> acts =
+                respListOf(rAct, cr.ac.una.client.soap.ActividadDto.class);
+        int pAct = 0;
+        if (acts != null && !acts.isEmpty()) {
+            long fin = acts.stream()
+                    .filter(a -> "FINALIZADA".equalsIgnoreCase(String.valueOf(a.getEstado())))
+                    .count();
+            pAct = (int) Math.floor((fin * 100.0) / acts.size());
+        }
 
-            // 3) Nuevo %
-            int nuevoPct = (pSeg >= 0) ? Math.max(pSeg, pAct) : pAct;
-            nuevoPct = Math.max(0, Math.min(100, nuevoPct));
+        // 3) Nuevo % (max del mayor seguimiento remanente vs % por actividades; si no hay seguimientos, solo pAct)
+        int nuevoPct = (pSeg >= 0) ? Math.max(pSeg, pAct) : pAct;
+        nuevoPct = Math.max(0, Math.min(100, nuevoPct));
 
-            // 4) Estado coherente
-            String nuevoEstado = "PLANIFICADO";
-            if (acts != null && !acts.isEmpty()) {
-                boolean anyEnCurso = acts.stream().anyMatch(a -> "EN_CURSO".equalsIgnoreCase(String.valueOf(a.getEstado())));
-                boolean anyPost = acts.stream().anyMatch(a -> "POSTERGADA".equalsIgnoreCase(String.valueOf(a.getEstado())));
-                boolean allFin = acts.stream().allMatch(a -> "FINALIZADA".equalsIgnoreCase(String.valueOf(a.getEstado())));
-                if (allFin || nuevoPct >= 100) nuevoEstado = "FINALIZADO";
-                else if (anyEnCurso) nuevoEstado = "EN_CURSO";
-                else if (anyPost) nuevoEstado = "SUSPENDIDO";
-            }
+        // 4) Estado coherente
+        String nuevoEstado = "PLANIFICADO";
+        if (acts != null && !acts.isEmpty()) {
+            boolean anyEnCurso = acts.stream().anyMatch(a -> "EN_CURSO".equalsIgnoreCase(String.valueOf(a.getEstado())));
+            boolean anyPost = acts.stream().anyMatch(a -> "POSTERGADA".equalsIgnoreCase(String.valueOf(a.getEstado())));
+            boolean allFin = acts.stream().allMatch(a -> "FINALIZADA".equalsIgnoreCase(String.valueOf(a.getEstado())));
+            if (allFin || nuevoPct >= 100) nuevoEstado = "FINALIZADO";
+            else if (anyEnCurso) nuevoEstado = "EN_CURSO";
+            else if (anyPost) nuevoEstado = "SUSPENDIDO";
+        }
 
-            // 5) Actualizar el proyecto (usar DTO completo, no crear "mínimo")
-            ProyectoDto p = respData(proyPort().buscarProyectoPorId(proyectoId), ProyectoDto.class);
-            if (p == null) {
-                // fallback: usa el seleccionado en UI (suele estar completo)
-                p = cbProyectos.getSelectionModel().getSelectedItem();
-                if (p == null) {
-                    warn("No se pudo obtener el proyecto para actualizar su porcentaje.");
-                    return;
-                }
-            }
+        // 5) Actualizar el proyecto (usar DTO completo)
+        ProyectoDto p = respData(proyPort().buscarProyectoPorId(proyectoId), ProyectoDto.class);
+        if (p == null) {
+            p = cbProyectos.getSelectionModel().getSelectedItem();
+            if (p == null) { warn("No se pudo obtener el proyecto para actualizar su porcentaje."); return; }
+        }
 
-            Integer actualPct = p.getPorcentajeAvance() == null ? 0 : p.getPorcentajeAvance();
-            String  actualEst = p.getEstado();
-            if (Objects.equals(actualPct, nuevoPct) && Objects.equals(actualEst, nuevoEstado)) {
-                // Solo sincroniza UI/slider y avisa a otras ventanas
-                ultimoPct = nuevoPct;
-                sliderPorcentaje.setMin(nuevoPct);
-                sliderPorcentaje.setValue(nuevoPct);
-                AppEvents.fireProyectoActualizado(proyectoId);
-                return;
-            }
-
-            // Hay cambios: actualiza
-            p.setPorcentajeAvance(nuevoPct);
-            p.setEstado(nuevoEstado);
-
-            Object upd = proyPort().actualizarProyecto(p);  // ahora con DTO completo
-            if (!respOk(upd)) {
-                warn("No se pudo actualizar el proyecto con el nuevo porcentaje/estado.");
-            }
-
-            // Sincroniza controles y notifica
+        Integer actualPct = p.getPorcentajeAvance() == null ? 0 : p.getPorcentajeAvance();
+        String  actualEst = p.getEstado();
+        if (Objects.equals(actualPct, nuevoPct) && Objects.equals(actualEst, nuevoEstado)) {
             ultimoPct = nuevoPct;
             sliderPorcentaje.setMin(nuevoPct);
             sliderPorcentaje.setValue(nuevoPct);
             AppEvents.fireProyectoActualizado(proyectoId);
-
-        } catch (Exception ex) {
-            warn("No se pudo ajustar el proyecto tras eliminar el seguimiento: " + ex.getMessage());
-        }
-    }
-
-    private void eliminar() {
-        SeguimientoProyectoDto sel = tablaSeguimientos.getSelectionModel().getSelectedItem();
-        if (sel == null || sel.getId() == null) { warn("Seleccione un seguimiento."); return; }
-
-        // Solo permitir eliminar el último (más reciente)
-        if (!esUltimoSeleccionado()) {
-            warn("Solo se puede eliminar el último seguimiento registrado.");
             return;
         }
 
-        if (new Alert(Alert.AlertType.CONFIRMATION, "¿Eliminar seguimiento seleccionado?")
-                .showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) return;
+        p.setPorcentajeAvance(nuevoPct);
+        p.setEstado(nuevoEstado);
 
-        ProyectoDto pSel = cbProyectos.getSelectionModel().getSelectedItem();
+        Object upd = proyPort().actualizarProyecto(p);
+        if (!respOk(upd)) warn("No se pudo actualizar el proyecto con el nuevo porcentaje/estado.");
 
-        try {
-            Object res = segPort().eliminarSeguimiento(sel.getId());
-            if (respOk(res)) {
-                info("Seguimiento eliminado.");
+        ultimoPct = nuevoPct;
+        sliderPorcentaje.setMin(nuevoPct);
+        sliderPorcentaje.setValue(nuevoPct);
+        AppEvents.fireProyectoActualizado(proyectoId);
 
-                if (pSel != null && pSel.getId() != null) {
-                    // Recalcular % del proyecto después de eliminar (puede bajar)
-                    actualizarProyectoTrasEliminarSeguimiento(pSel.getId());
-                    // Notificar a otras ventanas
-                    AppEvents.fireProyectoActualizado(pSel.getId());
-                }
-
-                // Recargar tabla (volverá a quedar ordenada DESC) y limpiar form
-                cargarSeguimientos();
-                limpiarFormulario();
-
-            } else {
-                String m = respMsg(res);
-                warn(m != null ? m : "No se pudo eliminar.");
-            }
-        } catch (Exception ex) {
-            error("Error al eliminar", ex.getMessage());
-        }
+    } catch (Exception ex) {
+        warn("No se pudo ajustar el proyecto tras eliminar el seguimiento: " + ex.getMessage());
     }
+}
+
+    private void eliminar() {
+    SeguimientoProyectoDto sel = tablaSeguimientos.getSelectionModel().getSelectedItem();
+    if (sel == null || sel.getId() == null) { warn("Seleccione un seguimiento."); return; }
+
+    // NUEVO: solo se puede eliminar el de mayor %
+    if (!esMayorPorcentajeSeleccionado()) {
+        warn("Solo se puede eliminar el seguimiento con mayor porcentaje.");
+        return;
+    }
+
+    if (new Alert(Alert.AlertType.CONFIRMATION, "¿Eliminar seguimiento seleccionado?")
+            .showAndWait().orElse(ButtonType.CANCEL) != ButtonType.OK) return;
+
+    ProyectoDto pSel = cbProyectos.getSelectionModel().getSelectedItem();
+
+    try {
+        Object res = segPort().eliminarSeguimiento(sel.getId());
+        if (respOk(res)) {
+            info("Seguimiento eliminado.");
+
+            if (pSel != null && pSel.getId() != null) {
+                // Recalcular % del proyecto después de eliminar (puede bajar)
+                actualizarProyectoTrasEliminarSeguimiento(pSel.getId());
+                // Notificar a otras ventanas
+                AppEvents.fireProyectoActualizado(pSel.getId());
+            }
+
+            // Recargar tabla y limpiar form
+            cargarSeguimientos();
+            limpiarFormulario();
+
+        } else {
+            String m = respMsg(res);
+            warn(m != null ? m : "No se pudo eliminar.");
+        }
+    } catch (Exception ex) {
+        error("Error al eliminar", ex.getMessage());
+    }
+}
 
     private void limpiarFormulario() {
         sliderPorcentaje.setValue(ultimoPct); // conserva el vigente
@@ -656,6 +641,35 @@ public class Ventana4Controller extends Controller implements Initializable {
         return (type.isInstance(d)) ? type.cast(d) : null;
     }
 
+    /** True si el seleccionado es el seguimiento con MAYOR porcentaje.
+ *  En caso de empate por %, se toma el más reciente.
+ */
+private boolean esMayorPorcentajeSeleccionado() {
+    SeguimientoProyectoDto sel = tablaSeguimientos.getSelectionModel().getSelectedItem();
+    if (sel == null) return false;
+
+    SeguimientoProyectoDto mayor = tablaSeguimientos.getItems().stream()
+            .filter(Objects::nonNull)
+            .max(Comparator
+                    .comparingInt((SeguimientoProyectoDto s) ->
+                            s.getPorcentajeAvance() == null ? 0 : s.getPorcentajeAvance())
+                    .thenComparing(s -> toDate(s.getFechaSeguimiento()),
+                            Comparator.nullsLast(Comparator.naturalOrder())) // más reciente gana empates
+            )
+            .orElse(null);
+
+    if (mayor == null) return false;
+
+    if (mayor.getId() != null && sel.getId() != null) {
+        return Objects.equals(mayor.getId(), sel.getId());
+    }
+    // Fallback si no hay id:
+    Integer pSel = sel.getPorcentajeAvance() == null ? 0 : sel.getPorcentajeAvance();
+    Integer pMax = mayor.getPorcentajeAvance() == null ? 0 : mayor.getPorcentajeAvance();
+    Date dSel = toDate(sel.getFechaSeguimiento());
+    Date dMax = toDate(mayor.getFechaSeguimiento());
+    return Objects.equals(pSel, pMax) && Objects.equals(dSel, dMax);
+}
     /** Devuelve nueva lista ordenada DESC por fecha (más reciente primero). */
     private List<SeguimientoProyectoDto> ordenarDescPorFecha(List<SeguimientoProyectoDto> lista) {
         if (lista == null) return Collections.emptyList();
@@ -668,20 +682,39 @@ public class Ventana4Controller extends Controller implements Initializable {
     }
 
     /** True si el seleccionado en la tabla es el PRIMERO (último seguimiento). */
-    private boolean esUltimoSeleccionado() {
-        SeguimientoProyectoDto sel = tablaSeguimientos.getSelectionModel().getSelectedItem();
-        if (sel == null) return false;
-        if (tablaSeguimientos.getItems().isEmpty()) return false;
-        return tablaSeguimientos.getItems().get(0) == sel;
+   private boolean esUltimoSeleccionado() {
+    SeguimientoProyectoDto sel = tablaSeguimientos.getSelectionModel().getSelectedItem();
+    if (sel == null) return false;
+
+    // Encuentra el seguimiento con FECHA más reciente
+    SeguimientoProyectoDto masReciente = tablaSeguimientos.getItems().stream()
+            .filter(Objects::nonNull)
+            .max(Comparator.comparing(
+                    (SeguimientoProyectoDto s) -> toDate(s.getFechaSeguimiento()),
+                    Comparator.nullsLast(Comparator.naturalOrder())
+            ))
+            .orElse(null);
+
+    if (masReciente == null) return false;
+
+    // Compara por id si existe, si no por fecha
+    if (masReciente.getId() != null && sel.getId() != null) {
+        return Objects.equals(masReciente.getId(), sel.getId());
     }
+    Date dSel = toDate(sel.getFechaSeguimiento());
+    Date dMax = toDate(masReciente.getFechaSeguimiento());
+    return Objects.equals(dSel, dMax);
+}
 
     /** Habilita Editar/Eliminar únicamente cuando el seleccionado es el último. */
     private void actualizarBotonesSegunSeleccion() {
-        boolean hayItems = !tablaSeguimientos.getItems().isEmpty();
-        boolean ultimo = esUltimoSeleccionado();
-        btnEditarSeguimiento.setDisable(!(hayItems && ultimo));
-        btnEliminarSeguimiento.setDisable(!(hayItems && ultimo));
-    }
+    boolean hayItems = !tablaSeguimientos.getItems().isEmpty();
+    boolean ultimo = esUltimoSeleccionado();                // regla vigente para EDITAR
+    boolean mayorPct = esMayorPorcentajeSeleccionado();     // NUEVO: regla para ELIMINAR
+
+    btnEditarSeguimiento.setDisable(!(hayItems && ultimo));
+    btnEliminarSeguimiento.setDisable(!(hayItems && mayorPct));
+}
 
     /** Reordenamiento visual redundante (por si hay cambios en caliente). */
     private void ordenarTablaDescPorFecha() {
@@ -697,6 +730,8 @@ public class Ventana4Controller extends Controller implements Initializable {
         tablaSeguimientos.getSortOrder().setAll(colFecha);
         tablaSeguimientos.sort();
     }
+    
+    
 
     /** Verifica si el proyecto tiene al menos una actividad. */
     private boolean proyectoTieneActividades(Long proyectoId) {
