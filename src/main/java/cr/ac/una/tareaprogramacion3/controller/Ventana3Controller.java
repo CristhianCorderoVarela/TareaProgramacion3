@@ -4,7 +4,6 @@ import cr.ac.una.tareaprogramacion3.util.Controller;
 import cr.ac.una.tareaprogramacion3.util.DateUtil;
 import cr.ac.una.tareaprogramacion3.util.AppEvents;
 
-// Stubs generados por wsimport
 import cr.ac.una.client.soap.ProyectoService;
 import cr.ac.una.client.soap.ProyectoWS;
 import cr.ac.una.client.soap.ProyectoDto;
@@ -20,6 +19,7 @@ import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.control.cell.TextFieldListCell;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
@@ -29,11 +29,6 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-
-// ==== IMPORTADO DE LA VENTANA VIEJA (para notificar a Ventana1) ====
-import cr.ac.una.tareaprogramacion3.util.FlowController;
-import cr.ac.una.tareaprogramacion3.controller.Ventana1Controller;
-// ===================================================================
 
 public class Ventana3Controller extends Controller {
 
@@ -57,7 +52,6 @@ public class Ventana3Controller extends Controller {
     @FXML private DatePicker fechaFinPlanificada;
     @FXML private DatePicker fechaInicioReal;
     @FXML private DatePicker fechaFinReal;
-    @FXML private Spinner<Integer> spinnerOrden;
 
     @FXML private Button btnGuardarActividad;
     @FXML private Button btnEditarActividad;
@@ -84,11 +78,22 @@ public class Ventana3Controller extends Controller {
         configurarComboProyectos();
         configurarComboEstados();
         configurarColumnasKanban();    // Kanban + DnD
-        configurarSpinner();
         conectarEventos();
         configurarBotonesParaNuevaActividad();
+        configurarFechas();            // restricción: no fechas pasadas + coherencia
         enlazarEstadoConFormulario();  // mueve la tarjeta si se cambia el estado en el formulario
         cargarProyectos();
+        
+         Platform.runLater(this::cargarTodos);
+
+    // Refrescar cada vez que la ventana recobra foco (vuelves desde otra vista)
+    Platform.runLater(() -> {
+        if (getStage() != null) {
+            getStage().focusedProperty().addListener((obs, oldV, nowFocused) -> {
+                if (Boolean.TRUE.equals(nowFocused)) cargarTodos();
+            });
+        }
+    });
     }
 
     private void crearPort(String endpointUrl) {
@@ -125,9 +130,53 @@ public class Ventana3Controller extends Controller {
         cbEstadoActividad.setValue("PLANIFICADA");
     }
 
-    private void configurarSpinner() {
-        spinnerOrden.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 999, 1));
-        spinnerOrden.setEditable(true);
+    /** Deshabilita fechas pasadas y fuerza fin >= inicio para planificadas y reales. */
+    private void configurarFechas() {
+        final LocalDate hoy = LocalDate.now();
+
+        // No permitir días anteriores a hoy en todos los DatePicker
+        applyMinToday(fechaInicioPlanificada);
+        applyMinToday(fechaFinPlanificada);
+        applyMinToday(fechaInicioReal);
+        applyMinToday(fechaFinReal);
+
+        // Coherencia de rango: fin >= inicio
+        fechaInicioPlanificada.valueProperty().addListener((o, ov, nv) -> {
+            if (nv != null && fechaFinPlanificada.getValue() != null &&
+                fechaFinPlanificada.getValue().isBefore(nv)) {
+                fechaFinPlanificada.setValue(nv);
+            }
+        });
+        fechaFinPlanificada.valueProperty().addListener((o, ov, nv) -> {
+            if (nv != null && fechaInicioPlanificada.getValue() != null &&
+                nv.isBefore(fechaInicioPlanificada.getValue())) {
+                fechaFinPlanificada.setValue(fechaInicioPlanificada.getValue());
+            }
+        });
+
+        fechaInicioReal.valueProperty().addListener((o, ov, nv) -> {
+            if (nv != null && fechaFinReal.getValue() != null &&
+                fechaFinReal.getValue().isBefore(nv)) {
+                fechaFinReal.setValue(nv);
+            }
+        });
+        fechaFinReal.valueProperty().addListener((o, ov, nv) -> {
+            if (nv != null && fechaInicioReal.getValue() != null &&
+                nv.isBefore(fechaInicioReal.getValue())) {
+                fechaFinReal.setValue(fechaInicioReal.getValue());
+            }
+        });
+    }
+
+    private void applyMinToday(DatePicker dp) {
+        dp.setDayCellFactory(picker -> new DateCell() {
+            @Override
+            public void updateItem(LocalDate item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) return;
+                setDisable(item.isBefore(LocalDate.now()));
+            }
+        });
     }
 
     private void conectarEventos() {
@@ -260,8 +309,8 @@ public class Ventana3Controller extends Controller {
                 actividadActual.setEstado(newV);
                 recomputarOrden(source);
                 recomputarOrden(target);
-                // Persistimos y sincronizamos proyecto
-                persistirEstadoYOrden(actividadActual);
+                persistirOrdenes(source);
+                persistirOrdenes(target);
             }
         });
     }
@@ -284,6 +333,7 @@ public class Ventana3Controller extends Controller {
         return "PLANIFICADA";
     }
 
+    /** Mueve, reenumera consecutivo y persiste órdenes de ambas listas inmediatamente. */
     private void moverEntreListas(ActividadDto a,
                                   ObservableList<ActividadDto> source,
                                   ObservableList<ActividadDto> target,
@@ -293,9 +343,16 @@ public class Ventana3Controller extends Controller {
         if (dropIndex < 0 || dropIndex > target.size()) dropIndex = target.size();
         target.add(dropIndex, a);
         if (!nuevoEstado.equals(a.getEstado())) a.setEstado(nuevoEstado);
+
         recomputarOrden(source);
         recomputarOrden(target);
-        persistirEstadoYOrden(a); // ← guarda y sincroniza proyecto
+
+        // Persistir todas las posiciones de ambas listas para evitar #duplicados
+        persistirOrdenes(source);
+        persistirOrdenes(target);
+
+        // Además, guardamos el cambio del item movido (estado/orden) y sincronizamos proyecto
+        persistirActividad(a, /*syncProyecto*/ true);
     }
 
     private void recomputarOrden(ObservableList<ActividadDto> items) {
@@ -304,8 +361,30 @@ public class Ventana3Controller extends Controller {
         }
     }
 
-    /** Persiste cambios de actividad y luego recalcula/actualiza el proyecto + dispara evento + notifica Excel desactualizado. */
-    private void persistirEstadoYOrden(ActividadDto a) {
+    /** Actualiza en servidor el orden de todos los items de una lista. */
+    private void persistirOrdenes(ObservableList<ActividadDto> items) {
+        if (items == null || items.isEmpty()) return;
+        List<ActividadDto> snapshot = new ArrayList<>(items);
+        Task<Void> t = new Task<>() {
+            @Override
+            protected Void call() throws Exception {
+                for (ActividadDto a : snapshot) {
+                    RespuestaGeneral r = port.actualizarActividad(a);
+                    if (r == null || !Boolean.TRUE.equals(r.isOk())) {
+                        String msj = (r != null && r.getMensaje() != null) ? r.getMensaje()
+                                : "Error al actualizar orden";
+                        throw new RuntimeException(msj);
+                    }
+                }
+                return null;
+            }
+        };
+        t.setOnFailed(e -> mostrarError("No se pudo persistir el reordenamiento", t.getException()));
+        new Thread(t, "persistir-ordenes").start();
+    }
+
+    /** Persiste una actividad y opcionalmente sincroniza su proyecto. */
+    private void persistirActividad(ActividadDto a, boolean syncProyecto) {
         Task<ActividadDto> t = new Task<>() {
             @Override
             protected ActividadDto call() throws Exception {
@@ -321,23 +400,11 @@ public class Ventana3Controller extends Controller {
             ActividadDto actualizado = t.getValue();
             if (actualizado != null && actualizado.getId() != null) {
                 porId.put(actualizado.getId(), actualizado);
-                ObservableList<ActividadDto> list = listOfEstado(actualizado.getEstado());
-                for (int i = 0; i < list.size(); i++) {
-                    if (Objects.equals(list.get(i).getId(), actualizado.getId())) {
-                        list.set(i, actualizado);
-                        break;
-                    }
-                }
-                // === NUEVO: avisar que el Excel quedó desactualizado ===
-                if (actualizado.getProyectoId() != null) {
-                    notificarExcelDesactualizado(actualizado.getProyectoId());
-                }
             }
-            // sincroniza proyecto
-            sincronizarProyectoConActividades();
+            if (syncProyecto) sincronizarProyectoConActividades();
         });
         t.setOnFailed(ev -> mostrarError("No se pudo actualizar actividad", t.getException()));
-        new Thread(t, "persistir-estado-orden").start();
+        new Thread(t, "persistir-actividad").start();
     }
 
     private void cargarProyectos() {
@@ -419,6 +486,9 @@ public class Ventana3Controller extends Controller {
             Integer ob = b.getOrdenEjecucion() == null ? Integer.MAX_VALUE : b.getOrdenEjecucion();
             return oa.compareTo(ob);
         });
+        // Reasigna consecutivo si hay huecos y lo persiste
+        recomputarOrden(list);
+        persistirOrdenes(list);
     }
 
     private void configurarBotonesParaNuevaActividad() {
@@ -434,6 +504,10 @@ public class Ventana3Controller extends Controller {
             btnEliminarActividad.setVisible(false);
             btnEliminarActividad.setDisable(true);
         }
+        // Reglas de creación
+        cbEstadoActividad.setValue("PLANIFICADA");
+        cbEstadoActividad.setDisable(true);          // no se puede cambiar al crear
+        fechaFinReal.setDisable(true);               // no se conoce al crear
     }
 
     private void configurarBotonesParaEdicion() {
@@ -449,6 +523,9 @@ public class Ventana3Controller extends Controller {
             btnEliminarActividad.setVisible(true);
             btnEliminarActividad.setDisable(false);
         }
+        // En edición se permite cambiar estado y editar fecha fin real
+        cbEstadoActividad.setDisable(false);
+        fechaFinReal.setDisable(false);
     }
 
     private void cargarActividadEnFormulario(ActividadDto actividad) {
@@ -459,18 +536,13 @@ public class Ventana3Controller extends Controller {
         txtEncargadoCorreo.setText(nvl(actividad.getEncargadoCorreo()));
         cbEstadoActividad.setValue(nvl(actividad.getEstado()));
 
-        // límite de 500 caracteres (lo tenías en la nueva)
-        txtDescripcion.setTextFormatter(new TextFormatter<String>(change ->
+        txtDescripcion.setTextFormatter(new TextFormatter<>(change ->
                 change.getControlNewText().length() <= 500 ? change : null));
 
         fechaInicioPlanificada.setValue(dateToLocalDate(DateUtil.fromXml(actividad.getFechaInicioPlanificada())));
         fechaFinPlanificada.setValue(dateToLocalDate(DateUtil.fromXml(actividad.getFechaFinalPlanificada())));
         fechaInicioReal.setValue(dateToLocalDate(DateUtil.fromXml(actividad.getFechaInicioReal())));
         fechaFinReal.setValue(dateToLocalDate(DateUtil.fromXml(actividad.getFechaFinalReal())));
-
-        spinnerOrden.getValueFactory().setValue(
-                actividad.getOrdenEjecucion() != null ? actividad.getOrdenEjecucion() : 1
-        );
 
         configurarBotonesParaEdicion();
     }
@@ -485,7 +557,7 @@ public class Ventana3Controller extends Controller {
         fechaFinPlanificada.setValue(null);
         fechaInicioReal.setValue(null);
         fechaFinReal.setValue(null);
-        spinnerOrden.getValueFactory().setValue(1);
+
         configurarBotonesParaNuevaActividad();
     }
 
@@ -498,12 +570,19 @@ public class Ventana3Controller extends Controller {
             return;
         }
 
+        // construir DTO
+        ActividadDto nueva = crearActividadDesdeFormulario();
+        nueva.setProyectoId(proyecto.getId());
+        nueva.setEstado("PLANIFICADA"); // fijo al crear
+
+        // asignar orden consecutivo al final de la columna PLANIFICADA
+        int next = planificadas.size() + 1;
+        nueva.setOrdenEjecucion(next);
+
         Task<ActividadDto> task = new Task<>() {
             @Override
             protected ActividadDto call() throws Exception {
-                ActividadDto nuevaActividad = crearActividadDesdeFormulario();
-                nuevaActividad.setProyectoId(proyecto.getId());
-                RespuestaGeneral r = port.crearActividad(nuevaActividad);
+                RespuestaGeneral r = port.crearActividad(nueva);
                 if (r == null) throw new RuntimeException("Sin respuesta del servidor");
                 if (!Boolean.TRUE.equals(r.isOk())) {
                     String msj = r.getMensaje() != null ? r.getMensaje() : "Error al crear actividad";
@@ -516,11 +595,7 @@ public class Ventana3Controller extends Controller {
         task.setOnSucceeded(e -> Platform.runLater(() -> {
             mostrarInformacion("Actividad creada exitosamente");
             cargarActividades();
-            sincronizarProyectoConActividades(); // recalcula proyecto
-            // === NUEVO: avisar Excel desactualizado ===
-            if (proyecto.getId() != null) {
-                notificarExcelDesactualizado(proyecto.getId());
-            }
+            sincronizarProyectoConActividades();
             limpiarFormulario();
         }));
 
@@ -535,15 +610,15 @@ public class Ventana3Controller extends Controller {
         }
         if (!validarFormulario()) return;
 
-        final Long proyectoId = actividadActual.getProyectoId();
+        ActividadDto mod = crearActividadDesdeFormulario();
+        mod.setId(actividadActual.getId());
+        mod.setProyectoId(actividadActual.getProyectoId());
+        mod.setOrdenEjecucion(actividadActual.getOrdenEjecucion()); // se conserva
 
         Task<ActividadDto> task = new Task<>() {
             @Override
             protected ActividadDto call() throws Exception {
-                ActividadDto actividadModificada = crearActividadDesdeFormulario();
-                actividadModificada.setId(actividadActual.getId());
-                actividadModificada.setProyectoId(actividadActual.getProyectoId());
-                RespuestaGeneral r = port.actualizarActividad(actividadModificada);
+                RespuestaGeneral r = port.actualizarActividad(mod);
                 if (r == null) throw new RuntimeException("Sin respuesta del servidor");
                 if (!Boolean.TRUE.equals(r.isOk())) {
                     String msj = r.getMensaje() != null ? r.getMensaje() : "Error al actualizar actividad";
@@ -556,11 +631,7 @@ public class Ventana3Controller extends Controller {
         task.setOnSucceeded(e -> Platform.runLater(() -> {
             mostrarInformacion("Actividad actualizada exitosamente");
             cargarActividades();
-            sincronizarProyectoConActividades(); // recalcula proyecto
-            // === NUEVO: avisar Excel desactualizado ===
-            if (proyectoId != null) {
-                notificarExcelDesactualizado(proyectoId);
-            }
+            sincronizarProyectoConActividades();
             limpiarFormulario();
         }));
 
@@ -573,9 +644,6 @@ public class Ventana3Controller extends Controller {
             mostrarAdvertencia("Debe seleccionar una actividad para eliminar");
             return;
         }
-
-        final Long proyectoId = actividadActual.getProyectoId();
-
         Alert confirmacion = new Alert(Alert.AlertType.CONFIRMATION);
         confirmacion.setHeaderText("Confirmar eliminación");
         confirmacion.setContentText("¿Está seguro que desea eliminar esta actividad?");
@@ -596,11 +664,7 @@ public class Ventana3Controller extends Controller {
                 task.setOnSucceeded(e -> Platform.runLater(() -> {
                     mostrarInformacion("Actividad eliminada exitosamente");
                     cargarActividades();
-                    sincronizarProyectoConActividades(); // recalcula proyecto
-                    // === NUEVO: avisar Excel desactualizado ===
-                    if (proyectoId != null) {
-                        notificarExcelDesactualizado(proyectoId);
-                    }
+                    sincronizarProyectoConActividades();
                     limpiarFormulario();
                 }));
                 task.setOnFailed(e -> mostrarError("Error eliminando actividad", task.getException()));
@@ -610,22 +674,21 @@ public class Ventana3Controller extends Controller {
     }
 
     private ActividadDto crearActividadDesdeFormulario() {
-        ActividadDto actividad = new ActividadDto();
-        actividad.setDescripcion(txtDescripcion.getText().trim());
-        actividad.setEncargadoNombre(txtEncargado.getText().trim());
-        actividad.setEncargadoCorreo(txtEncargadoCorreo.getText().trim());
-        actividad.setEstado(cbEstadoActividad.getValue());
-        actividad.setFechaInicioPlanificada(DateUtil.toXml(localDateToDate(fechaInicioPlanificada.getValue())));
-        actividad.setFechaFinalPlanificada(DateUtil.toXml(localDateToDate(fechaFinPlanificada.getValue())));
-        actividad.setFechaInicioReal(DateUtil.toXml(localDateToDate(fechaInicioReal.getValue())));
-        actividad.setFechaFinalReal(DateUtil.toXml(localDateToDate(fechaFinReal.getValue())));
-        actividad.setOrdenEjecucion(spinnerOrden.getValue());
-        return actividad;
+        ActividadDto a = new ActividadDto();
+        a.setDescripcion(txtDescripcion.getText().trim());
+        a.setEncargadoNombre(txtEncargado.getText().trim());
+        a.setEncargadoCorreo(txtEncargadoCorreo.getText().trim());
+        a.setEstado(cbEstadoActividad.getValue());
+
+        a.setFechaInicioPlanificada(DateUtil.toXml(localDateToDate(fechaInicioPlanificada.getValue())));
+        a.setFechaFinalPlanificada(DateUtil.toXml(localDateToDate(fechaFinPlanificada.getValue())));
+        a.setFechaInicioReal(DateUtil.toXml(localDateToDate(fechaInicioReal.getValue())));
+        a.setFechaFinalReal(DateUtil.toXml(localDateToDate(fechaFinReal.getValue())));
+        return a;
     }
 
     /* =================== Sincronización Proyecto =================== */
 
-    /** Lee las actividades visibles y actualiza el proyecto (estado/avance/fechas) en el WS y notifica. */
     private void sincronizarProyectoConActividades() {
         ProyectoDto p = cbProyectos.getValue();
         if (p == null) return;
@@ -641,7 +704,6 @@ public class Ventana3Controller extends Controller {
         Date fiReal = calcularFechaInicioRealProyecto(todas);
         Date ffReal = calcularFechaFinalRealProyecto(todas, nuevoEstado);
 
-        // Actualizamos el DTO (conservando demás campos)
         p.setEstado(nuevoEstado);
         p.setPorcentajeAvance(nuevoAvance);
         p.setFechaInicioReal(fiReal == null ? null : DateUtil.toXml(fiReal));
@@ -687,7 +749,7 @@ public class Ventana3Controller extends Controller {
     private Integer calcularAvanceProyecto(List<ActividadDto> acts) {
         if (acts == null || acts.isEmpty()) return 0;
         long fin = acts.stream().filter(a -> "FINALIZADA".equalsIgnoreCase(nvl(a.getEstado()))).count();
-        return (int)Math.floor( (fin * 100.0) / acts.size() );
+        return (int) Math.floor((fin * 100.0) / acts.size());
     }
 
     private Date calcularFechaInicioRealProyecto(List<ActividadDto> acts) {
@@ -731,6 +793,16 @@ public class Ventana3Controller extends Controller {
         }
         if (fechaFinPlanificada.getValue() == null) {
             mostrarAdvertencia("La fecha de fin planificada es obligatoria");
+            return false;
+        }
+        // Coherencia de rango (extra por si acaso)
+        if (fechaFinPlanificada.getValue().isBefore(fechaInicioPlanificada.getValue())) {
+            mostrarAdvertencia("La fecha fin planificada no puede ser anterior a la fecha inicio planificada");
+            return false;
+        }
+        if (fechaInicioReal.getValue() != null && fechaFinReal.getValue() != null &&
+                fechaFinReal.getValue().isBefore(fechaInicioReal.getValue())) {
+            mostrarAdvertencia("La fecha fin real no puede ser anterior a la fecha inicio real");
             return false;
         }
         return true;
@@ -795,17 +867,11 @@ public class Ventana3Controller extends Controller {
         a.setContentText(mensaje);
         a.showAndWait();
     }
-
-    // ======= NUEVO: NOTIFICACIÓN A VENTANA1 (traído de la vieja) =======
-    private void notificarExcelDesactualizado(Long proyectoId) {
-        try {
-            var fc = FlowController.getInstance();
-            Object c = fc.getController("Ventana1"); // id de la vista principal en tu Flow
-            if (c instanceof Ventana1Controller v1) {
-                v1.notificarActividadCreada(proyectoId);
-            }
-        } catch (Exception ignore) {
-            // Si no está creada la vista Ventana1, no pasa nada.
-        }
+    
+    /** Refresca todo si hay proyecto seleccionado (usado por hooks de initialize). */
+private void cargarTodos() {
+    if (cbProyectos.getValue() != null) {
+        cargarActividades();
     }
+}
 }
