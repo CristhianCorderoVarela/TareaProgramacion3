@@ -11,6 +11,11 @@ import cr.ac.una.client.soap.ActividadDto;
 import cr.ac.una.client.soap.RespuestaGeneralLista;
 import cr.ac.una.client.soap.RespuestaGeneral;
 
+// >>> NUEVO: Seguimientos
+import cr.ac.una.client.soap.SeguimientoService;
+import cr.ac.una.client.soap.SeguimientoWS;
+import cr.ac.una.client.soap.SeguimientoProyectoDto;
+
 import jakarta.xml.bind.JAXBElement;
 import jakarta.xml.ws.BindingProvider;
 import javafx.application.Platform;
@@ -19,7 +24,6 @@ import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import javafx.scene.control.cell.TextFieldListCell;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
@@ -72,9 +76,15 @@ public class Ventana3Controller extends Controller {
     private ProyectoWS port;
     private ActividadDto actividadActual = null;
 
+    // >>> NUEVO: puerto seguimientos + flag bloqueo
+    private SeguimientoWS segPort;
+    private boolean edicionBloqueada = false;
+
     @Override
     public void initialize() {
         crearPort("http://localhost:8080/ProyectoService/ProyectoWS");
+        crearSegPort("http://localhost:8080/SeguimientoService/SeguimientoWS"); // NUEVO
+
         configurarComboProyectos();
         configurarComboEstados();
         configurarColumnasKanban();    // Kanban + DnD
@@ -83,17 +93,36 @@ public class Ventana3Controller extends Controller {
         configurarFechas();            // restricción: no fechas pasadas + coherencia
         enlazarEstadoConFormulario();  // mueve la tarjeta si se cambia el estado en el formulario
         cargarProyectos();
-        
-         Platform.runLater(this::cargarTodos);
 
-    // Refrescar cada vez que la ventana recobra foco (vuelves desde otra vista)
-    Platform.runLater(() -> {
-        if (getStage() != null) {
-            getStage().focusedProperty().addListener((obs, oldV, nowFocused) -> {
-                if (Boolean.TRUE.equals(nowFocused)) cargarTodos();
-            });
-        }
-    });
+        Platform.runLater(this::cargarTodos);
+
+        // Refrescar cada vez que la ventana recobra foco (vuelves desde otra vista)
+        Platform.runLater(() -> {
+            if (getStage() != null) {
+                getStage().focusedProperty().addListener((obs, oldV, nowFocused) -> {
+                    if (Boolean.TRUE.equals(nowFocused)) cargarTodos();
+                });
+            }
+        });
+
+        // >>> NUEVO: cuando cambia el proyecto seleccionado, re-chequear bloqueo y cargar
+        cbProyectos.getSelectionModel().selectedItemProperty().addListener((obs, oldP, newP) -> {
+            if (newP != null) {
+                actualizarBloqueoPorProyectoId(newP.getId());
+                cargarActividades();
+            } else {
+                aplicarBloqueo(false);
+            }
+        });
+
+        // >>> NUEVO: escuchar evento global de Ventana4
+        AppEvents.onProyectoActualizado(proyectoId -> {
+            ProyectoDto pSel = cbProyectos.getValue();
+            if (pSel != null && Objects.equals(pSel.getId(), proyectoId)) {
+                cargarActividades();
+                actualizarBloqueoPorProyectoId(proyectoId);
+            }
+        });
     }
 
     private void crearPort(String endpointUrl) {
@@ -104,6 +133,18 @@ public class Ventana3Controller extends Controller {
             ctx.put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, endpointUrl);
         } catch (Exception ex) {
             mostrarError("Error de conexión", ex);
+        }
+    }
+
+    // >>> NUEVO
+    private void crearSegPort(String endpointUrl) {
+        try {
+            SeguimientoService svc = new SeguimientoService();
+            this.segPort = svc.getSeguimientoWSPort();
+            Map<String, Object> ctx = ((BindingProvider) segPort).getRequestContext();
+            ctx.put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, endpointUrl);
+        } catch (Exception ex) {
+            mostrarError("Error conectando SeguimientoWS", ex);
         }
     }
 
@@ -132,8 +173,6 @@ public class Ventana3Controller extends Controller {
 
     /** Deshabilita fechas pasadas y fuerza fin >= inicio para planificadas y reales. */
     private void configurarFechas() {
-        final LocalDate hoy = LocalDate.now();
-
         // No permitir días anteriores a hoy en todos los DatePicker
         applyMinToday(fechaInicioPlanificada);
         applyMinToday(fechaFinPlanificada);
@@ -211,6 +250,7 @@ public class Ventana3Controller extends Controller {
 
             // Drag start
             cell.setOnDragDetected(e -> {
+                if (chequearBloqueoYAdvertir()) { e.consume(); return; } // NUEVO
                 ActividadDto a = cell.getItem();
                 if (a == null) return;
                 Dragboard db = cell.startDragAndDrop(TransferMode.MOVE);
@@ -222,12 +262,14 @@ public class Ventana3Controller extends Controller {
 
             // Drag over
             cell.setOnDragOver(e -> {
+                if (chequearBloqueoYAdvertir()) { e.consume(); return; } // NUEVO
                 if (e.getDragboard().hasString()) e.acceptTransferModes(TransferMode.MOVE);
                 e.consume();
             });
 
             // Drop sobre celda
             cell.setOnDragDropped(e -> {
+                if (chequearBloqueoYAdvertir()) { e.setDropCompleted(false); e.consume(); return; } // NUEVO
                 Dragboard db = e.getDragboard();
                 boolean success = false;
                 if (db.hasString()) {
@@ -269,10 +311,12 @@ public class Ventana3Controller extends Controller {
         // Drop en zona vacía
         java.util.function.Consumer<ListView<ActividadDto>> setupEmptyDrop = lv -> {
             lv.setOnDragOver(e -> {
+                if (chequearBloqueoYAdvertir()) { e.consume(); return; } // NUEVO
                 if (e.getDragboard().hasString()) e.acceptTransferModes(TransferMode.MOVE);
                 e.consume();
             });
             lv.setOnDragDropped(e -> {
+                if (chequearBloqueoYAdvertir()) { e.setDropCompleted(false); e.consume(); return; } // NUEVO
                 Dragboard db = e.getDragboard();
                 boolean success = false;
                 if (db.hasString()) {
@@ -304,6 +348,7 @@ public class Ventana3Controller extends Controller {
             ObservableList<ActividadDto> source = listOfEstado(actividadActual.getEstado());
             ObservableList<ActividadDto> target = listOfEstado(newV);
             if (source != target) {
+                if (chequearBloqueoYAdvertir()) return; // NUEVO
                 source.remove(actividadActual);
                 target.add(actividadActual);
                 actividadActual.setEstado(newV);
@@ -339,6 +384,7 @@ public class Ventana3Controller extends Controller {
                                   ObservableList<ActividadDto> target,
                                   int dropIndex,
                                   String nuevoEstado) {
+        if (chequearBloqueoYAdvertir()) return; // NUEVO
         source.remove(a);
         if (dropIndex < 0 || dropIndex > target.size()) dropIndex = target.size();
         target.add(dropIndex, a);
@@ -473,6 +519,7 @@ public class Ventana3Controller extends Controller {
             ordenarPorOrden(postergadas);
             ordenarPorOrden(finalizadas);
 
+            // mantener estado de botones según modo creación
             limpiarFormulario();
         }));
 
@@ -494,7 +541,7 @@ public class Ventana3Controller extends Controller {
     private void configurarBotonesParaNuevaActividad() {
         if (btnGuardarActividad != null) {
             btnGuardarActividad.setVisible(true);
-            btnGuardarActividad.setDisable(false);
+            btnGuardarActividad.setDisable(false || edicionBloqueada); // respeta bloqueo
         }
         if (btnEditarActividad != null) {
             btnEditarActividad.setVisible(false);
@@ -517,15 +564,15 @@ public class Ventana3Controller extends Controller {
         }
         if (btnEditarActividad != null) {
             btnEditarActividad.setVisible(true);
-            btnEditarActividad.setDisable(false);
+            btnEditarActividad.setDisable(edicionBloqueada); // respeta bloqueo
         }
         if (btnEliminarActividad != null) {
             btnEliminarActividad.setVisible(true);
-            btnEliminarActividad.setDisable(false);
+            btnEliminarActividad.setDisable(edicionBloqueada); // respeta bloqueo
         }
-        // En edición se permite cambiar estado y editar fecha fin real
-        cbEstadoActividad.setDisable(false);
-        fechaFinReal.setDisable(false);
+        // En edición se permite cambiar estado y editar fecha fin real (si no hay bloqueo)
+        cbEstadoActividad.setDisable(edicionBloqueada);
+        fechaFinReal.setDisable(edicionBloqueada);
     }
 
     private void cargarActividadEnFormulario(ActividadDto actividad) {
@@ -538,6 +585,12 @@ public class Ventana3Controller extends Controller {
 
         txtDescripcion.setTextFormatter(new TextFormatter<>(change ->
                 change.getControlNewText().length() <= 500 ? change : null));
+
+        txtEncargado.setTextFormatter(new TextFormatter<>(change ->
+                change.getControlNewText().length() <= 100 ? change : null));
+
+        txtEncargadoCorreo.setTextFormatter(new TextFormatter<>(change ->
+                change.getControlNewText().length() <= 120 ? change : null));
 
         fechaInicioPlanificada.setValue(dateToLocalDate(DateUtil.fromXml(actividad.getFechaInicioPlanificada())));
         fechaFinPlanificada.setValue(dateToLocalDate(DateUtil.fromXml(actividad.getFechaFinalPlanificada())));
@@ -562,6 +615,7 @@ public class Ventana3Controller extends Controller {
     }
 
     private void guardarActividad() {
+        if (chequearBloqueoYAdvertir()) return; // NUEVO
         if (!validarFormulario()) return;
 
         ProyectoDto proyecto = cbProyectos.getValue();
@@ -604,6 +658,7 @@ public class Ventana3Controller extends Controller {
     }
 
     private void editarActividad() {
+        if (chequearBloqueoYAdvertir()) return; // NUEVO
         if (actividadActual == null) {
             mostrarAdvertencia("Debe seleccionar una actividad para editar");
             return;
@@ -640,6 +695,7 @@ public class Ventana3Controller extends Controller {
     }
 
     private void eliminarActividad() {
+        if (chequearBloqueoYAdvertir()) return; // NUEVO
         if (actividadActual == null) {
             mostrarAdvertencia("Debe seleccionar una actividad para eliminar");
             return;
@@ -690,6 +746,9 @@ public class Ventana3Controller extends Controller {
     /* =================== Sincronización Proyecto =================== */
 
     private void sincronizarProyectoConActividades() {
+        // Si hay seguimiento vigente, Ventana3 no debe modificar el % del proyecto (regla acordada).
+        if (edicionBloqueada) return;
+
         ProyectoDto p = cbProyectos.getValue();
         if (p == null) return;
 
@@ -701,17 +760,17 @@ public class Ventana3Controller extends Controller {
 
         String nuevoEstado = calcularEstadoProyecto(todas);
 
-// % calculado por actividades
-    int pAct = calcularAvanceProyecto(todas) == null ? 0 : calcularAvanceProyecto(todas);
+        // % calculado por actividades
+        int pAct = calcularAvanceProyecto(todas) == null ? 0 : calcularAvanceProyecto(todas);
 
-// % vigente en el proyecto (puede provenir del último seguimiento)
-    int pActual = p.getPorcentajeAvance() == null ? 0 : p.getPorcentajeAvance();
+        // % vigente en el proyecto (por si algo externo ya lo subió)
+        int pActual = p.getPorcentajeAvance() == null ? 0 : p.getPorcentajeAvance();
 
-// regla: NUNCA bajar
-    int nuevoAvance = Math.max(pActual, pAct);
+        // regla: NUNCA bajar
+        int nuevoAvance = Math.max(pActual, pAct);
 
-    Date fiReal = calcularFechaInicioRealProyecto(todas);
-    Date ffReal = calcularFechaFinalRealProyecto(todas, nuevoEstado);
+        Date fiReal = calcularFechaInicioRealProyecto(todas);
+        Date ffReal = calcularFechaFinalRealProyecto(todas, nuevoEstado);
 
         p.setEstado(nuevoEstado);
         p.setPorcentajeAvance(nuevoAvance);
@@ -840,7 +899,7 @@ public class Ventana3Controller extends Controller {
             return out;
         }
         Class<?> c = obj.getClass();
-        for (String mname : new String[]{"getData", "getItems", "getItem"}) {
+        for (String mname : new String[]{"getData", "getItems", "getItem", "getLista"}) {
             try {
                 Method m = c.getMethod(mname);
                 Object val = m.invoke(obj);
@@ -876,11 +935,52 @@ public class Ventana3Controller extends Controller {
         a.setContentText(mensaje);
         a.showAndWait();
     }
-    
-    /** Refresca todo si hay proyecto seleccionado (usado por hooks de initialize). */
-private void cargarTodos() {
-    if (cbProyectos.getValue() != null) {
-        cargarActividades();
+
+    /** Refresca todo y reevalúa bloqueo si hay proyecto seleccionado. */
+    private void cargarTodos() {
+        ProyectoDto sel = cbProyectos.getValue();
+        if (sel != null) {
+            actualizarBloqueoPorProyectoId(sel.getId()); // NUEVO
+            cargarActividades();
+        }
     }
-}
+
+    // =================== BLOQUEO POR SEGUIMIENTOS (Ventana4) ===================
+
+    /** Consulta al backend si existen seguimientos para el proyecto y aplica bloqueo. */
+    private void actualizarBloqueoPorProyectoId(Long proyectoId) {
+        if (proyectoId == null) { aplicarBloqueo(false); return; }
+        Task<Boolean> t = new Task<>() {
+            @Override
+            protected Boolean call() throws Exception {
+                Object r = segPort.buscarSeguimientosPorProyecto(proyectoId);
+                @SuppressWarnings("unchecked")
+                List<SeguimientoProyectoDto> segs = tryGetListRobusto(r);
+                return segs != null && !segs.isEmpty();
+            }
+        };
+        t.setOnSucceeded(e -> aplicarBloqueo(Boolean.TRUE.equals(t.getValue())));
+        t.setOnFailed(e -> aplicarBloqueo(false)); // ante error, no bloquear
+        new Thread(t, "chk-seguimientos").start();
+    }
+
+    private void aplicarBloqueo(boolean bloquear) {
+        this.edicionBloqueada = bloquear;
+
+        btnGuardarActividad.setDisable(bloquear);
+        btnEditarActividad.setDisable(bloquear);
+        btnEliminarActividad.setDisable(bloquear);
+
+        // Deshabilita DnD y edición visual
+        lvPlanificada.setDisable(bloquear);
+        lvEnCurso.setDisable(bloquear);
+        lvPostergada.setDisable(bloquear);
+        lvFinalizada.setDisable(bloquear);
+    }
+
+    private boolean chequearBloqueoYAdvertir() {
+        if (!edicionBloqueada) return false;
+        mostrarAdvertencia("No se pueden modificar actividades porque existe un seguimiento registrado para este proyecto. Elimine el seguimiento para habilitar cambios.");
+        return true;
+    }
 }

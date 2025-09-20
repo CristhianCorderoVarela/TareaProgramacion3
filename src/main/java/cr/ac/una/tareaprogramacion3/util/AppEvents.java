@@ -1,32 +1,58 @@
 package cr.ac.una.tareaprogramacion3.util;
 
+import javafx.application.Platform;
+
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 
-/** Bus de eventos súper sencillo para notificar cambios entre ventanas. */
+/**
+ * Bus de eventos simple para notificar cambios de proyectos entre ventanas.
+ * - fireProyectoActualizado(id): emite evento
+ * - onProyectoActualizado(listener): se suscribe (API nueva)
+ * - offProyectoActualizado(listener): se desuscribe (API nueva)
+ *
+ * Compatibilidad (para código antiguo):
+ * - addProyectoListener(listener)  -> alias de onProyectoActualizado
+ * - removeProyectoListener(listener)-> alias de offProyectoActualizado
+ */
 public final class AppEvents {
 
     private AppEvents() {}
 
-    /* ===================== Proyecto ===================== */
+    // Lista thread-safe de oyentes
+    private static final List<Consumer<Long>> proyectoListeners = new CopyOnWriteArrayList<>();
 
-    public interface ProyectoListener {
-        void onProyectoActualizado(Long proyectoId);
-    }
-
-    private static final List<ProyectoListener> PROYECTO_LISTENERS = new CopyOnWriteArrayList<>();
-
-    public static void addProyectoListener(ProyectoListener l) {
-        if (l != null) PROYECTO_LISTENERS.add(l);
-    }
-
-    public static void removeProyectoListener(ProyectoListener l) {
-        PROYECTO_LISTENERS.remove(l);
-    }
-
+    /** Emite el evento de que un proyecto con 'proyectoId' fue actualizado. */
     public static void fireProyectoActualizado(Long proyectoId) {
-        for (ProyectoListener l : PROYECTO_LISTENERS) {
-            try { l.onProyectoActualizado(proyectoId); } catch (Exception ignore) {}
-        }
+        if (proyectoId == null) return;
+        // Garantiza ejecutar listeners en el hilo de JavaFX
+        Platform.runLater(() -> {
+            for (Consumer<Long> l : proyectoListeners) {
+                try { l.accept(proyectoId); } catch (Exception ignored) {}
+            }
+        });
+    }
+
+    /** Suscribe un listener (API nueva). */
+    public static void onProyectoActualizado(Consumer<Long> listener) {
+        if (listener != null) proyectoListeners.add(listener);
+    }
+
+    /** Desuscribe un listener (API nueva). */
+    public static void offProyectoActualizado(Consumer<Long> listener) {
+        if (listener != null) proyectoListeners.remove(listener);
+    }
+
+    /* ================== Alias de compatibilidad con código existente ================== */
+
+    /** Alias antiguo: mantener compatibilidad con Ventana1. */
+    public static void addProyectoListener(Consumer<Long> listener) {
+        onProyectoActualizado(listener);
+    }
+
+    /** Alias antiguo: mantener compatibilidad con Ventana1. */
+    public static void removeProyectoListener(Consumer<Long> listener) {
+        offProyectoActualizado(listener);
     }
 }
