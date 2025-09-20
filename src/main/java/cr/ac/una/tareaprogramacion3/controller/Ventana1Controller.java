@@ -92,7 +92,8 @@ public class Ventana1Controller extends Controller {
         if (lblProyectoSeleccionado != null) lblProyectoSeleccionado.setText("Ninguno");
 
         // Suscripción: cuando Ventana3 u otros actualizan un proyecto, refrescamos
-        AppEvents.addProyectoListener(id -> Platform.runLater(this::cargarTodos));
+        // después
+AppEvents.onProyectoActualizado(id -> Platform.runLater(this::cargarTodos));
 
         cargarTodos();
     }
