@@ -55,4 +55,8 @@ public final class AppEvents {
     public static void removeProyectoListener(Consumer<Long> listener) {
         offProyectoActualizado(listener);
     }
+    
+    private static java.util.List<java.util.function.Consumer<Long>> irSeguimientos = new java.util.ArrayList<>();
+public static void onIrASeguimientos(java.util.function.Consumer<Long> c){ irSeguimientos.add(c); }
+public static void fireIrASeguimientos(Long proyectoId){ for(var c: irSeguimientos) try{ c.accept(proyectoId);}catch(Exception ignored){} }
 }
