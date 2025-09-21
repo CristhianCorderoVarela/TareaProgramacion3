@@ -13,7 +13,10 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.control.*;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.util.StringConverter;
 
@@ -95,6 +98,18 @@ public class SeguimientosController extends Controller implements Initializable 
                         cbProyectos.getSelectionModel().select(p);
                         cargarSeguimientos();
                     });
+        });
+
+        // Limpiar selección y volver a "agregar nuevo" si hacen clic FUERA de la tabla
+        tablaSeguimientos.sceneProperty().addListener((obs, oldScene, scene) -> {
+            if (scene == null) return;
+            scene.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> {
+                if (isInside(tablaSeguimientos, e.getTarget())) return; // clic dentro, no hacer nada
+                if (tablaSeguimientos.getSelectionModel().getSelectedItem() != null) {
+                    tablaSeguimientos.getSelectionModel().clearSelection();
+                    limpiarFormulario(); // modo agregar
+                }
+            });
         });
     }
     public void initialize() { /* no-op; compatible con Controller base */ }
@@ -221,7 +236,7 @@ public class SeguimientosController extends Controller implements Initializable 
         }
     }
 
-    /** Listener reutilizable para selección en tabla, así evitamos duplicados. */
+    /** Listener reutilizable para selección en tabla */
     private final javafx.beans.value.ChangeListener<SeguimientoProyectoDto> tablaSelListener =
             (obs, oldSel, sel) -> {
                 if (sel != null) {
@@ -229,9 +244,11 @@ public class SeguimientosController extends Controller implements Initializable 
                     txtResponsable.setText(sel.getCreadoPorNombre() == null ? "" : sel.getCreadoPorNombre());
                 } else {
                     txtObservaciones.clear();
-                    txtResponsable.clear();
+                    String nombre = null;
+                    try { nombre = UserSession.get().getAdminNombre(); } catch (Exception ignored) {}
+                    txtResponsable.setText(nombre != null ? nombre : "");
                 }
-                actualizarBotonesSegunSeleccion();
+                actualizarEstadoFormularioSegunSeleccion();
             };
 
     /** Carga y deja todo ordenado DESC por fecha, ajusta slider y botones. */
@@ -270,11 +287,54 @@ public class SeguimientosController extends Controller implements Initializable 
             tablaSeguimientos.getSelectionModel().selectedItemProperty().removeListener(tablaSelListener);
             tablaSeguimientos.getSelectionModel().selectedItemProperty().addListener(tablaSelListener);
 
-            // Actualizar estado de botones según selección actual
-            actualizarBotonesSegunSeleccion();
+            // Estado del formulario según selección actual
+            actualizarEstadoFormularioSegunSeleccion();
 
         } catch (Exception ex) {
             error("Error consultando seguimientos", ex.getMessage());
+        }
+    }
+
+    // ====== Reglas de UI segun selección ======
+    /** Reglas:
+     *  - Sin selección: Guardar habilitado, Editar/Eliminar deshabilitados, slider activo con min=ultimoPct.
+     *  - Selección NO mayor %: Guardar/Editar deshabilitados, slider deshabilitado.
+     *  - Selección ES mayor %: Guardar deshabilitado, Editar habilitado, slider activo con min=porcentaje del anterior por FECHA.
+     */
+    private void actualizarEstadoFormularioSegunSeleccion() {
+        SeguimientoProyectoDto sel = tablaSeguimientos.getSelectionModel().getSelectedItem();
+        boolean hayItems = !tablaSeguimientos.getItems().isEmpty();
+        boolean mayorPct = esMayorPorcentajeSeleccionado();
+
+        if (sel == null) {
+            // modo "agregar nuevo"
+            btnGuardarSeguimiento.setDisable(false);
+            btnEditarSeguimiento.setDisable(true);
+            btnEliminarSeguimiento.setDisable(true);
+            sliderPorcentaje.setDisable(false);
+            sliderPorcentaje.setMin(ultimoPct);
+            sliderPorcentaje.setValue(Math.max(sliderPorcentaje.getValue(), ultimoPct));
+        } else {
+            if (mayorPct) {
+                // Puede editar SOLO el de mayor %, slider con límite del anterior por FECHA
+                btnGuardarSeguimiento.setDisable(true);
+                btnEditarSeguimiento.setDisable(false);
+                btnEliminarSeguimiento.setDisable(!(hayItems)); // eliminar sigue la regla de mayor %
+                sliderPorcentaje.setDisable(false);
+                int min = pctAnteriorPorFecha(sel);
+                sliderPorcentaje.setMin(min);
+                int val = sel.getPorcentajeAvance() == null ? min : sel.getPorcentajeAvance();
+                sliderPorcentaje.setValue(Math.max(val, min));
+            } else {
+                // Seleccionado NO es mayor %, no se puede guardar ni editar, ni mover slider
+                btnGuardarSeguimiento.setDisable(true);
+                btnEditarSeguimiento.setDisable(true);
+                btnEliminarSeguimiento.setDisable(true);
+                sliderPorcentaje.setDisable(true);
+                int val = sel.getPorcentajeAvance() == null ? ultimoPct : sel.getPorcentajeAvance();
+                sliderPorcentaje.setMin(0);
+                sliderPorcentaje.setValue(val);
+            }
         }
     }
 
@@ -345,14 +405,16 @@ public class SeguimientosController extends Controller implements Initializable 
         if (p == null || p.getId() == null) { warn("Seleccione un proyecto."); return; }
         if (sel == null) { warn("Seleccione un seguimiento de la tabla."); return; }
 
-        // Solo permitir editar el último (más reciente)
-        if (!esUltimoSeleccionado()) {
-            warn("Solo se puede editar el último seguimiento registrado.");
+        // Solo permitir editar el de MAYOR porcentaje
+        if (!esMayorPorcentajeSeleccionado()) {
+            warn("Solo se puede editar el seguimiento con mayor porcentaje.");
             return;
         }
 
+        // El mínimo para edición es el porcentaje del seguimiento ANTERIOR por FECHA
+        int minEdicion = pctAnteriorPorFecha(sel);
         int pct = (int) Math.round(sliderPorcentaje.getValue());
-        pct = Math.max(pct, ultimoPct); // no decrecer
+        pct = Math.max(pct, minEdicion); // no decrecer por debajo del anterior
         if (pct < 0 || pct > 100) { warn("El porcentaje debe estar entre 0 y 100."); return; }
 
         String obs = txtObservaciones.getText() == null ? "" : txtObservaciones.getText().trim();
@@ -397,11 +459,7 @@ public class SeguimientosController extends Controller implements Initializable 
         }
     }
 
-    /** Tras eliminar un seguimiento, recalcula el % del proyecto:
-     *  - Si queda algún seguimiento: usa max(% MAYOR seguimiento remanente, % por actividades).
-     *  - Si no hay seguimientos: usa % por actividades.
-     *  Permite BAJAR el % solo aquí (consistente con la eliminación).
-     */
+    /** Tras eliminar un seguimiento, recalcula el % del proyecto */
     private void actualizarProyectoTrasEliminarSeguimiento(Long proyectoId) {
         try {
             // 1) % por seguimiento remanente de MAYOR porcentaje
@@ -479,7 +537,7 @@ public class SeguimientosController extends Controller implements Initializable 
         SeguimientoProyectoDto sel = tablaSeguimientos.getSelectionModel().getSelectedItem();
         if (sel == null || sel.getId() == null) { warn("Seleccione un seguimiento."); return; }
 
-        // NUEVA REGLA: solo se puede eliminar el de mayor %
+        // Regla: solo se puede eliminar el de mayor %
         if (!esMayorPorcentajeSeleccionado()) {
             warn("Solo se puede eliminar el seguimiento con mayor porcentaje.");
             return;
@@ -516,12 +574,25 @@ public class SeguimientosController extends Controller implements Initializable 
     }
 
     private void limpiarFormulario() {
-        sliderPorcentaje.setValue(ultimoPct); // conserva el vigente
+        // Limpiar textos
         txtObservaciones.clear();
         String nombre = null;
         try { nombre = UserSession.get().getAdminNombre(); } catch (Exception ignored) {}
         txtResponsable.setText(nombre != null ? nombre : "");
+
+        // Quitar selección de la tabla
         tablaSeguimientos.getSelectionModel().clearSelection();
+
+        // Slider en modo "agregar nuevo"
+        sliderPorcentaje.setDisable(false);
+        sliderPorcentaje.setMin(ultimoPct);
+        sliderPorcentaje.setValue(ultimoPct);
+        fechaSeguimiento.setValue(LocalDate.now());
+
+        // Botones en modo "agregar"
+        btnGuardarSeguimiento.setDisable(false);
+        btnEditarSeguimiento.setDisable(true);
+        btnEliminarSeguimiento.setDisable(true);
     }
 
     // ====== Helpers de respuesta ======
@@ -693,39 +764,28 @@ public class SeguimientosController extends Controller implements Initializable 
         return out;
     }
 
-    /** True si el seleccionado en la tabla es el PRIMERO (último seguimiento). */
-    private boolean esUltimoSeleccionado() {
-        SeguimientoProyectoDto sel = tablaSeguimientos.getSelectionModel().getSelectedItem();
-        if (sel == null) return false;
-
-        // Encuentra el seguimiento con FECHA más reciente
-        SeguimientoProyectoDto masReciente = tablaSeguimientos.getItems().stream()
-                .filter(Objects::nonNull)
-                .max(Comparator.comparing(
-                        (SeguimientoProyectoDto s) -> toDate(s.getFechaSeguimiento()),
-                        Comparator.nullsLast(Comparator.naturalOrder())
-                ))
-                .orElse(null);
-
-        if (masReciente == null) return false;
-
-        // Compara por id si existe, si no por fecha
-        if (masReciente.getId() != null && sel.getId() != null) {
-            return Objects.equals(masReciente.getId(), sel.getId());
+    /** Devuelve el porcentaje del seguimiento inmediatamente anterior por FECHA al seleccionado.
+     *  Si no existe anterior, devuelve ultimoPct (base del proyecto/último registro).
+     */
+    private int pctAnteriorPorFecha(SeguimientoProyectoDto sel) {
+        if (sel == null) return ultimoPct;
+        List<SeguimientoProyectoDto> items = ordenarDescPorFecha(new ArrayList<>(tablaSeguimientos.getItems())); // más reciente primero
+        int idx = items.indexOf(sel);
+        if (idx == -1) {
+            // Si equals() no coincide, buscar por id/fecha
+            for (int i = 0; i < items.size(); i++) {
+                SeguimientoProyectoDto s = items.get(i);
+                if ((s.getId() != null && sel.getId() != null && Objects.equals(s.getId(), sel.getId())) ||
+                    Objects.equals(toDate(s.getFechaSeguimiento()), toDate(sel.getFechaSeguimiento()))) {
+                    idx = i; break;
+                }
+            }
         }
-        Date dSel = toDate(sel.getFechaSeguimiento());
-        Date dMax = toDate(masReciente.getFechaSeguimiento());
-        return Objects.equals(dSel, dMax);
-    }
-
-    /** Habilita Editar/Eliminar según reglas (último por fecha / mayor %). */
-    private void actualizarBotonesSegunSeleccion() {
-        boolean hayItems = !tablaSeguimientos.getItems().isEmpty();
-        boolean ultimo = esUltimoSeleccionado();                // para EDITAR
-        boolean mayorPct = esMayorPorcentajeSeleccionado();     // para ELIMINAR
-
-        btnEditarSeguimiento.setDisable(!(hayItems && ultimo));
-        btnEliminarSeguimiento.setDisable(!(hayItems && mayorPct));
+        if (idx >= 0 && idx + 1 < items.size()) {
+            Integer p = items.get(idx + 1).getPorcentajeAvance();
+            return p == null ? 0 : Math.max(0, Math.min(100, p));
+        }
+        return ultimoPct;
     }
 
     /** Reordenamiento visual redundante (por si hay cambios en caliente). */
@@ -753,6 +813,15 @@ public class SeguimientosController extends Controller implements Initializable 
             warn("No se pudieron consultar las actividades del proyecto.");
             return false;
         }
+    }
+
+    // ====== Click fuera de la tabla ======
+    private boolean isInside(Node root, Object target) {
+        if (!(target instanceof Node n)) return false;
+        for (Node x = n; x != null; x = x.getParent()) {
+            if (x == root) return true;
+        }
+        return false;
     }
 
     // ====== Alerts ======
