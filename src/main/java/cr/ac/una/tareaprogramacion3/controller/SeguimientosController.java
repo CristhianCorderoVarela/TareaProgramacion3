@@ -80,38 +80,51 @@ public class SeguimientosController extends Controller implements Initializable 
 
     // ====== Inicialización JavaFX ======
     @Override
-    public void initialize(URL url, ResourceBundle rb) {
-        configurarTabla();
-        configurarBindings();
-        prepararEventos();
-        prepararResponsableDesdeSesion();
-        prepararReglasFormulario();
-        limpiarFormulario();
-        cargarProyectos(); // carga inicial
+public void initialize(URL url, ResourceBundle rb) {
+    configurarTabla();
+    configurarBindings();
+    prepararEventos();
+    prepararResponsableDesdeSesion();
+    prepararReglasFormulario();
+    limpiarFormulario();
+    cargarProyectos(); // carga inicial
 
-        // Permite que otra ventana te diga “cargá X proyecto y mostrámelo”
-        AppEvents.onIrASeguimientos(proyectoId -> {
-            cbProyectos.getItems().stream()
-                    .filter(p -> Objects.equals(p.getId(), proyectoId))
-                    .findFirst()
-                    .ifPresent(p -> {
-                        cbProyectos.getSelectionModel().select(p);
-                        cargarSeguimientos();
-                    });
-        });
+    // Permite que otra ventana te diga “cargá X proyecto y mostrámelo”
+    AppEvents.onIrASeguimientos(proyectoId -> {
+        cbProyectos.getItems().stream()
+                .filter(p -> Objects.equals(p.getId(), proyectoId))
+                .findFirst()
+                .ifPresent(p -> {
+                    cbProyectos.getSelectionModel().select(p);
+                    cargarSeguimientos();
+                });
+    });
 
-        // Limpiar selección y volver a "agregar nuevo" si hacen clic FUERA de la tabla
-        tablaSeguimientos.sceneProperty().addListener((obs, oldScene, scene) -> {
-            if (scene == null) return;
-            scene.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> {
-                if (isInside(tablaSeguimientos, e.getTarget())) return; // clic dentro, no hacer nada
-                if (tablaSeguimientos.getSelectionModel().getSelectedItem() != null) {
-                    tablaSeguimientos.getSelectionModel().clearSelection();
-                    limpiarFormulario(); // modo agregar
-                }
-            });
+    // Limpiar selección y volver a "agregar nuevo" solo si hacen clic FUERA de la tabla y del formulario
+    tablaSeguimientos.sceneProperty().addListener((obs, oldScene, scene) -> {
+        if (scene == null) return;
+        scene.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> {
+            // Si el clic es dentro de la tabla o de cualquiera de los controles del formulario, no limpiar
+            if (isInside(tablaSeguimientos, e.getTarget())
+                    || isInside(txtObservaciones, e.getTarget())
+                    || isInside(sliderPorcentaje, e.getTarget())
+                    || isInside(fechaSeguimiento, e.getTarget())
+                    || isInside(txtResponsable, e.getTarget())
+                    || isInside(btnGuardarSeguimiento, e.getTarget())
+                    || isInside(btnEditarSeguimiento, e.getTarget())
+                    || isInside(btnEliminarSeguimiento, e.getTarget())
+                    || isInside(btnLimpiarSeguimiento, e.getTarget())) {
+                return;
+            }
+
+            // Clic fuera -> limpiar selección y volver a modo "agregar nuevo"
+            if (tablaSeguimientos.getSelectionModel().getSelectedItem() != null) {
+                tablaSeguimientos.getSelectionModel().clearSelection();
+                limpiarFormulario();
+            }
         });
-    }
+    });
+}
     public void initialize() { /* no-op; compatible con Controller base */ }
 
     private void prepararResponsableDesdeSesion() {
@@ -204,23 +217,60 @@ public class SeguimientosController extends Controller implements Initializable 
     private static final int OBS_MAX = 500;
 
     private void prepararReglasFormulario() {
-        fechaSeguimiento.setValue(LocalDate.now());
-        fechaSeguimiento.setEditable(false);
-        fechaSeguimiento.setDisable(true);
-        fechaSeguimiento.setStyle("-fx-opacity: 1;");
-        fechaSeguimiento.setMouseTransparent(true);
+    fechaSeguimiento.setValue(LocalDate.now());
+    fechaSeguimiento.setEditable(false);
+    fechaSeguimiento.setDisable(true);
+    fechaSeguimiento.setStyle("-fx-opacity: 1;");
+    fechaSeguimiento.setMouseTransparent(true);
 
-        txtObservaciones.setTextFormatter(new TextFormatter<String>(c -> {
-            String next = c.getControlNewText();
-            if (next != null && next.length() > OBS_MAX) return null;
-            return c;
-        }));
+    txtObservaciones.setTextFormatter(new TextFormatter<String>(c -> {
+        String next = c.getControlNewText();
+        if (next != null && next.length() > OBS_MAX) return null;
+        return c;
+    }));
 
-        sliderPorcentaje.setBlockIncrement(1);
-        sliderPorcentaje.setMajorTickUnit(25);
-        sliderPorcentaje.setMinorTickCount(4);
-        sliderPorcentaje.setSnapToTicks(true);
+    // Pasos de 1, sin "snap" a marcas de 5
+    sliderPorcentaje.setBlockIncrement(1);
+    sliderPorcentaje.setMajorTickUnit(10);
+    sliderPorcentaje.setMinorTickCount(9); // marcas cada 1
+    sliderPorcentaje.setSnapToTicks(false); // evita saltos de 5
+    sliderPorcentaje.setShowTickLabels(true);
+    sliderPorcentaje.setShowTickMarks(true);
+}
+    
+    /** Devuelve el porcentaje del seguimiento inmediatamente anterior
+ *  en el orden de MAYOR A MENOR POR PORCENTAJE (empates: más reciente primero).
+ *  Si no hay anterior, usa ultimoPct como base.
+ */
+private int pctAnteriorPorPorcentaje(SeguimientoProyectoDto sel) {
+    if (sel == null) return ultimoPct;
+
+    // Ordenar por % desc, empate por fecha desc
+    List<SeguimientoProyectoDto> items = new ArrayList<>(tablaSeguimientos.getItems());
+    items.sort(Comparator
+            .comparingInt((SeguimientoProyectoDto s) -> s.getPorcentajeAvance() == null ? 0 : s.getPorcentajeAvance())
+            .reversed()
+            .thenComparing((SeguimientoProyectoDto s) -> toDate(s.getFechaSeguimiento()),
+                    Comparator.nullsLast(Comparator.reverseOrder()))
+    );
+
+    // Ubicar sel por id; si no hay id, por (% , fecha)
+    int idx = -1;
+    for (int i = 0; i < items.size(); i++) {
+        SeguimientoProyectoDto s = items.get(i);
+        boolean same =
+                (s.getId() != null && sel.getId() != null && Objects.equals(s.getId(), sel.getId()))
+             || (Objects.equals(s.getPorcentajeAvance(), sel.getPorcentajeAvance())
+                 && Objects.equals(toDate(s.getFechaSeguimiento()), toDate(sel.getFechaSeguimiento())));
+        if (same) { idx = i; break; }
     }
+
+    if (idx >= 0 && idx + 1 < items.size()) {
+        Integer p = items.get(idx + 1).getPorcentajeAvance();
+        return p == null ? ultimoPct : Math.max(0, Math.min(100, p));
+    }
+    return ultimoPct;
+}
 
     // ====== Cargas ======
     private void cargarProyectos() {
@@ -301,42 +351,52 @@ public class SeguimientosController extends Controller implements Initializable 
      *  - Selección NO mayor %: Guardar/Editar deshabilitados, slider deshabilitado.
      *  - Selección ES mayor %: Guardar deshabilitado, Editar habilitado, slider activo con min=porcentaje del anterior por FECHA.
      */
-    private void actualizarEstadoFormularioSegunSeleccion() {
-        SeguimientoProyectoDto sel = tablaSeguimientos.getSelectionModel().getSelectedItem();
-        boolean hayItems = !tablaSeguimientos.getItems().isEmpty();
-        boolean mayorPct = esMayorPorcentajeSeleccionado();
+    /** Reglas para edición:
+ *  - Sin selección: se puede AGREGAR (Guardar habilitado), slider desde ultimoPct, observación editable.
+ *  - Con selección:
+ *      * Solo si es el ÚLTIMO por FECHA (el más reciente) se puede EDITAR:
+ *          - Editar habilitado, Guardar deshabilitado.
+ *          - Slider habilitado con mínimo = porcentaje del seguimiento anterior por FECHA.
+ *          - Observación editable.
+ *      * Cualquier otro registro queda solo lectura (sin editar, slider deshabilitado, observación no editable).
+ */
+private void actualizarEstadoFormularioSegunSeleccion() {
+    SeguimientoProyectoDto sel = tablaSeguimientos.getSelectionModel().getSelectedItem();
+    boolean hayItems = !tablaSeguimientos.getItems().isEmpty();
+    boolean mayorPct = esMayorPorcentajeSeleccionado();
 
-        if (sel == null) {
-            // modo "agregar nuevo"
-            btnGuardarSeguimiento.setDisable(false);
+    if (sel == null) {
+        // modo "agregar nuevo"
+        btnGuardarSeguimiento.setDisable(false);
+        btnEditarSeguimiento.setDisable(true);
+        btnEliminarSeguimiento.setDisable(true);
+        sliderPorcentaje.setDisable(false);
+        sliderPorcentaje.setMin(ultimoPct);
+        sliderPorcentaje.setValue(Math.max(sliderPorcentaje.getValue(), ultimoPct));
+    } else {
+        if (mayorPct) {
+            // Solo el de mayor % es editable; mínimo = penúltimo por porcentaje
+            btnGuardarSeguimiento.setDisable(true);
+            btnEditarSeguimiento.setDisable(false);
+            btnEliminarSeguimiento.setDisable(!(hayItems));
+            sliderPorcentaje.setDisable(false);
+
+            int min = pctAnteriorPorPorcentaje(sel);
+            sliderPorcentaje.setMin(min);
+            int val = sel.getPorcentajeAvance() == null ? min : sel.getPorcentajeAvance();
+            sliderPorcentaje.setValue(Math.max(val, min));
+        } else {
+            // No mayor %: no se puede editar ni mover slider
+            btnGuardarSeguimiento.setDisable(true);
             btnEditarSeguimiento.setDisable(true);
             btnEliminarSeguimiento.setDisable(true);
-            sliderPorcentaje.setDisable(false);
-            sliderPorcentaje.setMin(ultimoPct);
-            sliderPorcentaje.setValue(Math.max(sliderPorcentaje.getValue(), ultimoPct));
-        } else {
-            if (mayorPct) {
-                // Puede editar SOLO el de mayor %, slider con límite del anterior por FECHA
-                btnGuardarSeguimiento.setDisable(true);
-                btnEditarSeguimiento.setDisable(false);
-                btnEliminarSeguimiento.setDisable(!(hayItems)); // eliminar sigue la regla de mayor %
-                sliderPorcentaje.setDisable(false);
-                int min = pctAnteriorPorFecha(sel);
-                sliderPorcentaje.setMin(min);
-                int val = sel.getPorcentajeAvance() == null ? min : sel.getPorcentajeAvance();
-                sliderPorcentaje.setValue(Math.max(val, min));
-            } else {
-                // Seleccionado NO es mayor %, no se puede guardar ni editar, ni mover slider
-                btnGuardarSeguimiento.setDisable(true);
-                btnEditarSeguimiento.setDisable(true);
-                btnEliminarSeguimiento.setDisable(true);
-                sliderPorcentaje.setDisable(true);
-                int val = sel.getPorcentajeAvance() == null ? ultimoPct : sel.getPorcentajeAvance();
-                sliderPorcentaje.setMin(0);
-                sliderPorcentaje.setValue(val);
-            }
+            sliderPorcentaje.setDisable(true);
+            int val = sel.getPorcentajeAvance() == null ? ultimoPct : sel.getPorcentajeAvance();
+            sliderPorcentaje.setMin(0);
+            sliderPorcentaje.setValue(val);
         }
     }
+}
 
     // ====== Acciones ======
     private void guardar() {
@@ -412,9 +472,10 @@ public class SeguimientosController extends Controller implements Initializable 
         }
 
         // El mínimo para edición es el porcentaje del seguimiento ANTERIOR por FECHA
-        int minEdicion = pctAnteriorPorFecha(sel);
-        int pct = (int) Math.round(sliderPorcentaje.getValue());
-        pct = Math.max(pct, minEdicion); // no decrecer por debajo del anterior
+        // Antes: int minEdicion = pctAnteriorPorFecha(sel);
+int minEdicion = pctAnteriorPorPorcentaje(sel);
+int pct = (int) Math.round(sliderPorcentaje.getValue());
+pct = Math.max(pct, minEdicion); // exacto y no menor al penúltimo // no decrecer por debajo del anterior
         if (pct < 0 || pct > 100) { warn("El porcentaje debe estar entre 0 y 100."); return; }
 
         String obs = txtObservaciones.getText() == null ? "" : txtObservaciones.getText().trim();
