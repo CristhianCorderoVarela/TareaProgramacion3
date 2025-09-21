@@ -1,0 +1,273 @@
+/* ============================
+   LAYOUT PRINCIPAL Y VARIABLES
+   ============================ */
+
+/* Antes era .root: ahora solo la raíz de esta vista */
+.app-root {
+    -fx-background-color: radial-gradient(center 50% 50%, radius 70%, #4a5568, #3a4553, #2d3748);
+    -fx-font-family: "Segoe UI", "Arial", sans-serif;
+
+    /* Variable para el color del host central */
+    -content-bg: rgba(245, 245, 245, 0.92); /* cámbialo a gusto */
+}
+
+/* Área central donde se cargan las sub-vistas */
+.content-host {
+    -fx-background-color: -content-bg;
+    -fx-background-radius: 12;
+    -fx-padding: 12;
+}
+
+/* ============================
+   MENÚ LATERAL
+   ============================ */
+.menu-lateral {
+    -fx-background-color: rgba(36, 44, 58, 0.92);
+    -fx-background-radius: 12;
+    -fx-border-color: rgba(129,161,193,0.22);
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+    -fx-padding: 28 16 22 16;
+    -fx-spacing: 0; /* botones pegados */
+    -fx-effect:
+        dropshadow(gaussian, rgba(136,166,255,0.12), 26, 0.35, 0, 0),
+        innershadow(gaussian, rgba(129,161,193,0.05), 22, 0.25, 0, 0);
+}
+.menu-lateral .text { -fx-fill:#aab6c7; -fx-font-weight:600; }
+.menu-lateral .line { -fx-stroke: rgba(129,161,193,0.35); }
+
+/* Botones segmentados (planos) */
+.menu-lateral > .boton-menu {
+    -fx-background-color: rgba(45, 55, 72, 0.86);
+    -fx-background-radius: 0;
+
+    -fx-border-color: transparent transparent rgba(129,161,193,0.22) transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-border-radius: 0;
+
+    -fx-text-fill: #e2e8f0;
+    -fx-font-size: 14px;
+    -fx-font-weight: 600;
+    -fx-alignment: CENTER_LEFT;
+    -fx-content-display: LEFT;
+    -fx-graphic-text-gap: 10;
+    -fx-padding: 12 14 12 14;
+    -fx-cursor: hand;
+    -fx-effect: none;
+    -fx-opacity: 1.0;
+}
+.menu-lateral > .boton-menu:first-child {
+    -fx-background-radius: 10 10 0 0;
+    -fx-border-radius: 10 10 0 0;
+    -fx-border-color: transparent transparent rgba(129,161,193,0.22) transparent;
+}
+.menu-lateral > .boton-menu:last-child {
+    -fx-background-radius: 0 0 10 10;
+    -fx-border-radius: 0 0 10 10;
+    -fx-border-width: 0;
+}
+.menu-lateral > .boton-menu:hover {
+    -fx-background-color: rgba(56, 66, 86, 0.95);
+}
+.menu-lateral > .boton-menu:pressed {
+    -fx-background-color: rgba(40, 49, 65, 0.95);
+}
+.menu-lateral > .boton-menu:focused {
+    -fx-border-color: #88a6ff transparent rgba(129,161,193,0.22) transparent;
+    -fx-border-width: 2 0 1 3;
+}
+.menu-lateral > .boton-menu:disabled {
+    -fx-background-color: rgba(59, 69, 89, 0.55);
+    -fx-text-fill: rgba(210, 218, 232, 0.55);
+    -fx-border-color: transparent transparent rgba(129,161,193,0.16) transparent;
+}
+.menu-lateral > .boton-menu.activo {
+    -fx-background-color: rgba(63, 73, 94, 0.98);
+    -fx-text-fill: #ffffff;
+    -fx-border-color: #88a6ff transparent rgba(129,161,193,0.22) transparent;
+    -fx-border-width: 3 0 1 4;
+}
+.menu-lateral > .boton-menu.activo:hover {
+    -fx-background-color: rgba(69, 80, 103, 1.0);
+}
+
+/* Botón “Cerrar sesión” */
+.boton-cerrar-sesion {
+    -fx-background-color: rgba(45, 55, 72, 0.86);
+    -fx-background-radius: 8;
+    -fx-border-color: rgba(129,161,193,0.22);
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+
+    -fx-text-fill: #e2e8f0;
+    -fx-font-size: 13.5px;
+    -fx-font-weight: 600;
+    -fx-alignment: CENTER_LEFT;
+    -fx-content-display: LEFT;
+    -fx-graphic-text-gap: 8;
+    -fx-padding: 10 14 10 14;
+    -fx-cursor: hand;
+}
+.boton-cerrar-sesion:hover {
+    -fx-background-color: rgba(52, 63, 82, 0.96);
+    -fx-border-color: rgba(232, 89, 89, 0.35);
+    -fx-text-fill: #ffe5e5;
+}
+.boton-cerrar-sesion:pressed {
+    -fx-background-color: rgba(40, 50, 67, 0.98);
+}
+
+/* ============================
+   CONTROLES & ESTILOS GENERALES
+   ============================ */
+
+/* Panel principal glassmorphism */
+.panel-blanco-sombra {
+    -fx-background-color: #ccffcc;
+    -fx-background-radius: 15;
+    -fx-border-color: rgba(129, 161, 193, 0.3);
+    -fx-border-width: 1;
+    -fx-border-radius: 15;
+    -fx-effect: dropshadow(gaussian, rgba(136, 166, 255, 0.15), 30, 0.3, 0, 0);
+}
+
+/* Logo Projex */
+.logo-projex {
+    -fx-text-fill: #88a6ff;
+    -fx-font-weight: bold;
+    -fx-font-size: 28px;
+    -fx-effect: dropshadow(gaussian, rgba(136, 166, 255, 0.4), 15, 0.5, 0, 0);
+}
+
+/* Etiquetas */
+.label-link-gris {
+    -fx-text-fill: #a0aec0;
+    -fx-font-weight: 500;
+    -fx-text-transform: uppercase;
+    -fx-letter-spacing: 1px;
+    -fx-effect: dropshadow(gaussian, rgba(160, 174, 192, 0.3), 8, 0.3, 0, 0);
+}
+
+.label-link-gris2 {
+    -fx-text-fill: whitesmoke;
+    -fx-font-weight: 500;
+    -fx-text-transform: uppercase;
+    -fx-letter-spacing: 1px;
+    -fx-effect: dropshadow(gaussian, white, 8, 0.3, 0, 0);
+}
+
+/* Labels de formulario */
+.form-label {
+    -fx-text-fill: #cbd5e0;
+    -fx-font-weight: 500;
+    -fx-font-size: 13px;
+    -fx-text-transform: uppercase;
+    -fx-letter-spacing: 1px;
+}
+
+
+.text-field:focused {
+    -fx-background-color: rgba(45, 55, 72, 0.9);
+    -fx-border-color: #88a6ff;
+    -fx-effect: dropshadow(gaussian, rgba(136, 166, 255, 0.3), 15, 0.4, 0, 0);
+}
+
+/* PasswordField */
+
+
+
+/* Botón principal activo */
+.boton-menu-activo {
+    -fx-background-color: linear-gradient(to bottom, rgba(136, 166, 255, 0.9), rgba(129, 161, 193, 0.9));
+    -fx-background-radius: 8;
+    -fx-border-color: rgba(136, 166, 255, 0.5);
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-text-fill: #1a202c;
+    -fx-font-weight: bold;
+    -fx-font-size: 15px;
+    -fx-padding: 12 16 12 16;
+    -fx-effect: dropshadow(gaussian, rgba(136, 166, 255, 0.3), 12, 0.4, 0, 4);
+    -fx-cursor: hand;
+    -fx-text-transform: uppercase;
+    -fx-letter-spacing: 1px;
+}
+.boton-menu-activo:hover {
+    -fx-background-color: linear-gradient(to bottom, rgba(136, 166, 255, 1), rgba(129, 161, 193, 1));
+    -fx-effect: dropshadow(gaussian, rgba(136, 166, 255, 0.5), 20, 0.5, 0, 0),
+                 dropshadow(gaussian, rgba(129, 161, 193, 0.3), 35, 0.3, 0, 0);
+    -fx-translate-y: -1;
+}
+.boton-menu-activo:disabled {
+    -fx-background-color: rgba(155, 168, 184, 0.6);
+    -fx-border-color: rgba(155, 168, 184, 0.3);
+    -fx-text-fill: rgba(107, 121, 148, 0.7);
+    -fx-effect: none;
+    -fx-translate-y: 0;
+    -fx-cursor: default;
+}
+.boton-menu-activo:pressed {
+    -fx-background-color: linear-gradient(to bottom, rgba(78, 105, 166, 1), rgba(111, 138, 168, 1));
+    -fx-translate-y: 0;
+    -fx-effect: dropshadow(gaussian, rgba(91, 122, 191, 0.3), 8, 0.3, 0, 2);
+}
+
+/* Label de error */
+.error-label {
+    -fx-text-fill: #e53e3e;
+    -fx-font-size: 12px;
+    -fx-wrap-text: true;
+    -fx-effect: dropshadow(gaussian, rgba(229, 62, 62, 0.2), 5, 0.3, 0, 0);
+}
+
+/* ============================
+   EFECTOS CYBERPUNK EXTRA
+   ============================ */
+.cyberpunk-container {
+    -fx-background-color: rgba(230, 234, 241, 0.85);
+    -fx-background-radius: 15;
+    -fx-border-color: rgba(129, 161, 193, 0.25);
+    -fx-border-width: 1;
+    -fx-border-radius: 15;
+    -fx-effect: dropshadow(gaussian, rgba(136, 166, 255, 0.1), 30, 0.3, 0, 0),
+                innershadow(gaussian, rgba(129, 161, 193, 0.03), 30, 0.2, 0, 0);
+}
+.glow-text {
+    -fx-text-fill: #5b7abf;
+    -fx-effect: dropshadow(gaussian, rgba(91, 122, 191, 0.3), 10, 0.4, 0, 0);
+}
+.cyber-field {
+    -fx-background-color: rgba(196, 204, 218, 0.6);
+    -fx-border-color: rgba(129, 161, 193, 0.25);
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-text-fill: #2d3748;
+    -fx-font-size: 14px;
+    -fx-padding: 12 16 12 16;
+    -fx-prompt-text-fill: rgba(107, 121, 148, 0.6);
+}
+.cyber-field:focused {
+    -fx-background-color: rgba(196, 204, 218, 0.8);
+    -fx-border-color: #5b7abf;
+    -fx-effect: dropshadow(gaussian, rgba(91, 122, 191, 0.2), 15, 0.4, 0, 0),
+                innershadow(gaussian, rgba(91, 122, 191, 0.05), 15, 0.3, 0, 0);
+}
+.cyber-button {
+    -fx-background-color: linear-gradient(to bottom, rgba(91, 122, 191, 0.9), rgba(129, 161, 193, 0.9));
+    -fx-background-radius: 8;
+    -fx-border-color: rgba(91, 122, 191, 0.4);
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-text-fill: #2d3748;
+    -fx-font-weight: bold;
+    -fx-font-size: 15px;
+    -fx-padding: 12 16 12 16;
+    -fx-effect: dropshadow(gaussian, rgba(91, 122, 191, 0.2), 12, 0.4, 0, 4);
+    -fx-cursor: hand;
+}
+.cyber-button:hover {
+    -fx-background-color: linear-gradient(to bottom, rgba(91, 122, 191, 1), rgba(129, 161, 193, 1));
+    -fx-effect: dropshadow(gaussian, rgba(91, 122, 191, 0.4), 20, 0.5, 0, 0),
+                dropshadow(gaussian, rgba(129, 161, 193, 0.2), 35, 0.3, 0, 0);
+}

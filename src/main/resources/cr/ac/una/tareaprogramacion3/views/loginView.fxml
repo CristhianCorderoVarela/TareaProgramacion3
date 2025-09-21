@@ -40,7 +40,7 @@
                                         <Label styleClass="label-link-gris" text="Usuario">
                                             <font><Font size="13.0" /></font>
                                         </Label>
-                                        <TextField fx:id="txtUsuario" maxWidth="300" promptText="Ingresar Usuario" />
+                                        <TextField fx:id="txtUsuario" maxWidth="300" promptText="Ingresar Usuario" styleClass="password-field" stylesheets="@styles.css" />
 
                                         <Label styleClass="label-link-gris" text="Contraseña">
                                             <font><Font size="13.0" /></font>

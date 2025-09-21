@@ -1,88 +1,110 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.TitledPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
 
-<StackPane xmlns="http://javafx.com/javafx/23.0.1"
-           xmlns:fx="http://javafx.com/fxml/1"
-           fx:controller="cr.ac.una.tareaprogramacion3.controller.AdministradoresController">
+<StackPane xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="cr.ac.una.tareaprogramacion3.controller.AdministradoresController">
 
     <children>
-        <BorderPane prefWidth="1100" prefHeight="700">
+        <BorderPane prefHeight="700" prefWidth="1100">
             <!-- TOP: Título -->
             <top>
                 <HBox alignment="CENTER_LEFT" spacing="10">
                     <padding>
-                        <Insets top="12" right="12" bottom="12" left="12"/>
+                        <Insets bottom="12" left="12" right="12" top="12" />
                     </padding>
-                    <Label text="Administradores" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+                    <Label style="-fx-font-size: 18px; -fx-font-weight: bold;" text="Administradores" />
                 </HBox>
             </top>
 
             <!-- LEFT: Formulario -->
             <left>
-                <VBox spacing="12" prefWidth="420">
+                <VBox fx:id="panelForm" prefWidth="420" spacing="12">
+                
                     <padding>
-                        <Insets top="15" right="15" bottom="15" left="15"/>
+                        <Insets bottom="15" left="15" right="15" top="15" />
                     </padding>
 
-                    <TitledPane text="Datos del administrador" expanded="true">
+                    <TitledPane expanded="true" text="Datos del administrador">
                         <content>
                             <GridPane hgap="10" vgap="8">
                                 <columnConstraints>
-                                    <ColumnConstraints minWidth="140" halignment="RIGHT"/>
-                                    <ColumnConstraints hgrow="ALWAYS"/>
+                                    <ColumnConstraints halignment="RIGHT" minWidth="140" />
+                                    <ColumnConstraints hgrow="ALWAYS" />
                                 </columnConstraints>
 
-                                <Label text="Nombre:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
-                                <TextField fx:id="txtNombre" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                                <Label text="Nombre:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                                <TextField fx:id="txtNombre" GridPane.columnIndex="1" GridPane.rowIndex="0" />
 
-                                <Label text="Apellidos:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
-                                <TextField fx:id="txtApellidos" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                                <Label text="Apellidos:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                                <TextField fx:id="txtApellidos" GridPane.columnIndex="1" GridPane.rowIndex="1" />
 
-                                <Label text="Cédula:" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
-                                <TextField fx:id="txtCedula" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                                <Label text="Cédula:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                                <TextField fx:id="txtCedula" GridPane.columnIndex="1" GridPane.rowIndex="2" />
 
-                                <Label text="Correo:" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
-                                <TextField fx:id="txtCorreo" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                                <Label text="Correo:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+                                <TextField fx:id="txtCorreo" GridPane.columnIndex="1" GridPane.rowIndex="3" />
 
-                                <Label text="Usuario:" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
-                                <TextField fx:id="txtUsuario" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+                                <Label text="Usuario:" GridPane.columnIndex="0" GridPane.rowIndex="4" />
+                                <TextField fx:id="txtUsuario" GridPane.columnIndex="1" GridPane.rowIndex="4" />
 
-                                <Label text="Estado:" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
-                                <ComboBox fx:id="cbEstado" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
+                                <Label text="Estado:" GridPane.columnIndex="0" GridPane.rowIndex="5" />
+                                <ComboBox fx:id="cbEstado" GridPane.columnIndex="1" GridPane.rowIndex="5" />
+                        <rowConstraints>
+                           <RowConstraints />
+                           <RowConstraints />
+                           <RowConstraints />
+                           <RowConstraints />
+                           <RowConstraints />
+                           <RowConstraints />
+                        </rowConstraints>
                             </GridPane>
                         </content>
                     </TitledPane>
 
-                    <TitledPane text="Contraseña" expanded="true">
+                    <TitledPane expanded="true" text="Contraseña">
                         <content>
                             <VBox spacing="8">
-                                <CheckBox fx:id="chkCambiarPass" text="Cambiar contraseña"/>
+                                <CheckBox fx:id="chkCambiarPass" text="Cambiar contraseña" />
                                 <GridPane hgap="10" vgap="8">
                                     <columnConstraints>
-                                        <ColumnConstraints minWidth="140" halignment="RIGHT"/>
-                                        <ColumnConstraints hgrow="ALWAYS"/>
+                                        <ColumnConstraints halignment="RIGHT" minWidth="140" />
+                                        <ColumnConstraints hgrow="ALWAYS" />
                                     </columnConstraints>
 
-                                    <Label text="Contraseña nueva:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
-                                    <PasswordField fx:id="txtContrasena" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                                    <Label text="Contraseña nueva:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                                    <PasswordField fx:id="txtContrasena" GridPane.columnIndex="1" GridPane.rowIndex="0" />
 
-                                    <Label text="Confirmar contraseña:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
-                                    <PasswordField fx:id="txtContrasenaConf" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                                    <Label text="Confirmar contraseña:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                                    <PasswordField fx:id="txtContrasenaConf" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+                           <rowConstraints>
+                              <RowConstraints />
+                              <RowConstraints />
+                           </rowConstraints>
                                 </GridPane>
                             </VBox>
                         </content>
                     </TitledPane>
 
                     <HBox spacing="10">
-                        <Button fx:id="btnAgregar" text="Agregar" onAction="#onAgregar"
-                                style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;"/>
-                        <Button fx:id="btnEditar" text="Actualizar" onAction="#onEditar"
-                                style="-fx-background-color: #2980b9; -fx-text-fill: white; -fx-font-weight: bold;"/>
-                        <Button fx:id="btnEliminar" text="Eliminar" onAction="#onEliminar"
-                                style="-fx-background-color: #c0392b; -fx-text-fill: white; -fx-font-weight: bold;"/>
+                        <Button fx:id="btnAgregar" onAction="#onAgregar" style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;" text="Agregar" />
+                        <Button fx:id="btnEditar" onAction="#onEditar" style="-fx-background-color: #2980b9; -fx-text-fill: white; -fx-font-weight: bold;" text="Actualizar" />
+                        <Button fx:id="btnEliminar" onAction="#onEliminar" style="-fx-background-color: #c0392b; -fx-text-fill: white; -fx-font-weight: bold;" text="Eliminar" />
                     </HBox>
                 </VBox>
             </left>
@@ -91,28 +113,26 @@
             <center>
                 <VBox spacing="10">
                     <padding>
-                        <Insets top="15" right="15" bottom="15" left="0"/>
+                        <Insets bottom="15" left="0" right="15" top="15" />
                     </padding>
 
                     <!-- NUEVO: barra de búsqueda -->
-                    <HBox spacing="10" alignment="CENTER_LEFT">
-                        <Label text="Buscar:"/>
-                        <TextField fx:id="txtBuscar"
-                                   promptText="Nombre, usuario, correo o cédula..."
-                                   HBox.hgrow="ALWAYS"/>
-                        <Button text="🔍" onAction="#onBuscar"/>
+                    <HBox alignment="CENTER_LEFT" spacing="10">
+                        <Label text="Buscar:" />
+                        <TextField fx:id="txtBuscar" promptText="Nombre, usuario, correo o cédula..." HBox.hgrow="ALWAYS" />
+                        <Button onAction="#onBuscar" text="🔍" />
                     </HBox>
 
-                    <TitledPane text="Listado" expanded="true" VBox.vgrow="ALWAYS">
+                    <TitledPane expanded="true" text="Listado" VBox.vgrow="ALWAYS">
                         <content>
                             <TableView fx:id="tabla" prefHeight="600">
                                 <columns>
-                                    <TableColumn fx:id="colNombre" text="Nombre" prefWidth="130"/>
-                                    <TableColumn fx:id="colApellidos" text="Apellidos" prefWidth="180"/>
-                                    <TableColumn fx:id="colCedula" text="Cédula" prefWidth="120"/>
-                                    <TableColumn fx:id="colCorreo" text="Correo" prefWidth="200"/>
-                                    <TableColumn fx:id="colUsuario" text="Usuario" prefWidth="120"/>
-                                    <TableColumn fx:id="colEstado" text="Estado" prefWidth="90"/>
+                                    <TableColumn fx:id="colNombre" prefWidth="130" text="Nombre" />
+                                    <TableColumn fx:id="colApellidos" prefWidth="180" text="Apellidos" />
+                                    <TableColumn fx:id="colCedula" prefWidth="120" text="Cédula" />
+                                    <TableColumn fx:id="colCorreo" prefWidth="200" text="Correo" />
+                                    <TableColumn fx:id="colUsuario" prefWidth="120" text="Usuario" />
+                                    <TableColumn fx:id="colEstado" prefWidth="90" text="Estado" />
                                 </columns>
                             </TableView>
                         </content>

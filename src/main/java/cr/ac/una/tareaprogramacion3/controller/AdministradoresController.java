@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import javafx.scene.Node;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.VBox;
 
 public class AdministradoresController extends Controller {
 
@@ -34,6 +35,7 @@ public class AdministradoresController extends Controller {
     @FXML private PasswordField txtContrasenaConf;  // confirmación
     @FXML private CheckBox chkCambiarPass;          // habilita cambio al editar
     @FXML private ComboBox<String> cbEstado;
+    @FXML private VBox panelForm;
 
     // === Botones ===
     @FXML private Button btnAgregar;
@@ -70,16 +72,41 @@ public class AdministradoresController extends Controller {
         tabla.setItems(data);
         
         // Limpiar selección si hacen clic FUERA de la tabla
+
+
 tabla.sceneProperty().addListener((obs, oldScene, scene) -> {
     if (scene == null) return;
     scene.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> {
-        if (isInside(tabla, e.getTarget())) return;  // clic dentro de la tabla -> nada
-        if (tabla.getSelectionModel().getSelectedItem() != null) {
-            tabla.getSelectionModel().clearSelection();
-limpiarFormulario(); // ← limpia y pasa a modo Crear automáticamente
+        Object tgt = e.getTarget();
+
+        boolean clickEnTabla = isInside(tabla, tgt);
+        boolean clickEnForm  = isInside(panelForm, tgt);
+
+        // A) Si clicas FUERA de TABLA y FORM -> limpiar
+        if (!clickEnTabla && !clickEnForm) {
+            if (tabla.getSelectionModel().getSelectedItem() != null) {
+                tabla.getSelectionModel().clearSelection();
+                limpiarFormulario();
+            }
+            return;
         }
+
+        // B) Si clicas en TABLA pero en una fila vacía -> limpiar
+        if (clickEnTabla) {
+            Node n = (tgt instanceof Node) ? (Node) tgt : null;
+            while (n != null && n != tabla && !(n instanceof TableRow)) n = n.getParent();
+            if (n instanceof TableRow<?> row && row.isEmpty()) {
+                tabla.getSelectionModel().clearSelection();
+                limpiarFormulario();
+            }
+            return; // si fue fila con datos, dejamos que seleccione normal
+        }
+
+        // C) Si clicas en el FORM -> NO limpiar (mantén selección para editar)
     });
 });
+
+
 
         // Selección en tabla -> alterna modos
         tabla.getSelectionModel().selectedItemProperty().addListener((obs, old, cur) -> {

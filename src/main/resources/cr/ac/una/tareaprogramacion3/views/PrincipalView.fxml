@@ -11,11 +11,11 @@
 <?import javafx.scene.text.Font?>
 <?import javafx.scene.text.Text?>
 
-<BorderPane prefHeight="600.0" prefWidth="1000.0" stylesheets="@styles.css" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="cr.ac.una.tareaprogramacion3.controller.PrincipalViewController">
+<BorderPane prefHeight="600.0" prefWidth="1000.0" styleClass="panel-blanco-sombra" stylesheets="@styles.css" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="cr.ac.una.tareaprogramacion3.controller.PrincipalViewController">
 
     <center>
-        <!-- Centro vacío, FlowController insertará aquí el contenido -->
-        <VBox alignment="CENTER" prefHeight="500.0" prefWidth="587.0" BorderPane.alignment="CENTER_RIGHT" />
+        <!-- Host del contenido cargado dinámicamente -->
+        <VBox fx:id="contentHost" alignment="CENTER" prefHeight="500.0" prefWidth="587.0" styleClass="cyberpunk-container" stylesheets="@cssPrincipalView.css" BorderPane.alignment="CENTER_RIGHT" />
     </center>
 
     <left>
@@ -30,7 +30,7 @@
                     <children>
                         <ImageView fitHeight="125.0" fitWidth="130.0" pickOnBounds="true" preserveRatio="true">
                             <image>
-                                <Image url="@images/ChatGPT%20Image%2011%20ago%202025,%2019_29_52.png" />
+                                <Image url="@images/ChatGPT%20Image%2021%20sept%202025,%2011_12_18.png" />
                             </image>
                         </ImageView>
                         <Text fill="WHITE" text="Bienvenido !!">
@@ -60,52 +60,52 @@
                             <VBox.margin>
                                 <Insets />
                             </VBox.margin>
-                     <graphic>
-                        <ImageView fitHeight="24.0" fitWidth="35.0" pickOnBounds="true" preserveRatio="true">
-                           <image>
-                              <Image url="@images/icons8-reserve-50.png" />
-                           </image>
-                        </ImageView>
-                     </graphic>
+                            <graphic>
+                                <ImageView fitHeight="24.0" fitWidth="35.0" pickOnBounds="true" preserveRatio="true">
+                                    <image>
+                                        <Image url="@images/icons8-reserve-50.png" />
+                                    </image>
+                                </ImageView>
+                            </graphic>
                         </Button>
 
                         <Button fx:id="BtnVentana2" onAction="#onActionBtnVentana2" prefHeight="40.0" prefWidth="200.0" styleClass="boton-menu" text="Administradores">
                             <VBox.margin>
                                 <Insets />
                             </VBox.margin>
-                     <graphic>
-                        <ImageView fitHeight="25.0" fitWidth="26.0" pickOnBounds="true" preserveRatio="true">
-                           <image>
-                              <Image url="@images/icons8-account-settings-32.png" />
-                           </image>
-                        </ImageView>
-                     </graphic>
+                            <graphic>
+                                <ImageView fitHeight="25.0" fitWidth="26.0" pickOnBounds="true" preserveRatio="true">
+                                    <image>
+                                        <Image url="@images/icons8-account-settings-32.png" />
+                                    </image>
+                                </ImageView>
+                            </graphic>
                         </Button>
 
                         <Button fx:id="BtnVentana3" onAction="#onActionBtnVentana3" prefHeight="40.0" prefWidth="200.0" styleClass="boton-menu" text="Actividades">
                             <VBox.margin>
                                 <Insets />
                             </VBox.margin>
-                     <graphic>
-                        <ImageView fitHeight="22.0" fitWidth="22.0" pickOnBounds="true" preserveRatio="true">
-                           <image>
-                              <Image url="@images/icons8-event-accepted-50.png" />
-                           </image>
-                        </ImageView>
-                     </graphic>
+                            <graphic>
+                                <ImageView fitHeight="22.0" fitWidth="22.0" pickOnBounds="true" preserveRatio="true">
+                                    <image>
+                                        <Image url="@images/icons8-event-accepted-50.png" />
+                                    </image>
+                                </ImageView>
+                            </graphic>
                         </Button>
 
                         <Button fx:id="BtnVentana4" onAction="#onActionBtnVentana4" prefHeight="36.0" prefWidth="200.0" styleClass="boton-menu" text="Seguimientos ">
                             <VBox.margin>
                                 <Insets />
                             </VBox.margin>
-                     <graphic>
-                        <ImageView fitHeight="24.0" fitWidth="27.0" pickOnBounds="true" preserveRatio="true">
-                           <image>
-                              <Image url="@images/resultados.png" />
-                           </image>
-                        </ImageView>
-                     </graphic>
+                            <graphic>
+                                <ImageView fitHeight="24.0" fitWidth="27.0" pickOnBounds="true" preserveRatio="true">
+                                    <image>
+                                        <Image url="@images/resultados.png" />
+                                    </image>
+                                </ImageView>
+                            </graphic>
                         </Button>
 
                         <Button fx:id="btnSalir" onAction="#onActionBtnSalir" prefHeight="38.0" prefWidth="145.0" styleClass="boton-cerrar-sesion" text="Cerrar sesión">
