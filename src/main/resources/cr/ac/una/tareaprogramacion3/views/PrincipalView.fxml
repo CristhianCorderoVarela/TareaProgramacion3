@@ -11,11 +11,11 @@
 <?import javafx.scene.text.Font?>
 <?import javafx.scene.text.Text?>
 
-<BorderPane prefHeight="600.0" prefWidth="1000.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="cr.ac.una.tareaprogramacion3.controller.PrincipalViewController">
+<BorderPane prefHeight="600.0" prefWidth="1000.0" stylesheets="@styles.css" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="cr.ac.una.tareaprogramacion3.controller.PrincipalViewController">
 
     <center>
         <!-- Centro vacío, FlowController insertará aquí el contenido -->
-        <VBox alignment="TOP_RIGHT" prefHeight="500.0" prefWidth="587.0" BorderPane.alignment="CENTER_RIGHT" />
+        <VBox alignment="CENTER" prefHeight="500.0" prefWidth="587.0" BorderPane.alignment="CENTER_RIGHT" />
     </center>
 
     <left>
@@ -35,7 +35,7 @@
                         </ImageView>
                         <Text fill="WHITE" text="Bienvenido !!">
                             <font>
-                                <Font size="15" />
+                                <Font name="Bookman Old Style" size="15.0" />
                             </font>
                             <VBox.margin>
                                 <Insets bottom="10.0" top="8.0" />
@@ -43,82 +43,69 @@
                         </Text>
                         <Line endX="100" startX="0" />
                         
-                        <Button fx:id="BtnHome" mnemonicParsing="false" onAction="#onActionBtnHome" prefHeight="43.0" prefWidth="200.0" styleClass="boton-menu" text="Inicio" textAlignment="CENTER">
+                        <Button fx:id="BtnHome" alignment="CENTER" contentDisplay="CENTER" graphicTextGap="0.0" mnemonicParsing="false" onAction="#onActionBtnHome" prefHeight="43.0" prefWidth="200.0" styleClass="boton-menu" stylesheets="@styles.css" text="Inicio">
                             <graphic>
-                                <ImageView fitHeight="25.0" fitWidth="71.0" pickOnBounds="true" preserveRatio="true">
+                                <ImageView fitHeight="25.0" fitWidth="58.0" pickOnBounds="true" preserveRatio="true">
                                     <image>
-                                        <Image url="@images/icons8-home-48.png" />
+                                        <Image url="@images/icons8-statistic-64.png" />
                                     </image>
                                 </ImageView>
                             </graphic>
                             <VBox.margin>
-                                <Insets top="10.0" />
+                                <Insets />
                             </VBox.margin>
                         </Button>
 
                         <Button fx:id="BtnVentana1" onAction="#onActionBtnVentana1" prefHeight="44.0" prefWidth="200.0" styleClass="boton-menu" text=" Proyectos">
                             <VBox.margin>
-                                <Insets top="10" />
+                                <Insets />
                             </VBox.margin>
-                            <graphic>
-                                <ImageView fitHeight="26" fitWidth="33" pickOnBounds="true" preserveRatio="true">
-                                    <image>
-                                        <Image url="@../controller/Images/icons8-skyscrapers-50.png" />
-                                    </image>
-                                </ImageView>
-                            </graphic>
+                     <graphic>
+                        <ImageView fitHeight="24.0" fitWidth="35.0" pickOnBounds="true" preserveRatio="true">
+                           <image>
+                              <Image url="@images/icons8-reserve-50.png" />
+                           </image>
+                        </ImageView>
+                     </graphic>
                         </Button>
 
                         <Button fx:id="BtnVentana2" onAction="#onActionBtnVentana2" prefHeight="40.0" prefWidth="200.0" styleClass="boton-menu" text="Administradores">
                             <VBox.margin>
-                                <Insets top="10.0" />
+                                <Insets />
                             </VBox.margin>
-                            <graphic>
-                                <ImageView fitHeight="22" fitWidth="25" pickOnBounds="true" preserveRatio="true">
-                                    <image>
-                                        <Image url="@../controller/Images/icons8-account-settings-32.png" />
-                                    </image>
-                                </ImageView>
-                            </graphic>
+                     <graphic>
+                        <ImageView fitHeight="25.0" fitWidth="26.0" pickOnBounds="true" preserveRatio="true">
+                           <image>
+                              <Image url="@images/icons8-account-settings-32.png" />
+                           </image>
+                        </ImageView>
+                     </graphic>
                         </Button>
 
                         <Button fx:id="BtnVentana3" onAction="#onActionBtnVentana3" prefHeight="40.0" prefWidth="200.0" styleClass="boton-menu" text="Actividades">
                             <VBox.margin>
-                                <Insets top="10" />
+                                <Insets />
                             </VBox.margin>
-                            <graphic>
-                                <ImageView fitHeight="28" fitWidth="22" pickOnBounds="true" preserveRatio="true">
-                                    <image>
-                                        <Image url="@../controller/Images/icons8-add-user-female-32.png" />
-                                    </image>
-                                </ImageView>
-                            </graphic>
+                     <graphic>
+                        <ImageView fitHeight="22.0" fitWidth="22.0" pickOnBounds="true" preserveRatio="true">
+                           <image>
+                              <Image url="@images/icons8-event-accepted-50.png" />
+                           </image>
+                        </ImageView>
+                     </graphic>
                         </Button>
 
                         <Button fx:id="BtnVentana4" onAction="#onActionBtnVentana4" prefHeight="36.0" prefWidth="200.0" styleClass="boton-menu" text="Seguimientos ">
                             <VBox.margin>
-                                <Insets top="10" />
+                                <Insets />
                             </VBox.margin>
-                            <graphic>
-                                <ImageView fitHeight="18" fitWidth="18" pickOnBounds="true" preserveRatio="true">
-                                    <image>
-                                        <Image url="@../controller/Images/icons8-event-accepted-50.png" />
-                                    </image>
-                                </ImageView>
-                            </graphic>
-                        </Button>
-
-                        <Button fx:id="BtnVentana5" onAction="#onActionBtnVentana5" prefHeight="38.0" prefWidth="200.0" styleClass="boton-menu" text="Dashboard">
-                            <VBox.margin>
-                                <Insets top="10" />
-                            </VBox.margin>
-                            <graphic>
-                                <ImageView fitHeight="20" fitWidth="20" pickOnBounds="true" preserveRatio="true">
-                                    <image>
-                                        <Image url="@../controller/Images/icons8-statistic-64.png" />
-                                    </image>
-                                </ImageView>
-                            </graphic>
+                     <graphic>
+                        <ImageView fitHeight="24.0" fitWidth="27.0" pickOnBounds="true" preserveRatio="true">
+                           <image>
+                              <Image url="@images/resultados.png" />
+                           </image>
+                        </ImageView>
+                     </graphic>
                         </Button>
 
                         <Button fx:id="btnSalir" onAction="#onActionBtnSalir" prefHeight="38.0" prefWidth="145.0" styleClass="boton-cerrar-sesion" text="Cerrar sesión">

@@ -32,7 +32,7 @@ import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class Ventana5Controller extends Controller {
+public class DashboardController extends Controller {
 
     // Top
     @FXML private Button btnActualizar;

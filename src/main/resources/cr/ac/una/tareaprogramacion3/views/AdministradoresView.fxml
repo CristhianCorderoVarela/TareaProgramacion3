@@ -6,7 +6,7 @@
 
 <StackPane xmlns="http://javafx.com/javafx/23.0.1"
            xmlns:fx="http://javafx.com/fxml/1"
-           fx:controller="cr.ac.una.tareaprogramacion3.controller.Ventana2Controller">
+           fx:controller="cr.ac.una.tareaprogramacion3.controller.AdministradoresController">
 
     <children>
         <BorderPane prefWidth="1100" prefHeight="700">

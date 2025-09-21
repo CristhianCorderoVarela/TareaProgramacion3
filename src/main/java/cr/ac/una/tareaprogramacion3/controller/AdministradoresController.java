@@ -16,8 +16,10 @@ import javafx.scene.control.*;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
+import javafx.scene.Node;
+import javafx.scene.input.MouseEvent;
 
-public class Ventana2Controller extends Controller {
+public class AdministradoresController extends Controller {
 
     // === Búsqueda ===
     @FXML private TextField txtBuscar;
@@ -66,6 +68,18 @@ public class Ventana2Controller extends Controller {
         colUsuario.setCellValueFactory(c -> c.getValue().usuarioProperty());
         colEstado.setCellValueFactory(c -> c.getValue().estadoProperty());
         tabla.setItems(data);
+        
+        // Limpiar selección si hacen clic FUERA de la tabla
+tabla.sceneProperty().addListener((obs, oldScene, scene) -> {
+    if (scene == null) return;
+    scene.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> {
+        if (isInside(tabla, e.getTarget())) return;  // clic dentro de la tabla -> nada
+        if (tabla.getSelectionModel().getSelectedItem() != null) {
+            tabla.getSelectionModel().clearSelection();
+limpiarFormulario(); // ← limpia y pasa a modo Crear automáticamente
+        }
+    });
+});
 
         // Selección en tabla -> alterna modos
         tabla.getSelectionModel().selectedItemProperty().addListener((obs, old, cur) -> {
@@ -347,4 +361,12 @@ private boolean contains(String field, String q) {
     private String msg(String original, String fallback) {
         return (original != null && !original.isBlank()) ? original : fallback;
     }
+    /** Retorna true si el target del evento está dentro del nodo contenedor. */
+private boolean isInside(Node container, Object eventTarget) {
+    if (!(eventTarget instanceof Node n)) return false;
+    for (Node cur = n; cur != null; cur = cur.getParent()) {
+        if (cur == container) return true;
+    }
+    return false;
+}
 }

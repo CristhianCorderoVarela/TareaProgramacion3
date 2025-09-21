@@ -36,7 +36,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class Ventana1Controller extends Controller {
+public class ProyectosController extends Controller {
 
     // ======= Búsqueda =======
     @FXML private TextField txtBuscar;

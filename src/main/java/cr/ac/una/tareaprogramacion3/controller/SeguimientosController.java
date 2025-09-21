@@ -31,7 +31,7 @@ import cr.ac.una.tareaprogramacion3.util.Controller;
 import cr.ac.una.tareaprogramacion3.util.UserSession;
 import jakarta.xml.ws.BindingProvider;
 
-public class Ventana4Controller extends Controller implements Initializable {
+public class SeguimientosController extends Controller implements Initializable {
 
     // --- Top bar
     @FXML private ComboBox<ProyectoDto> cbProyectos;
@@ -242,7 +242,7 @@ public class Ventana4Controller extends Controller implements Initializable {
         try {
             Object r = segPort().buscarSeguimientosPorProyecto(p.getId());
             List<SeguimientoProyectoDto> lista =
-                    Ventana4Controller.<SeguimientoProyectoDto>respListOf(r, SeguimientoProyectoDto.class);
+                    SeguimientosController.<SeguimientoProyectoDto>respListOf(r, SeguimientoProyectoDto.class);
 
             // Ordenar DESC por fecha
             lista = ordenarDescPorFecha(lista);

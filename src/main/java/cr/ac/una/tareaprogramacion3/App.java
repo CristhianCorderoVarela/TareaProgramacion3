@@ -16,7 +16,7 @@ public class App extends Application {
         stage.setMinHeight(300);
 
         // Abre la vista login en una ventana
-        FlowController.getInstance().goViewInWindow("login");
+        FlowController.getInstance().goViewInWindow("loginView");
     }
 
     public static void main(String[] args) {

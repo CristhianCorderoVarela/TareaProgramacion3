@@ -6,7 +6,7 @@
 
 <BorderPane xmlns="http://javafx.com/javafx/23.0.1"
             xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="cr.ac.una.tareaprogramacion3.controller.Ventana3Controller"
+            fx:controller="cr.ac.una.tareaprogramacion3.controller.ActividadesController"
             prefWidth="900" prefHeight="600">
 
     <top>

@@ -34,7 +34,7 @@ import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class Ventana3Controller extends Controller {
+public class ActividadesController extends Controller {
 
     // Top bar
     @FXML private ComboBox<ProyectoDto> cbProyectos;

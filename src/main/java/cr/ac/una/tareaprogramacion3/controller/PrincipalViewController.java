@@ -33,8 +33,8 @@ public class PrincipalViewController extends Controller {
 
         // Carga por defecto: WelcomeView
         Platform.runLater(() -> {
-            FlowController.getInstance().limpiarLoader("Ventana5");
-        FlowController.getInstance().goView("Ventana5");
+            FlowController.getInstance().limpiarLoader("DashboardView");
+        FlowController.getInstance().goView("DashboardView");
         });
     }
 
@@ -42,39 +42,35 @@ public class PrincipalViewController extends Controller {
 
     @FXML
     private void onActionBtnHome(ActionEvent e) {
-        FlowController.getInstance().limpiarLoader("Ventana5");
-        FlowController.getInstance().goView("Ventana5");
+        FlowController.getInstance().limpiarLoader("DashboardView");
+        FlowController.getInstance().goView("DashboardView");
     }
 
     @FXML
     private void onActionBtnVentana1(ActionEvent e) {
-        FlowController.getInstance().limpiarLoader("Ventana1");
-        FlowController.getInstance().goView("Ventana1");
+        FlowController.getInstance().limpiarLoader("ProyectosView");
+        FlowController.getInstance().goView("ProyectosView");
     }
 
     @FXML
     private void onActionBtnVentana2(ActionEvent e) {
-        FlowController.getInstance().limpiarLoader("Ventana2");
-        FlowController.getInstance().goView("Ventana2");
+        FlowController.getInstance().limpiarLoader("AdministradoresView");
+        FlowController.getInstance().goView("AdministradoresView");
     }
 
     @FXML
     private void onActionBtnVentana3(ActionEvent e) {
-        FlowController.getInstance().limpiarLoader("Ventana3");
-        FlowController.getInstance().goView("Ventana3");
+        FlowController.getInstance().limpiarLoader("ActividadesView");
+        FlowController.getInstance().goView("ActividadesView");
     }
 
     @FXML
     private void onActionBtnVentana4(ActionEvent e) {
-        FlowController.getInstance().limpiarLoader("Ventana4");
-        FlowController.getInstance().goView("Ventana4");
+        FlowController.getInstance().limpiarLoader("SeguimientosView");
+        FlowController.getInstance().goView("SeguimientosView");
     }
 
-    @FXML
-    private void onActionBtnVentana5(ActionEvent e) {
-        FlowController.getInstance().limpiarLoader("Ventana5");
-        FlowController.getInstance().goView("Ventana5");
-    }
+    
 
     @FXML
     private void onActionBtnSalir(ActionEvent e) {
@@ -82,7 +78,7 @@ public class PrincipalViewController extends Controller {
         Stage ventanaActual = (Stage) btnSalir.getScene().getWindow();
         if (ventanaActual != null) ventanaActual.close();
 
-        FlowController.getInstance().limpiarLoader("login"); // nombre de tu login.fxml
-        FlowController.getInstance().goViewInWindow("login");
+        FlowController.getInstance().limpiarLoader("loginView"); // nombre de tu login.fxml
+        FlowController.getInstance().goViewInWindow("loginView");
     }
 }
