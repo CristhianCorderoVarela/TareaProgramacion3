@@ -1,11 +1,11 @@
 package cr.ac.una.tareaprogramacion3.controller;
 
-import cr.ac.una.tareaprogramacion3.util.Controller;
-
 import cr.ac.una.client.soap.ProyectoDto;
 import cr.ac.una.client.soap.ProyectoService;
 import cr.ac.una.client.soap.ProyectoWS;
 import cr.ac.una.client.soap.RespuestaGeneral;
+import cr.ac.una.client.soap.SeguimientoService;
+import cr.ac.una.client.soap.SeguimientoWS;
 import jakarta.xml.ws.BindingProvider;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -16,10 +16,12 @@ import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.GregorianCalendar;
-import java.util.Map;
+import java.util.*;
+import java.lang.reflect.Array;
+import java.lang.reflect.Method;
+import java.util.stream.Collectors;
 
-public class ProyectoDialogController extends Controller {
+public class ProyectoDialogController extends cr.ac.una.tareaprogramacion3.util.Controller {
 
     // ===== Controles =====
     @FXML private TextField txtNombre;
@@ -40,32 +42,112 @@ public class ProyectoDialogController extends Controller {
     @FXML private DatePicker dpInicioPlan, dpFinPlan, dpInicioReal, dpFinReal;
 
     // ===== Estado =====
-    private ProyectoWS port;
+    private ProyectoWS proyPort;
+    private SeguimientoWS segPort;
     private ProyectoDto modelo;
     private boolean guardado = false;
 
+    // Flag: hay seguimientos -> “PLANIFICADO” visible pero deshabilitado
+    private boolean bloquearPlanificado = false;
+    private String ultimoEstadoValido = null;
+
+    // Estados posibles
+    private static final List<String> ESTADOS_ALL = Arrays.asList(
+            "PLANIFICADO", "EN_CURSO", "SUSPENDIDO", "FINALIZADO"
+    );
+
     @Override
     public void initialize() {
-        // FlowController la invoca al abrir; no necesitamos lógica aquí.
+        // no-op
     }
 
     /** Llamado por Ventana1Controller antes de abrir el modal */
-    public void init(String endpointUrl, ProyectoDto dto) {
-        // Configurar stub y endpoint
+    public void init(String proyectoEndpointUrl, ProyectoDto dto) {
+        // ====== Configurar WS Proyecto ======
         ProyectoService svc = new ProyectoService();
-        this.port = svc.getProyectoWSPort();
-        Map<String, Object> ctx = ((BindingProvider) port).getRequestContext();
-        ctx.put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, endpointUrl);
+        this.proyPort = svc.getProyectoWSPort();
+        Map<String, Object> ctx = ((BindingProvider) proyPort).getRequestContext();
+        ctx.put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, proyectoEndpointUrl);
 
-        // DTO (nuevo o edición)
+        // ====== Configurar WS Seguimiento (derivado del endpoint de proyecto) ======
+        String segEndpoint = proyectoEndpointUrl
+                .replace("ProyectoService/ProyectoWS", "SeguimientoService/SeguimientoWS");
+        SeguimientoService segSvc = new SeguimientoService();
+        this.segPort = segSvc.getSeguimientoWSPort();
+        Map<String, Object> ctx2 = ((BindingProvider) segPort).getRequestContext();
+        ctx2.put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, segEndpoint);
+
+        // ====== DTO (nuevo o edición) ======
         this.modelo = (dto != null) ? dto : new ProyectoDto();
 
-        // Poblar combos y campos
-        cmbEstado.getItems().setAll("PLANIFICADO", "EN_CURSO", "SUSPENDIDO", "FINALIZADO");
-
         txtNombre.setText(nv(modelo.getNombre()));
-        cmbEstado.getSelectionModel().select(nv(modelo.getEstado()).isEmpty() ? "PLANIFICADO" : modelo.getEstado());
 
+        // Hay seguimientos?
+        bloquearPlanificado = (modelo.getId() != null && contarSeguimientos(modelo.getId()) > 0);
+
+        // Cargar estados SIEMPRE mostrando PLANIFICADO
+        cmbEstado.getItems().setAll(ESTADOS_ALL);
+
+        // CellFactory: deshabilitar visualmente PLANIFICADO si corresponde
+        cmbEstado.setCellFactory(listView -> new ListCell<>() {
+            @Override protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setDisable(false);
+                    setMouseTransparent(false);
+                    setStyle(null);
+                } else {
+                    setText(item);
+                    boolean disable = bloquearPlanificado && "PLANIFICADO".equals(item);
+                    setDisable(disable);
+                    // evita clicks sobre el item deshabilitado
+                    setMouseTransparent(disable);
+                    // atenuar visualmente
+                    setStyle(disable ? "-fx-opacity: 0.55;" : null);
+                    if (disable) {
+                        setTooltip(new Tooltip("No disponible: el proyecto ya tiene seguimientos."));
+                    } else {
+                        setTooltip(null);
+                    }
+                }
+            }
+        });
+
+        // ButtonCell coherente con el estado seleccionado
+        cmbEstado.setButtonCell(new ListCell<>() {
+            @Override protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? "" : item);
+            }
+        });
+
+        // Selección inicial
+        String estadoInicial = nv(modelo.getEstado()).isEmpty() ? "PLANIFICADO" : modelo.getEstado();
+        if (bloquearPlanificado && "PLANIFICADO".equals(estadoInicial)) {
+            // Si por datos viene en PLANIFICADO pero ya tiene seguimientos,
+            // muévelo a un estado permitido (EN_CURSO por defecto).
+            estadoInicial = "EN_CURSO";
+        }
+        cmbEstado.getSelectionModel().select(estadoInicial);
+        ultimoEstadoValido = estadoInicial;
+
+        // Listener para impedir elegir PLANIFICADO cuando está bloqueado
+        cmbEstado.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (bloquearPlanificado && "PLANIFICADO".equals(newVal)) {
+                // revertir y avisar
+                runLaterSafe(() -> {
+                    cmbEstado.getSelectionModel().select(ultimoEstadoValido);
+                    warn("No permitido",
+                            "Este proyecto ya tiene seguimientos registrados.\n" +
+                            "No puede volver al estado PLANIFICADO.");
+                });
+            } else {
+                ultimoEstadoValido = newVal;
+            }
+        });
+
+        // Resto de campos
         txtPatrocinador.setText(nv(modelo.getPatrocinadorNombre()));
         txtCorreoPatrocinador.setText(nv(modelo.getPatrocinadorCorreo()));
 
@@ -79,6 +161,10 @@ public class ProyectoDialogController extends Controller {
         setDate(dpFinPlan,    modelo.getFechaFinalPlanificada());
         setDate(dpInicioReal, modelo.getFechaInicioReal());
         setDate(dpFinReal,    modelo.getFechaFinalReal());
+    }
+
+    private void runLaterSafe(Runnable r) {
+        try { javafx.application.Platform.runLater(r); } catch (Exception ignore) {}
     }
 
     // ===== Utilitarios =====
@@ -105,14 +191,14 @@ public class ProyectoDialogController extends Controller {
 
     private boolean emailOk(String s) {
         if (blank(s)) return false;
-        // Validación simple y suficiente para el caso
-        return s.contains("@") && s.indexOf('@') > 0 && s.indexOf('@') < s.length() - 1;
+        int at = s.indexOf('@');
+        return at > 0 && at < s.length() - 1 && s.indexOf(' ') < 0;
     }
 
     // ===== Acciones =====
     @FXML
     private void onGuardar() {
-        // --- Validaciones mínimas (coinciden con NOT NULL de la tabla) ---
+        // --- Validaciones mínimas ---
         if (blank(txtNombre.getText())) { warn("Validación", "El nombre es obligatorio."); return; }
         if (cmbEstado.getValue() == null) { warn("Validación", "Seleccione un estado."); return; }
 
@@ -132,9 +218,18 @@ public class ProyectoDialogController extends Controller {
             warn("Validación", "La fecha fin planificada no puede ser menor que la fecha inicio planificada."); return;
         }
 
+        // Regla: no permitir guardar en PLANIFICADO si hay seguimientos
+        String estadoElegido = cmbEstado.getValue();
+        if (bloquearPlanificado && "PLANIFICADO".equals(estadoElegido)) {
+            warn("No permitido",
+                    "Este proyecto ya tiene seguimientos registrados.\n" +
+                    "No puede guardar en estado PLANIFICADO.");
+            return;
+        }
+
         // --- UI -> DTO ---
         modelo.setNombre(txtNombre.getText().trim());
-        modelo.setEstado(cmbEstado.getValue());
+        modelo.setEstado(estadoElegido);
 
         modelo.setPatrocinadorNombre(nv(txtPatrocinador.getText()).trim());
         modelo.setPatrocinadorCorreo(nv(txtCorreoPatrocinador.getText()).trim());
@@ -154,8 +249,8 @@ public class ProyectoDialogController extends Controller {
         Long idAdministrador = 1L; // TODO: reemplazar por el id real de sesión si corresponde
 
         RespuestaGeneral r = (modelo.getId() == null)
-                ? port.crearProyecto(modelo, idAdministrador)
-                : port.actualizarProyecto(modelo);
+                ? proyPort.crearProyecto(modelo, idAdministrador)
+                : proyPort.actualizarProyecto(modelo);
 
         if (r == null || !Boolean.TRUE.equals(r.isOk())) {
             error("Error", (r == null) ? "Sin respuesta del servidor" : nv(r.getMensaje()));
@@ -192,5 +287,92 @@ public class ProyectoDialogController extends Controller {
         a.setHeaderText(titulo);
         a.setContentText(msg);
         a.showAndWait();
+    }
+
+    // ====== Helpers: contar seguimientos de forma robusta ======
+
+    /** Devuelve la cantidad de seguimientos para el proyecto. */
+    private int contarSeguimientos(Long proyectoId) {
+        try {
+            Object resp = segPort.buscarSeguimientosPorProyecto(proyectoId);
+            List<?> lista = extraerLista(resp);
+            return (lista == null) ? 0 : lista.size();
+        } catch (Exception ex) {
+            System.out.println("[ProyectoDialog] No se pudo contar seguimientos: " + ex.getMessage());
+            return 0;
+        }
+        }
+
+    /** Intenta extraer una lista desde distintas formas comunes de respuesta JAX-WS. */
+    @SuppressWarnings("unchecked")
+    private List<?> extraerLista(Object resp) {
+        if (resp == null) return Collections.emptyList();
+
+        if (resp instanceof List<?> l) return l;
+
+        if (resp.getClass().isArray()) {
+            int n = Array.getLength(resp);
+            List<Object> out = new ArrayList<>(n);
+            for (int i = 0; i < n; i++) out.add(Array.get(resp, i));
+            return out;
+        }
+
+        for (String getter : new String[]{
+                "getData", "getDatos", "getLista", "getItems",
+                "getProyectoOrSeguimientoOrActividad", "getSeguimientos"
+        }) {
+            Object data = tryGet(resp, getter);
+            List<?> asList = aLista(data);
+            if (asList != null) return asList;
+        }
+
+        return firstListLike(resp);
+    }
+
+    private Object tryGet(Object target, String getter) {
+        if (target == null) return null;
+        try {
+            Method m = target.getClass().getMethod(getter);
+            return m.invoke(target);
+        } catch (Exception ignored) { return null; }
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<?> aLista(Object data) {
+        if (data == null) return null;
+
+        if (data instanceof List<?> l) return l;
+
+        if (data.getClass().isArray()) {
+            int n = Array.getLength(data);
+            List<Object> out = new ArrayList<>(n);
+            for (int i = 0; i < n; i++) out.add(Array.get(data, i));
+            return out;
+        }
+
+        Object items = tryGet(data, "getItem"); // muy común en wrappers JAX-WS
+        if (items != null) return aLista(items);
+
+        return null;
+    }
+
+    /** Devuelve la PRIMERA lista/array encontrada en cualquier getter sin argumentos del objeto. */
+    @SuppressWarnings("unchecked")
+    private List<?> firstListLike(Object src) {
+        if (src == null) return null;
+        for (Method m : src.getClass().getMethods()) {
+            if (m.getParameterCount() != 0) continue;
+            String n = m.getName();
+            if (!(n.startsWith("get") || n.startsWith("is"))) continue;
+            try {
+                Object val = m.invoke(src);
+                if (val == null) continue;
+                if (val instanceof List<?>) return (List<?>) val;
+                if (val.getClass().isArray()) return aLista(val);
+                Object item = tryGet(val, "getItem");
+                if (item != null) return aLista(item);
+            } catch (Exception ignore) {}
+        }
+        return null;
     }
 }
