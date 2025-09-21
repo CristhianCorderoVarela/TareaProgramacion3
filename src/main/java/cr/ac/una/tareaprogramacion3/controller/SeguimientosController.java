@@ -400,125 +400,177 @@ private void actualizarEstadoFormularioSegunSeleccion() {
 
     // ====== Acciones ======
     private void guardar() {
-        ProyectoDto p = cbProyectos.getSelectionModel().getSelectedItem();
-        if (p == null || p.getId() == null) { warn("Seleccione un proyecto."); return; }
+    ProyectoDto pSel = cbProyectos.getSelectionModel().getSelectedItem();
+    if (pSel == null || pSel.getId() == null) { warn("Seleccione un proyecto."); return; }
 
-        // NO permitir seguimiento si no hay actividades
-        if (!proyectoTieneActividades(p.getId())) {
-            warn("Antes de registrar un seguimiento, debe existir al menos una actividad en el proyecto.");
+    // 0) Refrescar estado real del proyecto desde el WS (evita decidir con datos viejos)
+    ProyectoDto p = respData(proyPort().buscarProyectoPorId(pSel.getId()), ProyectoDto.class);
+    if (p == null) p = pSel; // fallback
+    String estadoActual = (p.getEstado() == null) ? "" : p.getEstado().trim().toUpperCase();
+
+    // 1) Si el proyecto YA está finalizado -> NO permitir agregar seguimiento
+    if ("FINALIZADO".equals(estadoActual)) {
+        warn("Este proyecto ya está FINALIZADO. No es posible agregar nuevos seguimientos.");
+        return;
+    }
+
+    // (opcional) Regla de negocio previa que ya tenías: debe haber al menos 1 actividad
+    if (!proyectoTieneActividades(p.getId())) {
+        warn("Antes de registrar un seguimiento, debe existir al menos una actividad en el proyecto.");
+        return;
+    }
+
+    // 2) Lectura/validación de formulario
+    int pct = (int) Math.round(sliderPorcentaje.getValue());
+    // no permitir retroceder respecto al % vigente
+    pct = Math.max(pct, ultimoPct);
+    if (pct < 0 || pct > 100) { warn("El porcentaje debe estar entre 0 y 100."); return; }
+
+    String obs = txtObservaciones.getText() == null ? "" : txtObservaciones.getText().trim();
+    if (obs.isEmpty()) { warn("Las observaciones son obligatorias."); return; }
+    if (obs.length() > OBS_MAX) { warn("Las observaciones no deben exceder " + OBS_MAX + " caracteres."); return; }
+
+    Long adminId = UserSession.get().getAdminId();
+    if (adminId == null) { warn("No hay usuario autenticado en sesión."); return; }
+
+    // 3) Construir DTO de seguimiento
+    SeguimientoProyectoDto dto = new SeguimientoProyectoDto();
+    dto.setProyectoId(p.getId());
+    dto.setFechaSeguimiento(toXmlCal(LocalDate.now()));
+    dto.setPorcentajeAvance(pct);
+    dto.setObservaciones(obs);
+    dto.setCreadoPorId(adminId);
+
+    try {
+        // 4) Crear seguimiento
+        Object res = segPort().crearSeguimiento(dto);
+        if (!respOk(res)) {
+            String m = respMsg(res);
+            warn(m != null ? m : "No se pudo guardar.");
             return;
         }
 
-        int pct = (int) Math.round(sliderPorcentaje.getValue());
-        pct = Math.max(pct, ultimoPct); // no decrecer
-        if (pct < 0 || pct > 100) { warn("El porcentaje debe estar entre 0 y 100."); return; }
+        // 5) Ajustar % y estado del proyecto si corresponde
+        int pctProyectoActual = (p.getPorcentajeAvance() == null) ? 0 : p.getPorcentajeAvance();
+        int nuevoPctProyecto   = Math.max(pctProyectoActual, pct);
 
-        String obs = txtObservaciones.getText() == null ? "" : txtObservaciones.getText().trim();
-        if (obs.isEmpty()) { warn("Las observaciones son obligatorias."); return; }
-        if (obs.length() > OBS_MAX) { warn("Las observaciones no deben exceder " + OBS_MAX + " caracteres."); return; }
-
-        Long adminId = UserSession.get().getAdminId();
-        if (adminId == null) { warn("No hay usuario autenticado en sesión."); return; }
-
-        SeguimientoProyectoDto dto = new SeguimientoProyectoDto();
-        dto.setProyectoId(p.getId());
-        dto.setFechaSeguimiento(toXmlCal(LocalDate.now()));
-        dto.setPorcentajeAvance(pct);
-        dto.setObservaciones(obs);
-        dto.setCreadoPorId(adminId);
-
-        try {
-            Object res = segPort().crearSeguimiento(dto);
-            if (respOk(res)) {
-                int current = p.getPorcentajeAvance() == null ? 0 : p.getPorcentajeAvance();
-                int nuevo   = Math.max(current, pct);
-                if (pct >= 100) { nuevo = 100; try { p.setEstado("FINALIZADO"); } catch (Exception ignore) {} }
-                if (nuevo != current || pct >= 100) {
-                    p.setPorcentajeAvance(nuevo);
-                    proyPort().actualizarProyecto(p);
-                    AppEvents.fireProyectoActualizado(p.getId());
-
-                    sliderPorcentaje.setMin(p.getPorcentajeAvance() == null ? 0 : p.getPorcentajeAvance());
-                    sliderPorcentaje.setValue(p.getPorcentajeAvance() == null ? 0 : p.getPorcentajeAvance());
-                    limpiarFormulario();
-                }
-                ultimoPct = nuevo;
-                sliderPorcentaje.setMin(nuevo);
-                sliderPorcentaje.setValue(nuevo);
-
-                info("Seguimiento guardado.");
-                cargarSeguimientos();
-                ordenarTablaDescPorFecha(); // redundante pero asegura UI
-                limpiarFormulario();
-            } else {
-                String m = respMsg(res);
-                warn(m != null ? m : "No se pudo guardar.");
-            }
-        } catch (Exception ex) {
-            error("Error al guardar", ex.getMessage());
+        boolean debeFinalizar = (pct >= 100) || (nuevoPctProyecto >= 100);
+        if (debeFinalizar) {
+            nuevoPctProyecto = 100;
+            p.setEstado("FINALIZADO");
         }
+
+        // Sólo llamar al WS si hay cambios
+        if (!Objects.equals(p.getPorcentajeAvance(), nuevoPctProyecto) || debeFinalizar) {
+            p.setPorcentajeAvance(nuevoPctProyecto);
+            Object upd = proyPort().actualizarProyecto(p);
+            if (!respOk(upd)) {
+                warn("El seguimiento se guardó, pero no se pudo actualizar el proyecto.");
+            } else if (debeFinalizar) {
+                info("Seguimiento guardado y proyecto marcado como FINALIZADO (100%).");
+            }
+            // Notificar a otras ventanas/listeners
+            AppEvents.fireProyectoActualizado(p.getId());
+        } else {
+            info("Seguimiento guardado.");
+        }
+
+        // 6) Dejar UI coherente con el nuevo % del proyecto
+        ultimoPct = (p.getPorcentajeAvance() == null) ? nuevoPctProyecto : p.getPorcentajeAvance();
+        sliderPorcentaje.setMin(ultimoPct);
+        sliderPorcentaje.setValue(ultimoPct);
+
+        // Recargar tabla y limpiar form
+        cargarSeguimientos();
+        ordenarTablaDescPorFecha();
+        limpiarFormulario();
+
+    } catch (Exception ex) {
+        error("Error al guardar", ex.getMessage());
     }
+}
 
     private void editar() {
-        ProyectoDto p = cbProyectos.getSelectionModel().getSelectedItem();
-        SeguimientoProyectoDto sel = tablaSeguimientos.getSelectionModel().getSelectedItem();
-        if (p == null || p.getId() == null) { warn("Seleccione un proyecto."); return; }
-        if (sel == null) { warn("Seleccione un seguimiento de la tabla."); return; }
+    ProyectoDto pSel = cbProyectos.getSelectionModel().getSelectedItem();
+    SeguimientoProyectoDto sel = tablaSeguimientos.getSelectionModel().getSelectedItem();
 
-        // Solo permitir editar el de MAYOR porcentaje
-        if (!esMayorPorcentajeSeleccionado()) {
-            warn("Solo se puede editar el seguimiento con mayor porcentaje.");
+    if (pSel == null || pSel.getId() == null) { warn("Seleccione un proyecto."); return; }
+    if (sel == null) { warn("Seleccione un seguimiento de la tabla."); return; }
+
+    // Refrescar estado actual del proyecto desde WS
+    ProyectoDto p = respData(proyPort().buscarProyectoPorId(pSel.getId()), ProyectoDto.class);
+    if (p == null) p = pSel; // fallback
+    String estadoActual = (p.getEstado() == null) ? "" : p.getEstado().trim().toUpperCase();
+
+    // Si ya está finalizado, no permitir edición
+    if ("FINALIZADO".equals(estadoActual)) {
+        warn("Este proyecto ya está FINALIZADO. No se pueden editar seguimientos.");
+        return;
+    }
+
+    // Solo permitir editar el de MAYOR porcentaje
+    if (!esMayorPorcentajeSeleccionado()) {
+        warn("Solo se puede editar el seguimiento con mayor porcentaje.");
+        return;
+    }
+
+    // Calcular mínimo válido (penúltimo por porcentaje)
+    int minEdicion = pctAnteriorPorPorcentaje(sel);
+    int pct = (int) Math.round(sliderPorcentaje.getValue());
+    pct = Math.max(pct, minEdicion); // no decrecer por debajo del anterior
+    if (pct < 0 || pct > 100) { warn("El porcentaje debe estar entre 0 y 100."); return; }
+
+    String obs = txtObservaciones.getText() == null ? "" : txtObservaciones.getText().trim();
+    if (obs.isEmpty()) { warn("Las observaciones son obligatorias."); return; }
+    if (obs.length() > OBS_MAX) { warn("Las observaciones no deben exceder " + OBS_MAX + " caracteres."); return; }
+
+    // Actualizar DTO de seguimiento
+    sel.setPorcentajeAvance(pct);
+    sel.setObservaciones(obs);
+
+    try {
+        Object res = segPort().actualizarSeguimiento(sel);
+        if (!respOk(res)) {
+            String m = respMsg(res);
+            warn(m != null ? m : "No se pudo actualizar.");
             return;
         }
 
-        // El mínimo para edición es el porcentaje del seguimiento ANTERIOR por FECHA
-        // Antes: int minEdicion = pctAnteriorPorFecha(sel);
-int minEdicion = pctAnteriorPorPorcentaje(sel);
-int pct = (int) Math.round(sliderPorcentaje.getValue());
-pct = Math.max(pct, minEdicion); // exacto y no menor al penúltimo // no decrecer por debajo del anterior
-        if (pct < 0 || pct > 100) { warn("El porcentaje debe estar entre 0 y 100."); return; }
+        // Ajustar porcentaje y estado del proyecto
+        int currentPct = (p.getPorcentajeAvance() == null) ? 0 : p.getPorcentajeAvance();
+        int nuevoPct   = Math.max(currentPct, pct);
 
-        String obs = txtObservaciones.getText() == null ? "" : txtObservaciones.getText().trim();
-        if (obs.isEmpty()) { warn("Las observaciones son obligatorias."); return; }
-        if (obs.length() > OBS_MAX) { warn("Las observaciones no deben exceder " + OBS_MAX + " caracteres."); return; }
-
-        sel.setPorcentajeAvance(pct);
-        sel.setObservaciones(obs);
-
-        try {
-            Object res = segPort().actualizarSeguimiento(sel);
-            if (respOk(res)) {
-                int current = p.getPorcentajeAvance() == null ? 0 : p.getPorcentajeAvance();
-                int nuevo   = Math.max(current, pct);
-                if (pct >= 100) { nuevo = 100; try { p.setEstado("FINALIZADO"); } catch (Exception ignore) {} }
-
-                if (nuevo != current || pct >= 100) {
-                    p.setPorcentajeAvance(nuevo);
-                    proyPort().actualizarProyecto(p);
-
-                    // Notificar y mantener slider coherente
-                    AppEvents.fireProyectoActualizado(p.getId());
-                    sliderPorcentaje.setMin(p.getPorcentajeAvance() == null ? 0 : p.getPorcentajeAvance());
-                    sliderPorcentaje.setValue(p.getPorcentajeAvance() == null ? 0 : p.getPorcentajeAvance());
-                }
-
-                ultimoPct = nuevo;
-                sliderPorcentaje.setMin(nuevo);
-                sliderPorcentaje.setValue(nuevo);
-
-                info("Seguimiento actualizado.");
-
-                // Recargar (volverá a ordenar DESC y a re-habilitar botones)
-                cargarSeguimientos();
-
-            } else {
-                String m = respMsg(res);
-                warn(m != null ? m : "No se pudo actualizar.");
-            }
-        } catch (Exception ex) {
-            error("Error al actualizar", ex.getMessage());
+        boolean debeFinalizar = (pct >= 100) || (nuevoPct >= 100);
+        if (debeFinalizar) {
+            nuevoPct = 100;
+            p.setEstado("FINALIZADO");
         }
+
+        if (!Objects.equals(p.getPorcentajeAvance(), nuevoPct) || debeFinalizar) {
+            p.setPorcentajeAvance(nuevoPct);
+            Object upd = proyPort().actualizarProyecto(p);
+            if (!respOk(upd)) {
+                warn("El seguimiento se actualizó, pero no se pudo actualizar el proyecto.");
+            } else if (debeFinalizar) {
+                info("Seguimiento actualizado y proyecto marcado como FINALIZADO (100%).");
+            }
+            AppEvents.fireProyectoActualizado(p.getId());
+        } else {
+            info("Seguimiento actualizado.");
+        }
+
+        // Ajustar UI
+        ultimoPct = nuevoPct;
+        sliderPorcentaje.setMin(nuevoPct);
+        sliderPorcentaje.setValue(nuevoPct);
+
+        // Recargar tabla
+        cargarSeguimientos();
+
+    } catch (Exception ex) {
+        error("Error al actualizar", ex.getMessage());
     }
+}
 
     /** Tras eliminar un seguimiento, recalcula el % del proyecto */
     private void actualizarProyectoTrasEliminarSeguimiento(Long proyectoId) {
