@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 import javafx.scene.Node;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
+import cr.ac.una.tareaprogramacion3.util.ValidationUtil;
 
 public class AdministradoresController extends Controller {
 
@@ -70,7 +71,7 @@ public class AdministradoresController extends Controller {
         colUsuario.setCellValueFactory(c -> c.getValue().usuarioProperty());
         colEstado.setCellValueFactory(c -> c.getValue().estadoProperty());
         tabla.setItems(data);
-        
+        configurarLimitadoresTexto();
        
 
 
@@ -396,4 +397,55 @@ private boolean isInside(Node container, Object eventTarget) {
     }
     return false;
 }
+
+private void configurarLimitadoresTexto() {
+    if (txtNombre != null) {
+        txtNombre.setTextFormatter(new TextFormatter<>(c -> {
+            String t = c.getControlNewText();
+            if (t.length() > ValidationUtil.FieldLimits.ADMIN_NOMBRE) return null;
+            return t.matches("[\\p{L}\\s'\\-áéíóúÁÉÍÓÚñÑ]*") ? c : null;
+        }));
+    }
+
+    // Apellidos: SOLO letras/... + cap BD
+    if (txtApellidos != null) {
+        txtApellidos.setTextFormatter(new TextFormatter<>(c -> {
+            String t = c.getControlNewText();
+            if (t.length() > ValidationUtil.FieldLimits.ADMIN_APELLIDOS) return null;
+            return t.matches("[\\p{L}\\s'\\-áéíóúÁÉÍÓÚñÑ]*") ? c : null;
+        }));
+    }
+
+    // Cédula: SOLO dígitos y MÁXIMO 9 (bloquea letras y pegados largos)
+    if (txtCedula != null) {
+        txtCedula.setTextFormatter(new TextFormatter<>(c -> {
+            String t = c.getControlNewText();
+            return t.matches("\\d{0,9}") ? c : null;
+        }));
+    }
+
+    // Correo: cap por BD
+    if (txtCorreo != null) {
+        txtCorreo.setTextFormatter(new TextFormatter<>(c ->
+            c.getControlNewText().length() <= ValidationUtil.FieldLimits.ADMIN_CORREO ? c : null));
+    }
+
+    // Usuario: cap por BD
+    if (txtUsuario != null) {
+        txtUsuario.setTextFormatter(new TextFormatter<>(c ->
+            c.getControlNewText().length() <= ValidationUtil.FieldLimits.ADMIN_USUARIO ? c : null));
+    }
+
+    // Contraseñas: cap por BD (no se restringen caracteres)
+    if (txtContrasena != null) {
+        txtContrasena.setTextFormatter(new TextFormatter<>(c ->
+            c.getControlNewText().length() <= ValidationUtil.FieldLimits.ADMIN_PASSWORD ? c : null));
+    }
+    if (txtContrasenaConf != null) {
+        txtContrasenaConf.setTextFormatter(new TextFormatter<>(c ->
+            c.getControlNewText().length() <= ValidationUtil.FieldLimits.ADMIN_PASSWORD ? c : null));
+    }
+}
+
+
 }

@@ -32,6 +32,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import cr.ac.una.tareaprogramacion3.util.ValidationUtil;
 
 /**
  * Controlador con Drag&Drop restaurado y SIN referencias a btnNuevaActividad.
@@ -92,6 +93,7 @@ public class ActividadesController extends Controller {
         configurarColumnasKanban();     // <-- Drag & Drop aquí
         conectarEventos();
         configurarFechas();
+        configurarLimitadoresTexto();
         configurarBotonesParaNuevaActividad();
 
         cargarProyectos();
@@ -215,6 +217,33 @@ public class ActividadesController extends Controller {
             }
         });
     }
+    
+    
+    private void configurarLimitadoresTexto() {
+        // Descripción: solo cap por esquema
+        if (txtDescripcion != null) {
+            txtDescripcion.setTextFormatter(new TextFormatter<>(c
+                    -> c.getControlNewText().length() <= ValidationUtil.FieldLimits.ACTIVIDAD_DESCRIPCION ? c : null));
+        }
+
+        // Encargado: SOLO letras/espacios/acentos/apóstrofe/guion + cap
+        if (txtEncargado != null) {
+            txtEncargado.setTextFormatter(new TextFormatter<>(c -> {
+                String t = c.getControlNewText();
+                if (t.length() > ValidationUtil.FieldLimits.ACTIVIDAD_ENCARGADO_NOMBRE) {
+                    return null;
+                }
+                return t.matches("[\\p{L}\\s'\\-áéíóúÁÉÍÓÚñÑ]*") ? c : null;
+            }));
+        }
+
+        // Correo encargado: solo cap por esquema
+        if (txtEncargadoCorreo != null) {
+            txtEncargadoCorreo.setTextFormatter(new TextFormatter<>(c
+                    -> c.getControlNewText().length() <= ValidationUtil.FieldLimits.ACTIVIDAD_ENCARGADO_CORREO ? c : null));
+        }
+    }
+
 
     private void applyMinToday(DatePicker dp) {
         dp.setDayCellFactory(picker -> new DateCell() {

@@ -19,6 +19,7 @@ import java.time.ZoneId;
 import java.util.*;
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
+import cr.ac.una.tareaprogramacion3.util.ValidationUtil;
 
 public class ProyectoDialogController extends cr.ac.una.tareaprogramacion3.util.Controller {
 
@@ -56,9 +57,9 @@ public class ProyectoDialogController extends cr.ac.una.tareaprogramacion3.util.
     );
 
     @Override
-    public void initialize() {
-        
-    }
+public void initialize() {
+    configurarLimitadoresTexto();
+}
 
     
     /** Llamado por Ventana1Controller antes de abrir el modal */
@@ -436,4 +437,61 @@ private void onGuardar() {
             }
         });
     }
+    
+    
+private void configurarLimitadoresTexto() {
+    // Nombre del proyecto: SOLO letras/... + cap
+    if (txtNombre != null) {
+        txtNombre.setTextFormatter(new TextFormatter<>(c -> {
+            String t = c.getControlNewText();
+            if (t.length() > ValidationUtil.FieldLimits.PROYECTO_NOMBRE) return null;
+            return t.matches("[\\p{L}\\s'\\-áéíóúÁÉÍÓÚñÑ]*") ? c : null;
+        }));
+    }
+
+    
+    if (txtPatrocinador != null) {
+        txtPatrocinador.setTextFormatter(new TextFormatter<>(c -> {
+            String t = c.getControlNewText();
+            if (t.length() > ValidationUtil.FieldLimits.PROYECTO_PATROCINADOR_NOMBRE) return null;
+            return t.matches("[\\p{L}\\s'\\-áéíóúÁÉÍÓÚñÑ]*") ? c : null;
+        }));
+    }
+    
+    if (txtCorreoPatrocinador != null) {
+        txtCorreoPatrocinador.setTextFormatter(new TextFormatter<>(c ->
+            c.getControlNewText().length() <= ValidationUtil.FieldLimits.PROYECTO_PATROCINADOR_CORREO ? c : null));
+    }
+
+    
+    if (txtLiderUsuario != null) {
+        txtLiderUsuario.setTextFormatter(new TextFormatter<>(c -> {
+            String t = c.getControlNewText();
+            if (t.length() > ValidationUtil.FieldLimits.PROYECTO_LIDER_USUARIO_NOMBRE) return null;
+            return t.matches("[\\p{L}\\s'\\-áéíóúÁÉÍÓÚñÑ]*") ? c : null;
+        }));
+    }
+    // Líder usuario - correo: cap
+    if (txtCorreoLiderUsuario != null) {
+        txtCorreoLiderUsuario.setTextFormatter(new TextFormatter<>(c ->
+            c.getControlNewText().length() <= ValidationUtil.FieldLimits.PROYECTO_LIDER_USUARIO_CORREO ? c : null));
+    }
+
+    // Líder técnico - nombre
+    if (txtLiderTecnico != null) {
+        txtLiderTecnico.setTextFormatter(new TextFormatter<>(c -> {
+            String t = c.getControlNewText();
+            if (t.length() > ValidationUtil.FieldLimits.PROYECTO_LIDER_TECNICO_NOMBRE) return null;
+            return t.matches("[\\p{L}\\s'\\-áéíóúÁÉÍÓÚñÑ]*") ? c : null;
+        }));
+    }
+    // Líder técnico - correo: cap
+    if (txtCorreoLiderTecnico != null) {
+        txtCorreoLiderTecnico.setTextFormatter(new TextFormatter<>(c ->
+            c.getControlNewText().length() <= ValidationUtil.FieldLimits.PROYECTO_LIDER_TECNICO_CORREO ? c : null));
+    }
+}
+
+    
+    
 }
