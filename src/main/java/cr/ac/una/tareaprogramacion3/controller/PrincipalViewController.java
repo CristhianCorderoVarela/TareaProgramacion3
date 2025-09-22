@@ -11,10 +11,10 @@ import javafx.stage.Stage;
 
 public class PrincipalViewController extends Controller {
 
-    // Menú lateral (tal cual en tu FXML)
+   
     @FXML private VBox VBoxMenuAdmin;
 
-    // Botones (nombres EXACTOS a los del FXML)
+  
     @FXML private Button BtnHome;
     @FXML private Button BtnVentana1;
     @FXML private Button BtnVentana2;
@@ -25,20 +25,20 @@ public class PrincipalViewController extends Controller {
 
     @Override
     public void initialize() {
-        // Asegura visibilidad del menú
+        
         if (VBoxMenuAdmin != null) {
             VBoxMenuAdmin.setVisible(true);
             VBoxMenuAdmin.setManaged(true);
         }
 
-        // Carga por defecto: WelcomeView
+        
         Platform.runLater(() -> {
             FlowController.getInstance().limpiarLoader("DashboardView");
         FlowController.getInstance().goView("DashboardView");
         });
     }
 
-    // === Handlers ===
+    
 
     @FXML
     private void onActionBtnHome(ActionEvent e) {
