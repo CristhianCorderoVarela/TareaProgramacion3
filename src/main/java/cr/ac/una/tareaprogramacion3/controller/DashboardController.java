@@ -128,9 +128,12 @@ public class DashboardController extends Controller {
 
                
                 int total = proyectos.size();
-                long finalizados = proyectos.stream()
-                        .filter(p -> "FINALIZADO".equalsIgnoreCase(n(p.getEstado()))).count();
-                long activos = total - finalizados;
+               long activos = proyectos.stream()
+        .filter(p -> "EN_CURSO".equalsIgnoreCase(n(p.getEstado()).trim()))
+        .count();
+long finalizados = proyectos.stream()
+        .filter(p -> "FINALIZADO".equalsIgnoreCase(n(p.getEstado()).trim()))
+        .count();
 
                 double prom = proyectos.isEmpty() ? 0.0 :
                         proyectos.stream()
@@ -147,8 +150,8 @@ public class DashboardController extends Controller {
 
                 
                 List<ProyectoDto> activosList = proyectos.stream()
-                        .filter(p -> !"FINALIZADO".equalsIgnoreCase(n(p.getEstado())))
-                        .collect(Collectors.toList());
+        .filter(p -> "EN_CURSO".equalsIgnoreCase(n(p.getEstado()).trim()))
+        .collect(Collectors.toList());
 
                 
                 XYChart.Series<String, Number> serie = new XYChart.Series<>();
