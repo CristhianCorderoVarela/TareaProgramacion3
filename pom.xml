@@ -27,18 +27,25 @@
   </properties>
 
   <dependencies>
-    <!-- JavaFX -->
+    <!-- JavaFX (Windows) -->
     <dependency>
       <groupId>org.openjfx</groupId>
       <artifactId>javafx-controls</artifactId>
       <version>${javafx.version}</version>
+      <classifier>win</classifier>
     </dependency>
     <dependency>
       <groupId>org.openjfx</groupId>
       <artifactId>javafx-fxml</artifactId>
       <version>${javafx.version}</version>
+      <classifier>win</classifier>
     </dependency>
-    
+    <dependency>
+      <groupId>org.openjfx</groupId>
+      <artifactId>javafx-graphics</artifactId>
+      <version>${javafx.version}</version>
+      <classifier>win</classifier>
+    </dependency>
 
     <!-- (Opcional) JPA/EclipseLink en el cliente -->
     <dependency>
@@ -88,8 +95,6 @@
       <artifactId>jakarta.annotation-api</artifactId>
       <version>2.1.1</version>
     </dependency>
-<!-- JWS (Jakarta) - necesario porque module-info requiere 'jakarta.jws' -->
-
 
     <!-- JAXB (necesario en Java 21 para (de)serializar tipos del WS) -->
     <dependency>
@@ -128,8 +133,6 @@
       </plugin>
 
       <!-- ✅ Plugin moderno para generar el cliente (wsimport) -->
-      <!-- Si ya usas "Web Service References" de NetBeans y NO quieres generar con Maven,
-           puedes comentar todo este plugin. -->
       <plugin>
         <groupId>com.sun.xml.ws</groupId>
         <artifactId>jaxws-maven-plugin</artifactId>
@@ -142,95 +145,111 @@
               <goal>wsimport</goal>
             </goals>
             <configuration>
-              <!-- Genera directamente desde el WSDL publicado -->
               <wsdlUrls>
                 <wsdlUrl>http://localhost:8080/AuthService/AuthWS?wsdl</wsdlUrl>
               </wsdlUrls>
-              <!-- Paquete destino de las clases generadas -->
               <packageName>cr.ac.una.client.soap</packageName>
-              <!-- Deja la compilación al maven-compiler -->
               <xnocompile>true</xnocompile>
-              <!-- Permitir imports externos de esquemas si fuese necesario -->
               <vmArgs>
                 <vmArg>-Djakarta.xml.accessExternalSchema=all</vmArg>
               </vmArgs>
-              <!-- (Opcional) carpeta destino de fuentes generadas
-              <sourceDestDir>${project.build.directory}/generated-sources/wsimport</sourceDestDir>
-              -->
             </configuration>
           </execution>
           
-     <execution>
-      <id>wsimport-adminws</id>
-      <phase>generate-sources</phase>
-      <goals><goal>wsimport</goal></goals>
-      <configuration>
-        <wsdlUrls>
-          <wsdlUrl>http://localhost:8080/AdministradorService/AdministradorWS?wsdl</wsdlUrl>
-        </wsdlUrls>
-        <packageName>cr.ac.una.client.soap</packageName>
-        <xnocompile>true</xnocompile>
-        <vmArgs><vmArg>-Djakarta.xml.accessExternalSchema=all</vmArg></vmArgs>
-      </configuration>
-    </execution>
+          <execution>
+            <id>wsimport-adminws</id>
+            <phase>generate-sources</phase>
+            <goals><goal>wsimport</goal></goals>
+            <configuration>
+              <wsdlUrls>
+                <wsdlUrl>http://localhost:8080/AdministradorService/AdministradorWS?wsdl</wsdlUrl>
+              </wsdlUrls>
+              <packageName>cr.ac.una.client.soap</packageName>
+              <xnocompile>true</xnocompile>
+              <vmArgs><vmArg>-Djakarta.xml.accessExternalSchema=all</vmArg></vmArgs>
+            </configuration>
+          </execution>
 
-    <execution>
-      <id>wsimport-proyectows</id>
-      <phase>generate-sources</phase>
-      <goals><goal>wsimport</goal></goals>
-      <configuration>
-        <wsdlUrls>
-          <wsdlUrl>http://localhost:8080/ProyectoService/ProyectoWS?wsdl</wsdlUrl>
-        </wsdlUrls>
-        <packageName>cr.ac.una.client.soap</packageName>
-        <xnocompile>true</xnocompile>
-        <vmArgs><vmArg>-Djakarta.xml.accessExternalSchema=all</vmArg></vmArgs>
-      </configuration>
-    </execution>
+          <execution>
+            <id>wsimport-proyectows</id>
+            <phase>generate-sources</phase>
+            <goals><goal>wsimport</goal></goals>
+            <configuration>
+              <wsdlUrls>
+                <wsdlUrl>http://localhost:8080/ProyectoService/ProyectoWS?wsdl</wsdlUrl>
+              </wsdlUrls>
+              <packageName>cr.ac.una.client.soap</packageName>
+              <xnocompile>true</xnocompile>
+              <vmArgs><vmArg>-Djakarta.xml.accessExternalSchema=all</vmArg></vmArgs>
+            </configuration>
+          </execution>
 
-    <execution>
-      <id>wsimport-actividadws</id>
-      <phase>generate-sources</phase>
-      <goals><goal>wsimport</goal></goals>
-      <configuration>
-        <wsdlUrls>
-          <wsdlUrl>http://localhost:8080/ActividadService/ActividadWS?wsdl</wsdlUrl>
-        </wsdlUrls>
-        <packageName>cr.ac.una.client.soap</packageName>
-        <xnocompile>true</xnocompile>
-        <vmArgs><vmArg>-Djakarta.xml.accessExternalSchema=all</vmArg></vmArgs>
-      </configuration>
-    </execution>
+          <execution>
+            <id>wsimport-actividadws</id>
+            <phase>generate-sources</phase>
+            <goals><goal>wsimport</goal></goals>
+            <configuration>
+              <wsdlUrls>
+                <wsdlUrl>http://localhost:8080/ActividadService/ActividadWS?wsdl</wsdlUrl>
+              </wsdlUrls>
+              <packageName>cr.ac.una.client.soap</packageName>
+              <xnocompile>true</xnocompile>
+              <vmArgs><vmArg>-Djakarta.xml.accessExternalSchema=all</vmArg></vmArgs>
+            </configuration>
+          </execution>
 
-    <execution>
-      <id>wsimport-seguimientows</id>
-      <phase>generate-sources</phase>
-      <goals><goal>wsimport</goal></goals>
-      <configuration>
-        <wsdlUrls>
-          <wsdlUrl>http://localhost:8080/SeguimientoService/SeguimientoWS?wsdl</wsdlUrl>
-        </wsdlUrls>
-        <packageName>cr.ac.una.client.soap</packageName>
-        <xnocompile>true</xnocompile>
-        <vmArgs><vmArg>-Djakarta.xml.accessExternalSchema=all</vmArg></vmArgs>
-      </configuration>
-    </execution>
-<execution>
-  <id>wsimport-reportews</id>
-  <phase>generate-sources</phase>
-  <goals><goal>wsimport</goal></goals>
-  <configuration>
-    <wsdlUrls>
-      <wsdlUrl>http://localhost:8080/ReporteWSService/ReporteWS?wsdl</wsdlUrl>
-    </wsdlUrls>
-    <packageName>cr.ac.una.client.soap</packageName>
-    <xnocompile>true</xnocompile>
-    <vmArgs><vmArg>-Djakarta.xml.accessExternalSchema=all</vmArg></vmArgs>
-  </configuration>
-</execution>
-  </executions>
+          <execution>
+            <id>wsimport-seguimientows</id>
+            <phase>generate-sources</phase>
+            <goals><goal>wsimport</goal></goals>
+            <configuration>
+              <wsdlUrls>
+                <wsdlUrl>http://localhost:8080/SeguimientoService/SeguimientoWS?wsdl</wsdlUrl>
+              </wsdlUrls>
+              <packageName>cr.ac.una.client.soap</packageName>
+              <xnocompile>true</xnocompile>
+              <vmArgs><vmArg>-Djakarta.xml.accessExternalSchema=all</vmArg></vmArgs>
+            </configuration>
+          </execution>
+
+          <execution>
+            <id>wsimport-reportews</id>
+            <phase>generate-sources</phase>
+            <goals><goal>wsimport</goal></goals>
+            <configuration>
+              <wsdlUrls>
+                <wsdlUrl>http://localhost:8080/ReporteWSService/ReporteWS?wsdl</wsdlUrl>
+              </wsdlUrls>
+              <packageName>cr.ac.una.client.soap</packageName>
+              <xnocompile>true</xnocompile>
+              <vmArgs><vmArg>-Djakarta.xml.accessExternalSchema=all</vmArg></vmArgs>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
+
+      <!-- ✅ Empaquetado ejecutable “fat jar” -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.5.1</version>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals><goal>shade</goal></goals>
+            <configuration>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>cr.ac.una.tareaprogramacion3.App</mainClass>
+                </transformer>
+              </transformers>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
     </plugins>
   </build>
 
-</project>  
+</project>

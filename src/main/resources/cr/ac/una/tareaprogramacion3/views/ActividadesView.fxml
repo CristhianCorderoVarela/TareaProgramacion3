@@ -10,17 +10,31 @@
             prefWidth="900" prefHeight="600">
 
     <top>
-        <HBox alignment="CENTER_LEFT" spacing="15">
-            <padding>
-                <Insets top="10" right="10" bottom="10" left="10"/>
-            </padding>
-            <Label text="Proyecto:" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
-            <ComboBox fx:id="cbProyectos" prefWidth="300"/>
-            <Button fx:id="btnCargarActividades" text="Cargar Actividades"/>
-            <Region HBox.hgrow="ALWAYS"/>
-            <Button fx:id="btnNuevaActividad" text="+ Nueva Actividad"
-                    style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;"/>
-        </HBox>
+        <VBox spacing="5">
+            <!-- Barra superior original -->
+            <HBox alignment="CENTER_LEFT" spacing="15">
+                <padding>
+                    <Insets top="10" right="10" bottom="10" left="10"/>
+                </padding>
+                <Label text="Proyecto:" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
+                <ComboBox fx:id="cbProyectos" prefWidth="300"/>
+                <Button fx:id="btnCargarActividades" text="Cargar Actividades"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button fx:id="btnNuevaActividad" text="+ Nueva Actividad"
+                        style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;"/>
+            </HBox>
+            
+            <!-- NUEVO: Label de advertencia de bloqueo -->
+            <Label fx:id="lblBloqueoInfo" 
+                   text="⚠️ Las actividades de este proyecto no pueden ser modificadas ya que hay seguimientos en curso. Elimine los seguimientos para habilitar cambios."
+                   style="-fx-background-color: #fff3cd; -fx-text-fill: #856404; -fx-padding: 8 15 8 15; -fx-background-radius: 4; -fx-border-color: #ffeaa7; -fx-border-width: 1; -fx-border-radius: 4; -fx-font-weight: bold;"
+                   visible="false" 
+                   managed="false">
+                <VBox.margin>
+                    <Insets left="10" right="10" bottom="5"/>
+                </VBox.margin>
+            </Label>
+        </VBox>
     </top>
 
     <center>

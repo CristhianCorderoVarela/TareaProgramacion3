@@ -11,7 +11,6 @@ import cr.ac.una.client.soap.ActividadDto;
 import cr.ac.una.client.soap.RespuestaGeneralLista;
 import cr.ac.una.client.soap.RespuestaGeneral;
 
-
 import cr.ac.una.client.soap.SeguimientoService;
 import cr.ac.una.client.soap.SeguimientoWS;
 import cr.ac.una.client.soap.SeguimientoProyectoDto;
@@ -37,38 +36,59 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ActividadesController extends Controller {
 
     // Top bar
-    @FXML private ComboBox<ProyectoDto> cbProyectos;
-    @FXML private Button btnCargarActividades;
-    @FXML private Button btnNuevaActividad;
+    @FXML
+    private ComboBox<ProyectoDto> cbProyectos;
+    @FXML
+    private Button btnCargarActividades;
+    @FXML
+    private Button btnNuevaActividad;
 
     // Kanban: 4 columnas
-    @FXML private ListView<ActividadDto> lvPlanificada;
-    @FXML private ListView<ActividadDto> lvEnCurso;
-    @FXML private ListView<ActividadDto> lvPostergada;
-    @FXML private ListView<ActividadDto> lvFinalizada;
+    @FXML
+    private ListView<ActividadDto> lvPlanificada;
+    @FXML
+    private ListView<ActividadDto> lvEnCurso;
+    @FXML
+    private ListView<ActividadDto> lvPostergada;
+    @FXML
+    private ListView<ActividadDto> lvFinalizada;
 
     // Formulario de actividad
-    @FXML private TextArea txtDescripcion;
-    @FXML private TextField txtEncargado;
-    @FXML private TextField txtEncargadoCorreo;
-    @FXML private ComboBox<String> cbEstadoActividad;
-    @FXML private DatePicker fechaInicioPlanificada;
-    @FXML private DatePicker fechaFinPlanificada;
-    @FXML private DatePicker fechaInicioReal;
-    @FXML private DatePicker fechaFinReal;
+    @FXML
+    private TextArea txtDescripcion;
+    @FXML
+    private TextField txtEncargado;
+    @FXML
+    private TextField txtEncargadoCorreo;
+    @FXML
+    private ComboBox<String> cbEstadoActividad;
+    @FXML
+    private DatePicker fechaInicioPlanificada;
+    @FXML
+    private DatePicker fechaFinPlanificada;
+    @FXML
+    private DatePicker fechaInicioReal;
+    @FXML
+    private DatePicker fechaFinReal;
 
-    @FXML private Button btnGuardarActividad;
-    @FXML private Button btnEditarActividad;
-    @FXML private Button btnEliminarActividad;
-    @FXML private Button btnLimpiar;
+    @FXML
+    private Button btnGuardarActividad;
+    @FXML
+    private Button btnEditarActividad;
+    @FXML
+    private Button btnEliminarActividad;
+    @FXML
+    private Button btnLimpiar;
+    @FXML
+    private Label lblBloqueoInfo;
 
     // Datos observables
-    private final ObservableList<ProyectoDto> proyectos  = FXCollections.observableArrayList();
+    private final ObservableList<ProyectoDto> proyectos = FXCollections.observableArrayList();
 
     private final ObservableList<ActividadDto> planificadas = FXCollections.observableArrayList();
-    private final ObservableList<ActividadDto> enCurso      = FXCollections.observableArrayList();
-    private final ObservableList<ActividadDto> postergadas  = FXCollections.observableArrayList();
-    private final ObservableList<ActividadDto> finalizadas  = FXCollections.observableArrayList();
+    private final ObservableList<ActividadDto> enCurso = FXCollections.observableArrayList();
+    private final ObservableList<ActividadDto> postergadas = FXCollections.observableArrayList();
+    private final ObservableList<ActividadDto> finalizadas = FXCollections.observableArrayList();
 
     // Índice por id para actualizaciones
     private final Map<Long, ActividadDto> porId = new ConcurrentHashMap<>();
@@ -76,47 +96,45 @@ public class ActividadesController extends Controller {
     private ProyectoWS port;
     private ActividadDto actividadActual = null;
 
-    
     private SeguimientoWS segPort;
     private boolean edicionBloqueada = false;
 
     @Override
-public void initialize() {
-    crearPort("http://localhost:8080/ProyectoService/ProyectoWS");
-    crearSegPort("http://localhost:8080/SeguimientoService/SeguimientoWS");
+    public void initialize() {
+        crearPort("http://localhost:8080/ProyectoService/ProyectoWS");
+        crearSegPort("http://localhost:8080/SeguimientoService/SeguimientoWS");
 
-    configurarComboProyectos();
-    configurarComboEstados();
-    configurarColumnasKanban();
-    conectarEventos();
-    configurarBotonesParaNuevaActividad();
-    configurarFechas();
-    enlazarEstadoConFormulario();
-    cargarProyectos();
+        configurarComboProyectos();
+        configurarComboEstados();
+        configurarColumnasKanban();
+        conectarEventos();
+        configurarBotonesParaNuevaActividad();
+        configurarFechas();
+        enlazarEstadoConFormulario();
+        cargarProyectos();
 
-    Platform.runLater(this::cargarTodos);
+        Platform.runLater(this::cargarTodos);
 
-    // Cuando cambia el proyecto seleccionado
-    cbProyectos.getSelectionModel().selectedItemProperty().addListener((obs, oldP, newP) -> {
-        if (newP != null) {
-            aplicarBloqueo(true);                 
-            cargarActividades();
-            actualizarBloqueoPorProyectoId(newP.getId()); 
-        } else {
-            aplicarBloqueo(false);
-        }
-    });
+        // Cuando cambia el proyecto seleccionado
+        cbProyectos.getSelectionModel().selectedItemProperty().addListener((obs, oldP, newP) -> {
+            if (newP != null) {
+                aplicarBloqueo(true);
+                cargarActividades();
+                actualizarBloqueoPorProyectoId(newP.getId());
+            } else {
+                aplicarBloqueo(false);
+            }
+        });
 
-    
-    AppEvents.onProyectoActualizado(proyectoId -> {
-        ProyectoDto pSel = cbProyectos.getValue();
-        if (pSel != null && Objects.equals(pSel.getId(), proyectoId)) {
-            aplicarBloqueo(true);                 
-            cargarActividades();
-            actualizarBloqueoPorProyectoId(proyectoId);
-        }
-    });
-}
+        AppEvents.onProyectoActualizado(proyectoId -> {
+            ProyectoDto pSel = cbProyectos.getValue();
+            if (pSel != null && Objects.equals(pSel.getId(), proyectoId)) {
+                aplicarBloqueo(true);
+                cargarActividades();
+                actualizarBloqueoPorProyectoId(proyectoId);
+            }
+        });
+    }
 
     private void crearPort(String endpointUrl) {
         try {
@@ -129,7 +147,6 @@ public void initialize() {
         }
     }
 
-    
     private void crearSegPort(String endpointUrl) {
         try {
             SeguimientoService svc = new SeguimientoService();
@@ -164,37 +181,35 @@ public void initialize() {
         cbEstadoActividad.setValue("PLANIFICADA");
     }
 
-    
     private void configurarFechas() {
-        
+
         applyMinToday(fechaInicioPlanificada);
         applyMinToday(fechaFinPlanificada);
         applyMinToday(fechaInicioReal);
         applyMinToday(fechaFinReal);
 
-       
         fechaInicioPlanificada.valueProperty().addListener((o, ov, nv) -> {
-            if (nv != null && fechaFinPlanificada.getValue() != null &&
-                fechaFinPlanificada.getValue().isBefore(nv)) {
+            if (nv != null && fechaFinPlanificada.getValue() != null
+                    && fechaFinPlanificada.getValue().isBefore(nv)) {
                 fechaFinPlanificada.setValue(nv);
             }
         });
         fechaFinPlanificada.valueProperty().addListener((o, ov, nv) -> {
-            if (nv != null && fechaInicioPlanificada.getValue() != null &&
-                nv.isBefore(fechaInicioPlanificada.getValue())) {
+            if (nv != null && fechaInicioPlanificada.getValue() != null
+                    && nv.isBefore(fechaInicioPlanificada.getValue())) {
                 fechaFinPlanificada.setValue(fechaInicioPlanificada.getValue());
             }
         });
 
         fechaInicioReal.valueProperty().addListener((o, ov, nv) -> {
-            if (nv != null && fechaFinReal.getValue() != null &&
-                fechaFinReal.getValue().isBefore(nv)) {
+            if (nv != null && fechaFinReal.getValue() != null
+                    && fechaFinReal.getValue().isBefore(nv)) {
                 fechaFinReal.setValue(nv);
             }
         });
         fechaFinReal.valueProperty().addListener((o, ov, nv) -> {
-            if (nv != null && fechaInicioReal.getValue() != null &&
-                nv.isBefore(fechaInicioReal.getValue())) {
+            if (nv != null && fechaInicioReal.getValue() != null
+                    && nv.isBefore(fechaInicioReal.getValue())) {
                 fechaFinReal.setValue(fechaInicioReal.getValue());
             }
         });
@@ -205,7 +220,9 @@ public void initialize() {
             @Override
             public void updateItem(LocalDate item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty || item == null) return;
+                if (empty || item == null) {
+                    return;
+                }
                 setDisable(item.isBefore(LocalDate.now()));
             }
         });
@@ -213,7 +230,10 @@ public void initialize() {
 
     private void conectarEventos() {
         btnCargarActividades.setOnAction(e -> cargarActividades());
-        btnNuevaActividad.setOnAction(e -> { limpiarFormulario(); txtDescripcion.requestFocus(); });
+        btnNuevaActividad.setOnAction(e -> {
+            limpiarFormulario();
+            txtDescripcion.requestFocus();
+        });
         btnGuardarActividad.setOnAction(e -> guardarActividad());
         btnEditarActividad.setOnAction(e -> editarActividad());
         btnEliminarActividad.setOnAction(e -> eliminarActividad());
@@ -241,11 +261,15 @@ public void initialize() {
                 }
             };
 
-            
             cell.setOnDragDetected(e -> {
-                if (chequearBloqueoYAdvertir()) { e.consume(); return; } 
+                if (chequearBloqueoYAdvertir()) {
+                    e.consume();
+                    return;
+                }
                 ActividadDto a = cell.getItem();
-                if (a == null) return;
+                if (a == null) {
+                    return;
+                }
                 Dragboard db = cell.startDragAndDrop(TransferMode.MOVE);
                 ClipboardContent cc = new ClipboardContent();
                 cc.putString(String.valueOf(a.getId()));
@@ -253,16 +277,23 @@ public void initialize() {
                 e.consume();
             });
 
-            
             cell.setOnDragOver(e -> {
-                if (chequearBloqueoYAdvertir()) { e.consume(); return; } 
-                if (e.getDragboard().hasString()) e.acceptTransferModes(TransferMode.MOVE);
+                if (chequearBloqueoYAdvertir()) {
+                    e.consume();
+                    return;
+                }
+                if (e.getDragboard().hasString()) {
+                    e.acceptTransferModes(TransferMode.MOVE);
+                }
                 e.consume();
             });
 
-            
             cell.setOnDragDropped(e -> {
-                if (chequearBloqueoYAdvertir()) { e.setDropCompleted(false); e.consume(); return; } 
+                if (chequearBloqueoYAdvertir()) {
+                    e.setDropCompleted(false);
+                    e.consume();
+                    return;
+                }
                 Dragboard db = e.getDragboard();
                 boolean success = false;
                 if (db.hasString()) {
@@ -275,7 +306,9 @@ public void initialize() {
 
                         ObservableList<ActividadDto> sourceItems = listOfEstado(dragged.getEstado());
                         int dropIndex = cell.getIndex();
-                        if (dropIndex < 0 || dropIndex > targetItems.size()) dropIndex = targetItems.size();
+                        if (dropIndex < 0 || dropIndex > targetItems.size()) {
+                            dropIndex = targetItems.size();
+                        }
 
                         String nuevoEstado = estadoDeListView(targetList);
                         moverEntreListas(dragged, sourceItems, targetItems, dropIndex, nuevoEstado);
@@ -286,7 +319,6 @@ public void initialize() {
                 e.consume();
             });
 
-            
             cell.setOnMouseClicked(e -> {
                 if (cell.getItem() != null && e.getClickCount() == 1) {
                     cargarActividadEnFormulario(cell.getItem());
@@ -304,12 +336,21 @@ public void initialize() {
         // Drop en zona vacía
         java.util.function.Consumer<ListView<ActividadDto>> setupEmptyDrop = lv -> {
             lv.setOnDragOver(e -> {
-                if (chequearBloqueoYAdvertir()) { e.consume(); return; } 
-                if (e.getDragboard().hasString()) e.acceptTransferModes(TransferMode.MOVE);
+                if (chequearBloqueoYAdvertir()) {
+                    e.consume();
+                    return;
+                }
+                if (e.getDragboard().hasString()) {
+                    e.acceptTransferModes(TransferMode.MOVE);
+                }
                 e.consume();
             });
             lv.setOnDragDropped(e -> {
-                if (chequearBloqueoYAdvertir()) { e.setDropCompleted(false); e.consume(); return; } 
+                if (chequearBloqueoYAdvertir()) {
+                    e.setDropCompleted(false);
+                    e.consume();
+                    return;
+                }
                 Dragboard db = e.getDragboard();
                 boolean success = false;
                 if (db.hasString()) {
@@ -333,20 +374,24 @@ public void initialize() {
         setupEmptyDrop.accept(lvEnCurso);
         setupEmptyDrop.accept(lvPostergada);
         setupEmptyDrop.accept(lvFinalizada);
-        
+
         instalarFiltroBloqueo(lvPlanificada);
-instalarFiltroBloqueo(lvEnCurso);
-instalarFiltroBloqueo(lvPostergada);
-instalarFiltroBloqueo(lvFinalizada);
+        instalarFiltroBloqueo(lvEnCurso);
+        instalarFiltroBloqueo(lvPostergada);
+        instalarFiltroBloqueo(lvFinalizada);
     }
 
     private void enlazarEstadoConFormulario() {
         cbEstadoActividad.valueProperty().addListener((obs, oldV, newV) -> {
-            if (actividadActual == null || newV == null) return;
+            if (actividadActual == null || newV == null) {
+                return;
+            }
             ObservableList<ActividadDto> source = listOfEstado(actividadActual.getEstado());
             ObservableList<ActividadDto> target = listOfEstado(newV);
             if (source != target) {
-                if (chequearBloqueoYAdvertir()) return; // NUEVO
+                if (chequearBloqueoYAdvertir()) {
+                    return; // NUEVO
+                }
                 source.remove(actividadActual);
                 target.add(actividadActual);
                 actividadActual.setEstado(newV);
@@ -360,42 +405,58 @@ instalarFiltroBloqueo(lvFinalizada);
 
     private ObservableList<ActividadDto> listOfEstado(String estado) {
         return switch (estado) {
-            case "PLANIFICADA" -> planificadas;
-            case "EN_CURSO"    -> enCurso;
-            case "POSTERGADA"  -> postergadas;
-            case "FINALIZADA"  -> finalizadas;
-            default -> planificadas;
+            case "PLANIFICADA" ->
+                planificadas;
+            case "EN_CURSO" ->
+                enCurso;
+            case "POSTERGADA" ->
+                postergadas;
+            case "FINALIZADA" ->
+                finalizadas;
+            default ->
+                planificadas;
         };
     }
 
     private String estadoDeListView(ListView<ActividadDto> lv) {
-        if (lv == lvPlanificada) return "PLANIFICADA";
-        if (lv == lvEnCurso)    return "EN_CURSO";
-        if (lv == lvPostergada) return "POSTERGADA";
-        if (lv == lvFinalizada) return "FINALIZADA";
+        if (lv == lvPlanificada) {
+            return "PLANIFICADA";
+        }
+        if (lv == lvEnCurso) {
+            return "EN_CURSO";
+        }
+        if (lv == lvPostergada) {
+            return "POSTERGADA";
+        }
+        if (lv == lvFinalizada) {
+            return "FINALIZADA";
+        }
         return "PLANIFICADA";
     }
 
-    
     private void moverEntreListas(ActividadDto a,
-                                  ObservableList<ActividadDto> source,
-                                  ObservableList<ActividadDto> target,
-                                  int dropIndex,
-                                  String nuevoEstado) {
-        if (chequearBloqueoYAdvertir()) return; 
+            ObservableList<ActividadDto> source,
+            ObservableList<ActividadDto> target,
+            int dropIndex,
+            String nuevoEstado) {
+        if (chequearBloqueoYAdvertir()) {
+            return;
+        }
         source.remove(a);
-        if (dropIndex < 0 || dropIndex > target.size()) dropIndex = target.size();
+        if (dropIndex < 0 || dropIndex > target.size()) {
+            dropIndex = target.size();
+        }
         target.add(dropIndex, a);
-        if (!nuevoEstado.equals(a.getEstado())) a.setEstado(nuevoEstado);
+        if (!nuevoEstado.equals(a.getEstado())) {
+            a.setEstado(nuevoEstado);
+        }
 
         recomputarOrden(source);
         recomputarOrden(target);
 
-       
         persistirOrdenes(source);
         persistirOrdenes(target);
 
-        
         persistirActividad(a, true);
     }
 
@@ -405,9 +466,10 @@ instalarFiltroBloqueo(lvFinalizada);
         }
     }
 
-    
     private void persistirOrdenes(ObservableList<ActividadDto> items) {
-        if (items == null || items.isEmpty()) return;
+        if (items == null || items.isEmpty()) {
+            return;
+        }
         List<ActividadDto> snapshot = new ArrayList<>(items);
         Task<Void> t = new Task<>() {
             @Override
@@ -427,7 +489,6 @@ instalarFiltroBloqueo(lvFinalizada);
         new Thread(t, "persistir-ordenes").start();
     }
 
-    
     private void persistirActividad(ActividadDto a, boolean syncProyecto) {
         Task<ActividadDto> t = new Task<>() {
             @Override
@@ -445,7 +506,9 @@ instalarFiltroBloqueo(lvFinalizada);
             if (actualizado != null && actualizado.getId() != null) {
                 porId.put(actualizado.getId(), actualizado);
             }
-            if (syncProyecto) sincronizarProyectoConActividades();
+            if (syncProyecto) {
+                sincronizarProyectoConActividades();
+            }
         });
         t.setOnFailed(ev -> mostrarError("No se pudo actualizar actividad", t.getException()));
         new Thread(t, "persistir-actividad").start();
@@ -456,7 +519,9 @@ instalarFiltroBloqueo(lvFinalizada);
             @Override
             protected List<ProyectoDto> call() throws Exception {
                 RespuestaGeneralLista r = port.obtenerTodosProyectos();
-                if (r == null) throw new RuntimeException("Sin respuesta del servidor");
+                if (r == null) {
+                    throw new RuntimeException("Sin respuesta del servidor");
+                }
                 if (!Boolean.TRUE.equals(r.isOk())) {
                     String msj = r.getMensaje() != null ? r.getMensaje() : "Error al cargar proyectos";
                     throw new RuntimeException(msj);
@@ -481,7 +546,9 @@ instalarFiltroBloqueo(lvFinalizada);
             @Override
             protected List<ActividadDto> call() throws Exception {
                 RespuestaGeneralLista r = port.obtenerActividadesPorProyecto(proyectoSeleccionado.getId());
-                if (r == null) throw new RuntimeException("Sin respuesta del servidor");
+                if (r == null) {
+                    throw new RuntimeException("Sin respuesta del servidor");
+                }
                 if (!Boolean.TRUE.equals(r.isOk())) {
                     String msj = r.getMensaje() != null ? r.getMensaje() : "Error al cargar actividades";
                     throw new RuntimeException(msj);
@@ -501,14 +568,21 @@ instalarFiltroBloqueo(lvFinalizada);
             porId.clear();
 
             for (ActividadDto a : lista) {
-                if (a.getId() != null) porId.put(a.getId(), a);
+                if (a.getId() != null) {
+                    porId.put(a.getId(), a);
+                }
                 String est = nvl(a.getEstado());
                 switch (est) {
-                    case "PLANIFICADA" -> planificadas.add(a);
-                    case "EN_CURSO"    -> enCurso.add(a);
-                    case "POSTERGADA"  -> postergadas.add(a);
-                    case "FINALIZADA"  -> finalizadas.add(a);
-                    default            -> planificadas.add(a);
+                    case "PLANIFICADA" ->
+                        planificadas.add(a);
+                    case "EN_CURSO" ->
+                        enCurso.add(a);
+                    case "POSTERGADA" ->
+                        postergadas.add(a);
+                    case "FINALIZADA" ->
+                        finalizadas.add(a);
+                    default ->
+                        planificadas.add(a);
                 }
             }
 
@@ -517,7 +591,6 @@ instalarFiltroBloqueo(lvFinalizada);
             ordenarPorOrden(postergadas);
             ordenarPorOrden(finalizadas);
 
-            
             limpiarFormulario();
         }));
 
@@ -526,20 +599,22 @@ instalarFiltroBloqueo(lvFinalizada);
     }
 
     private void ordenarPorOrden(ObservableList<ActividadDto> list) {
-    if (edicionBloqueada) return;
-    FXCollections.sort(list, (a, b) -> {
-        Integer oa = a.getOrdenEjecucion() == null ? Integer.MAX_VALUE : a.getOrdenEjecucion();
-        Integer ob = b.getOrdenEjecucion() == null ? Integer.MAX_VALUE : b.getOrdenEjecucion();
-        return oa.compareTo(ob);
-    });
-    recomputarOrden(list);
-    persistirOrdenes(list);
-}
+        if (edicionBloqueada) {
+            return;
+        }
+        FXCollections.sort(list, (a, b) -> {
+            Integer oa = a.getOrdenEjecucion() == null ? Integer.MAX_VALUE : a.getOrdenEjecucion();
+            Integer ob = b.getOrdenEjecucion() == null ? Integer.MAX_VALUE : b.getOrdenEjecucion();
+            return oa.compareTo(ob);
+        });
+        recomputarOrden(list);
+        persistirOrdenes(list);
+    }
 
     private void configurarBotonesParaNuevaActividad() {
         if (btnGuardarActividad != null) {
             btnGuardarActividad.setVisible(true);
-            btnGuardarActividad.setDisable(false || edicionBloqueada); 
+            btnGuardarActividad.setDisable(false || edicionBloqueada);
         }
         if (btnEditarActividad != null) {
             btnEditarActividad.setVisible(false);
@@ -551,8 +626,8 @@ instalarFiltroBloqueo(lvFinalizada);
         }
         // Reglas de creación
         cbEstadoActividad.setValue("PLANIFICADA");
-        cbEstadoActividad.setDisable(true);          
-        fechaFinReal.setDisable(true);              
+        cbEstadoActividad.setDisable(true);
+        fechaFinReal.setDisable(true);
     }
 
     private void configurarBotonesParaEdicion() {
@@ -562,11 +637,11 @@ instalarFiltroBloqueo(lvFinalizada);
         }
         if (btnEditarActividad != null) {
             btnEditarActividad.setVisible(true);
-            btnEditarActividad.setDisable(edicionBloqueada); 
+            btnEditarActividad.setDisable(edicionBloqueada);
         }
         if (btnEliminarActividad != null) {
             btnEliminarActividad.setVisible(true);
-            btnEliminarActividad.setDisable(edicionBloqueada); 
+            btnEliminarActividad.setDisable(edicionBloqueada);
         }
         // En edición se permite cambiar estado y editar fecha fin real 
         cbEstadoActividad.setDisable(edicionBloqueada);
@@ -581,14 +656,14 @@ instalarFiltroBloqueo(lvFinalizada);
         txtEncargadoCorreo.setText(nvl(actividad.getEncargadoCorreo()));
         cbEstadoActividad.setValue(nvl(actividad.getEstado()));
 
-        txtDescripcion.setTextFormatter(new TextFormatter<>(change ->
-                change.getControlNewText().length() <= 500 ? change : null));
+        txtDescripcion.setTextFormatter(new TextFormatter<>(change
+                -> change.getControlNewText().length() <= 500 ? change : null));
 
-        txtEncargado.setTextFormatter(new TextFormatter<>(change ->
-                change.getControlNewText().length() <= 100 ? change : null));
+        txtEncargado.setTextFormatter(new TextFormatter<>(change
+                -> change.getControlNewText().length() <= 100 ? change : null));
 
-        txtEncargadoCorreo.setTextFormatter(new TextFormatter<>(change ->
-                change.getControlNewText().length() <= 120 ? change : null));
+        txtEncargadoCorreo.setTextFormatter(new TextFormatter<>(change
+                -> change.getControlNewText().length() <= 120 ? change : null));
 
         fechaInicioPlanificada.setValue(dateToLocalDate(DateUtil.fromXml(actividad.getFechaInicioPlanificada())));
         fechaFinPlanificada.setValue(dateToLocalDate(DateUtil.fromXml(actividad.getFechaFinalPlanificada())));
@@ -613,8 +688,12 @@ instalarFiltroBloqueo(lvFinalizada);
     }
 
     private void guardarActividad() {
-        if (chequearBloqueoYAdvertir()) return; 
-        if (!validarFormulario()) return;
+        if (chequearBloqueoYAdvertir()) {
+            return;
+        }
+        if (!validarFormulario()) {
+            return;
+        }
 
         ProyectoDto proyecto = cbProyectos.getValue();
         if (proyecto == null) {
@@ -625,9 +704,8 @@ instalarFiltroBloqueo(lvFinalizada);
         // construir DTO
         ActividadDto nueva = crearActividadDesdeFormulario();
         nueva.setProyectoId(proyecto.getId());
-        nueva.setEstado("PLANIFICADA"); 
+        nueva.setEstado("PLANIFICADA");
 
-       
         int next = planificadas.size() + 1;
         nueva.setOrdenEjecucion(next);
 
@@ -635,7 +713,9 @@ instalarFiltroBloqueo(lvFinalizada);
             @Override
             protected ActividadDto call() throws Exception {
                 RespuestaGeneral r = port.crearActividad(nueva);
-                if (r == null) throw new RuntimeException("Sin respuesta del servidor");
+                if (r == null) {
+                    throw new RuntimeException("Sin respuesta del servidor");
+                }
                 if (!Boolean.TRUE.equals(r.isOk())) {
                     String msj = r.getMensaje() != null ? r.getMensaje() : "Error al crear actividad";
                     throw new RuntimeException(msj);
@@ -656,12 +736,16 @@ instalarFiltroBloqueo(lvFinalizada);
     }
 
     private void editarActividad() {
-        if (chequearBloqueoYAdvertir()) return; // NUEVO
+        if (chequearBloqueoYAdvertir()) {
+            return; // NUEVO
+        }
         if (actividadActual == null) {
             mostrarAdvertencia("Debe seleccionar una actividad para editar");
             return;
         }
-        if (!validarFormulario()) return;
+        if (!validarFormulario()) {
+            return;
+        }
 
         ActividadDto mod = crearActividadDesdeFormulario();
         mod.setId(actividadActual.getId());
@@ -672,7 +756,9 @@ instalarFiltroBloqueo(lvFinalizada);
             @Override
             protected ActividadDto call() throws Exception {
                 RespuestaGeneral r = port.actualizarActividad(mod);
-                if (r == null) throw new RuntimeException("Sin respuesta del servidor");
+                if (r == null) {
+                    throw new RuntimeException("Sin respuesta del servidor");
+                }
                 if (!Boolean.TRUE.equals(r.isOk())) {
                     String msj = r.getMensaje() != null ? r.getMensaje() : "Error al actualizar actividad";
                     throw new RuntimeException(msj);
@@ -693,7 +779,9 @@ instalarFiltroBloqueo(lvFinalizada);
     }
 
     private void eliminarActividad() {
-        if (chequearBloqueoYAdvertir()) return; 
+        if (chequearBloqueoYAdvertir()) {
+            return;
+        }
         if (actividadActual == null) {
             mostrarAdvertencia("Debe seleccionar una actividad para eliminar");
             return;
@@ -707,7 +795,9 @@ instalarFiltroBloqueo(lvFinalizada);
                     @Override
                     protected Void call() throws Exception {
                         RespuestaGeneral r = port.eliminarActividad(actividadActual.getId());
-                        if (r == null) throw new RuntimeException("Sin respuesta del servidor");
+                        if (r == null) {
+                            throw new RuntimeException("Sin respuesta del servidor");
+                        }
                         if (!Boolean.TRUE.equals(r.isOk())) {
                             String msj = r.getMensaje() != null ? r.getMensaje() : "Error al eliminar actividad";
                             throw new RuntimeException(msj);
@@ -741,14 +831,16 @@ instalarFiltroBloqueo(lvFinalizada);
         return a;
     }
 
-    
-
     private void sincronizarProyectoConActividades() {
-        
-        if (edicionBloqueada) return;
+
+        if (edicionBloqueada) {
+            return;
+        }
 
         ProyectoDto p = cbProyectos.getValue();
-        if (p == null) return;
+        if (p == null) {
+            return;
+        }
 
         List<ActividadDto> todas = new ArrayList<>();
         todas.addAll(planificadas);
@@ -758,13 +850,10 @@ instalarFiltroBloqueo(lvFinalizada);
 
         String nuevoEstado = calcularEstadoProyecto(todas);
 
-        
         int pAct = calcularAvanceProyecto(todas) == null ? 0 : calcularAvanceProyecto(todas);
 
-        
         int pActual = p.getPorcentajeAvance() == null ? 0 : p.getPorcentajeAvance();
 
-        
         int nuevoAvance = Math.max(pActual, pAct);
 
         Date fiReal = calcularFechaInicioRealProyecto(todas);
@@ -791,7 +880,9 @@ instalarFiltroBloqueo(lvFinalizada);
             if (actualizado != null) {
                 Platform.runLater(() -> {
                     int idx = proyectos.indexOf(p);
-                    if (idx >= 0) proyectos.set(idx, actualizado);
+                    if (idx >= 0) {
+                        proyectos.set(idx, actualizado);
+                    }
                     cbProyectos.getSelectionModel().select(actualizado);
                 });
                 AppEvents.fireProyectoActualizado(actualizado.getId());
@@ -802,18 +893,28 @@ instalarFiltroBloqueo(lvFinalizada);
     }
 
     private String calcularEstadoProyecto(List<ActividadDto> acts) {
-        if (acts == null || acts.isEmpty()) return "PLANIFICADO";
+        if (acts == null || acts.isEmpty()) {
+            return "PLANIFICADO";
+        }
         boolean anyEnCurso = acts.stream().anyMatch(a -> "EN_CURSO".equalsIgnoreCase(nvl(a.getEstado())));
         boolean anyPost = acts.stream().anyMatch(a -> "POSTERGADA".equalsIgnoreCase(nvl(a.getEstado())));
         boolean allFin = !acts.isEmpty() && acts.stream().allMatch(a -> "FINALIZADA".equalsIgnoreCase(nvl(a.getEstado())));
-        if (allFin) return "FINALIZADO";
-        if (anyEnCurso) return "EN_CURSO";
-        if (anyPost) return "SUSPENDIDO";
+        if (allFin) {
+            return "FINALIZADO";
+        }
+        if (anyEnCurso) {
+            return "EN_CURSO";
+        }
+        if (anyPost) {
+            return "SUSPENDIDO";
+        }
         return "PLANIFICADO";
     }
 
     private Integer calcularAvanceProyecto(List<ActividadDto> acts) {
-        if (acts == null || acts.isEmpty()) return 0;
+        if (acts == null || acts.isEmpty()) {
+            return 0;
+        }
         long fin = acts.stream().filter(a -> "FINALIZADA".equalsIgnoreCase(nvl(a.getEstado()))).count();
         return (int) Math.floor((fin * 100.0) / acts.size());
     }
@@ -827,14 +928,15 @@ instalarFiltroBloqueo(lvFinalizada);
     }
 
     private Date calcularFechaFinalRealProyecto(List<ActividadDto> acts, String estadoProyecto) {
-        if (!"FINALIZADO".equalsIgnoreCase(estadoProyecto)) return null;
+        if (!"FINALIZADO".equalsIgnoreCase(estadoProyecto)) {
+            return null;
+        }
         return acts.stream()
                 .map(a -> DateUtil.fromXml(a.getFechaFinalReal()))
                 .filter(Objects::nonNull)
                 .max(Comparator.naturalOrder())
                 .orElse(null);
     }
-
 
     private boolean validarFormulario() {
         if (txtDescripcion.getText().trim().isEmpty()) {
@@ -860,54 +962,74 @@ instalarFiltroBloqueo(lvFinalizada);
             mostrarAdvertencia("La fecha de fin planificada es obligatoria");
             return false;
         }
-      
+
         if (fechaFinPlanificada.getValue().isBefore(fechaInicioPlanificada.getValue())) {
             mostrarAdvertencia("La fecha fin planificada no puede ser anterior a la fecha inicio planificada");
             return false;
         }
-        if (fechaInicioReal.getValue() != null && fechaFinReal.getValue() != null &&
-                fechaFinReal.getValue().isBefore(fechaInicioReal.getValue())) {
+        if (fechaInicioReal.getValue() != null && fechaFinReal.getValue() != null
+                && fechaFinReal.getValue().isBefore(fechaInicioReal.getValue())) {
             mostrarAdvertencia("La fecha fin real no puede ser anterior a la fecha inicio real");
             return false;
         }
         return true;
     }
 
-    private String nvl(String s) { return s == null ? "" : s; }
+    private String nvl(String s) {
+        return s == null ? "" : s;
+    }
 
-  
     private LocalDate dateToLocalDate(Date date) {
-        if (date == null) return null;
+        if (date == null) {
+            return null;
+        }
         return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
     }
 
     private Date localDateToDate(LocalDate localDate) {
-        if (localDate == null) return null;
+        if (localDate == null) {
+            return null;
+        }
         return Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
     }
 
     @SuppressWarnings("unchecked")
     private <T> List<T> tryGetListRobusto(Object obj) {
-        if (obj == null) return List.of();
-        if (obj instanceof JAXBElement<?> j) return tryGetListRobusto(j.getValue());
+        if (obj == null) {
+            return List.of();
+        }
+        if (obj instanceof JAXBElement<?> j) {
+            return tryGetListRobusto(j.getValue());
+        }
         if (obj instanceof List<?> l) {
             List<T> out = new ArrayList<>();
-            for (Object o : l) { try { out.add((T) o); } catch (ClassCastException ignore) {} }
+            for (Object o : l) {
+                try {
+                    out.add((T) o);
+                } catch (ClassCastException ignore) {
+                }
+            }
             return out;
         }
         Class<?> c = obj.getClass();
         for (String mname : new String[]{
-    "getData", "getItems", "getItem", "getLista",
-    "getSeguimientos", "getProyectoOrSeguimientoOrActividad"
-}) {
+            "getData", "getItems", "getItem", "getLista",
+            "getSeguimientos", "getProyectoOrSeguimientoOrActividad"
+        }) {
             try {
                 Method m = c.getMethod(mname);
                 Object val = m.invoke(obj);
                 List<T> res = tryGetListRobusto(val);
-                if (!res.isEmpty()) return res;
-                if (val instanceof List) return res;
+                if (!res.isEmpty()) {
+                    return res;
+                }
+                if (val instanceof List) {
+                    return res;
+                }
             } catch (NoSuchMethodException ignore) {
-            } catch (Exception e) { e.printStackTrace(); }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
         return List.of();
     }
@@ -936,20 +1058,19 @@ instalarFiltroBloqueo(lvFinalizada);
         a.showAndWait();
     }
 
-    
     private void cargarTodos() {
         ProyectoDto sel = cbProyectos.getValue();
         if (sel != null) {
-            actualizarBloqueoPorProyectoId(sel.getId()); 
+            actualizarBloqueoPorProyectoId(sel.getId());
             cargarActividades();
         }
     }
 
-    
-
-   
     private void actualizarBloqueoPorProyectoId(Long proyectoId) {
-        if (proyectoId == null) { aplicarBloqueo(false); return; }
+        if (proyectoId == null) {
+            aplicarBloqueo(false);
+            return;
+        }
         Task<Boolean> t = new Task<>() {
             @Override
             protected Boolean call() throws Exception {
@@ -960,51 +1081,61 @@ instalarFiltroBloqueo(lvFinalizada);
             }
         };
         t.setOnSucceeded(e -> aplicarBloqueo(Boolean.TRUE.equals(t.getValue())));
-        t.setOnFailed(e -> aplicarBloqueo(false)); 
+        t.setOnFailed(e -> aplicarBloqueo(false));
         new Thread(t, "chk-seguimientos").start();
     }
 
-    
-    
     private void instalarFiltroBloqueo(ListView<?> lv) {
-    lv.addEventFilter(javafx.scene.input.MouseEvent.DRAG_DETECTED, e -> {
-        if (edicionBloqueada) {
-            mostrarAdvertencia("No se pueden modificar actividades porque existe un seguimiento registrado para este proyecto. Elimine el seguimiento para habilitar cambios.");
-            e.consume();
+        lv.addEventFilter(javafx.scene.input.MouseEvent.DRAG_DETECTED, e -> {
+            if (edicionBloqueada) {
+                mostrarAdvertencia("No se pueden modificar actividades porque existe un seguimiento registrado para este proyecto. Elimine el seguimiento para habilitar cambios.");
+                e.consume();
+            }
+        });
+        lv.addEventFilter(javafx.scene.input.DragEvent.ANY, e -> {
+            if (edicionBloqueada) {
+                e.consume();
+            }
+        });
+    }
+
+    private void aplicarBloqueo(boolean bloquear) {
+        Runnable ui = () -> {
+            this.edicionBloqueada = bloquear;
+
+            // Mostrar/ocultar el label de información
+            if (lblBloqueoInfo != null) {
+                lblBloqueoInfo.setVisible(bloquear);
+                lblBloqueoInfo.setManaged(bloquear);
+            }
+
+            btnGuardarActividad.setDisable(bloquear);
+            btnEditarActividad.setDisable(bloquear);
+            btnEliminarActividad.setDisable(bloquear);
+            cbEstadoActividad.setDisable(bloquear);
+            fechaFinReal.setDisable(bloquear);
+
+            // NO deshabilitar la ListView; solo hacerla "transparente" al mouse si está bloqueado
+            setListBlocked(lvPlanificada, bloquear);
+            setListBlocked(lvEnCurso, bloquear);
+            setListBlocked(lvPostergada, bloquear);
+            setListBlocked(lvFinalizada, bloquear);
+        };
+        if (Platform.isFxApplicationThread()) {
+            ui.run();
+        } else {
+            Platform.runLater(ui);
         }
-    });
-    lv.addEventFilter(javafx.scene.input.DragEvent.ANY, e -> {
-        if (edicionBloqueada) e.consume();
-    });
-}
-
-private void aplicarBloqueo(boolean bloquear) {
-    Runnable ui = () -> {
-        this.edicionBloqueada = bloquear;
-
-        btnGuardarActividad.setDisable(bloquear);
-        btnEditarActividad.setDisable(bloquear);
-        btnEliminarActividad.setDisable(bloquear);
-        cbEstadoActividad.setDisable(bloquear);
-        fechaFinReal.setDisable(bloquear);
-
-        
-        setListBlocked(lvPlanificada, bloquear);
-        setListBlocked(lvEnCurso, bloquear);
-        setListBlocked(lvPostergada, bloquear);
-        setListBlocked(lvFinalizada, bloquear);
-    };
-    if (Platform.isFxApplicationThread()) ui.run();
-    else Platform.runLater(ui);
-}
-
-private void setListBlocked(ListView<?> lv, boolean bloquear) {
-    lv.setDisable(false);                 
-    lv.setMouseTransparent(bloquear);     
-}
+    }
+    private void setListBlocked(ListView<?> lv, boolean bloquear) {
+        lv.setDisable(false);
+        lv.setMouseTransparent(bloquear);
+    }
 
     private boolean chequearBloqueoYAdvertir() {
-        if (!edicionBloqueada) return false;
+        if (!edicionBloqueada) {
+            return false;
+        }
         mostrarAdvertencia("No se pueden modificar actividades porque existe un seguimiento registrado para este proyecto. Elimine el seguimiento para habilitar cambios.");
         return true;
     }
