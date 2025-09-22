@@ -26,7 +26,7 @@
             
             <!-- NUEVO: Label de advertencia de bloqueo -->
             <Label fx:id="lblBloqueoInfo" 
-                   text="⚠️ Las actividades de este proyecto no pueden ser modificadas ya que hay seguimientos en curso. Elimine los seguimientos para habilitar cambios."
+                   text="⚠️ Las actividades de este proyecto no pueden modificarse mientras existan seguimientos activos. Para habilitar los cambios, elimine primero esos seguimientos."
                    style="-fx-background-color: #fff3cd; -fx-text-fill: #856404; -fx-padding: 8 15 8 15; -fx-background-radius: 4; -fx-border-color: #ffeaa7; -fx-border-width: 1; -fx-border-radius: 4; -fx-font-weight: bold;"
                    visible="false" 
                    managed="false">

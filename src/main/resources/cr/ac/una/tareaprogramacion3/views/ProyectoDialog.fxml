@@ -54,11 +54,7 @@
         <Label text="Fin Plan:"              GridPane.rowIndex="9"  GridPane.columnIndex="0"/>
         <DatePicker fx:id="dpFinPlan"        GridPane.rowIndex="9"  GridPane.columnIndex="1"/>
 
-        <Label text="Inicio Real:"           GridPane.rowIndex="10" GridPane.columnIndex="0"/>
-        <DatePicker fx:id="dpInicioReal"     GridPane.rowIndex="10" GridPane.columnIndex="1"/>
-
-        <Label text="Fin Real:"              GridPane.rowIndex="11" GridPane.columnIndex="0"/>
-        <DatePicker fx:id="dpFinReal"        GridPane.rowIndex="11" GridPane.columnIndex="1"/>
+        
     </GridPane>
 </center>
 
