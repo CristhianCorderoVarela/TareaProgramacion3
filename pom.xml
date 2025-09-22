@@ -15,19 +15,19 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>21</maven.compiler.release>
 
-    <!-- JavaFX -->
+    
     <javafx.version>23.0.1</javafx.version>
 
-    <!-- Jakarta / JPA / EclipseLink (opcionales en el cliente) -->
+    
     <jakarta.persistence.version>3.1.0</jakarta.persistence.version>
     <eclipselink.version>4.0.2</eclipselink.version>
 
-    <!-- Oracle JDBC (solo si lo sigues usando en el cliente) -->
+    
     <oracle.driver.version>23.4.0.24.05</oracle.driver.version>
   </properties>
 
   <dependencies>
-    <!-- JavaFX (Windows) -->
+    
     <dependency>
       <groupId>org.openjfx</groupId>
       <artifactId>javafx-controls</artifactId>
@@ -47,7 +47,7 @@
       <classifier>win</classifier>
     </dependency>
 
-    <!-- (Opcional) JPA/EclipseLink en el cliente -->
+   
     <dependency>
       <groupId>jakarta.persistence</groupId>
       <artifactId>jakarta.persistence-api</artifactId>
@@ -59,7 +59,7 @@
       <version>${eclipselink.version}</version>
     </dependency>
 
-    <!-- (Opcional) Oracle JDBC en el cliente -->
+    
     <dependency>
       <groupId>com.oracle.database.jdbc</groupId>
       <artifactId>ojdbc11</artifactId>
@@ -67,7 +67,7 @@
       <scope>runtime</scope>
     </dependency>
 
-    <!-- Utilidades (lo que ya usabas) -->
+   
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-math3</artifactId>
@@ -79,7 +79,7 @@
       <version>2.23.1</version>
     </dependency>
 
-    <!-- ✅ SOAP (Jakarta / Metro 4) - runtime -->
+    
     <dependency>
       <groupId>com.sun.xml.ws</groupId>
       <artifactId>jaxws-rt</artifactId>
@@ -96,7 +96,7 @@
       <version>2.1.1</version>
     </dependency>
 
-    <!-- JAXB (necesario en Java 21 para (de)serializar tipos del WS) -->
+    
     <dependency>
       <groupId>jakarta.xml.bind</groupId>
       <artifactId>jakarta.xml.bind-api</artifactId>
@@ -112,7 +112,7 @@
 
   <build>
     <plugins>
-      <!-- Compilador -->
+     
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -122,7 +122,7 @@
         </configuration>
       </plugin>
 
-      <!-- JavaFX -->
+      
       <plugin>
         <groupId>org.openjfx</groupId>
         <artifactId>javafx-maven-plugin</artifactId>
@@ -132,7 +132,7 @@
         </configuration>
       </plugin>
 
-      <!-- ✅ Plugin moderno para generar el cliente (wsimport) -->
+     
       <plugin>
         <groupId>com.sun.xml.ws</groupId>
         <artifactId>jaxws-maven-plugin</artifactId>
@@ -228,7 +228,7 @@
         </executions>
       </plugin>
 
-      <!-- ✅ Empaquetado ejecutable “fat jar” -->
+     
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
