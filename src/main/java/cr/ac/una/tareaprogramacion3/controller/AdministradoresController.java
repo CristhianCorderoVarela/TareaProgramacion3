@@ -22,29 +22,29 @@ import javafx.scene.layout.VBox;
 
 public class AdministradoresController extends Controller {
 
-    // === Búsqueda ===
+   
     @FXML private TextField txtBuscar;
 
-    // === Form ===
+    
     @FXML private TextField txtNombre;
     @FXML private TextField txtApellidos;
     @FXML private TextField txtCedula;
     @FXML private TextField txtCorreo;
     @FXML private TextField txtUsuario;
-    @FXML private PasswordField txtContrasena;      // nueva/crear o cambio
-    @FXML private PasswordField txtContrasenaConf;  // confirmación
-    @FXML private CheckBox chkCambiarPass;          // habilita cambio al editar
+    @FXML private PasswordField txtContrasena;     
+    @FXML private PasswordField txtContrasenaConf;  
+    @FXML private CheckBox chkCambiarPass;          
     @FXML private ComboBox<String> cbEstado;
     @FXML private VBox panelForm;
 
-    // === Botones ===
+    
     @FXML private Button btnAgregar;
     @FXML private Button btnEditar;
     @FXML private Button btnEliminar;
     @FXML private Button btnBuscar;
     @FXML private Button btnLimpiarBusqueda;
 
-    // === Tabla ===
+    
     @FXML private TableView<AdministradorModel> tabla;
     @FXML private TableColumn<AdministradorModel, String> colNombre;
     @FXML private TableColumn<AdministradorModel, String> colApellidos;
@@ -71,7 +71,7 @@ public class AdministradoresController extends Controller {
         colEstado.setCellValueFactory(c -> c.getValue().estadoProperty());
         tabla.setItems(data);
         
-        // Limpiar selección si hacen clic FUERA de la tabla
+       
 
 
 tabla.sceneProperty().addListener((obs, oldScene, scene) -> {
@@ -82,7 +82,7 @@ tabla.sceneProperty().addListener((obs, oldScene, scene) -> {
         boolean clickEnTabla = isInside(tabla, tgt);
         boolean clickEnForm  = isInside(panelForm, tgt);
 
-        // A) Si clicas FUERA de TABLA y FORM -> limpiar
+       
         if (!clickEnTabla && !clickEnForm) {
             if (tabla.getSelectionModel().getSelectedItem() != null) {
                 tabla.getSelectionModel().clearSelection();
@@ -91,7 +91,7 @@ tabla.sceneProperty().addListener((obs, oldScene, scene) -> {
             return;
         }
 
-        // B) Si clicas en TABLA pero en una fila vacía -> limpiar
+       
         if (clickEnTabla) {
             Node n = (tgt instanceof Node) ? (Node) tgt : null;
             while (n != null && n != tabla && !(n instanceof TableRow)) n = n.getParent();
@@ -99,16 +99,16 @@ tabla.sceneProperty().addListener((obs, oldScene, scene) -> {
                 tabla.getSelectionModel().clearSelection();
                 limpiarFormulario();
             }
-            return; // si fue fila con datos, dejamos que seleccione normal
+            return; 
         }
 
-        // C) Si clicas en el FORM -> NO limpiar (mantén selección para editar)
+        
     });
 });
 
 
 
-        // Selección en tabla -> alterna modos
+        
         tabla.getSelectionModel().selectedItemProperty().addListener((obs, old, cur) -> {
             seleccionado = cur;
             if (cur != null) {
@@ -119,18 +119,18 @@ tabla.sceneProperty().addListener((obs, oldScene, scene) -> {
             }
         });
 
-        // Checkbox cambio de contraseña
+        
         if (chkCambiarPass != null) {
             chkCambiarPass.selectedProperty().addListener((o, ov, nv) -> updatePassControls());
         }
 
         cargarTodos();
-        setModoCrear(); // estado inicial
+        setModoCrear(); 
         
         
     }
 
-    /* ===================  MODO UI  =================== */
+   
 
     private void setModoCrear() {
         // botones
@@ -138,18 +138,18 @@ tabla.sceneProperty().addListener((obs, oldScene, scene) -> {
         btnEditar.setDisable(true);
         btnEliminar.setDisable(true);
 
-        // para crear: contraseñas habilitadas, sin checkbox (o seleccionado = true para que queden habilitadas)
+       
         if (chkCambiarPass != null) chkCambiarPass.setSelected(true);
         enablePasswordFields(true);
     }
 
     private void setModoEditar() {
-        // botones
+        
         btnAgregar.setDisable(true);
         btnEditar.setDisable(false);
         btnEliminar.setDisable(false);
 
-        // al entrar a editar, no cambiar contraseña por defecto
+        
         if (chkCambiarPass != null) chkCambiarPass.setSelected(false);
         enablePasswordFields(false);
         if (txtContrasena != null) txtContrasena.clear();
@@ -157,7 +157,7 @@ tabla.sceneProperty().addListener((obs, oldScene, scene) -> {
     }
 
     private void updatePassControls() {
-        // solo relevante en edición; en creación ya están habilitadas
+        
         if (seleccionado != null) {
             boolean enable = chkCambiarPass != null && chkCambiarPass.isSelected();
             enablePasswordFields(enable);
@@ -173,7 +173,7 @@ tabla.sceneProperty().addListener((obs, oldScene, scene) -> {
         if (txtContrasenaConf != null) txtContrasenaConf.setDisable(!enable);
     }
 
-    /* ===================  CARGA / FORM  =================== */
+   
 
     private void cargarTodos() {
         try {
@@ -219,8 +219,8 @@ tabla.sceneProperty().addListener((obs, oldScene, scene) -> {
         txtCorreo.setText(m.getCorreo());
         txtUsuario.setText(m.getUsuario());
         cbEstado.getSelectionModel().select(m.getEstado());
-        if (txtContrasena != null) txtContrasena.clear();         // nunca mostramos contraseña
-        if (txtContrasenaConf != null) txtContrasenaConf.clear(); // idem
+        if (txtContrasena != null) txtContrasena.clear();        
+        if (txtContrasenaConf != null) txtContrasenaConf.clear(); 
     }
 
     private AdministradorModel leerFormulario() {
@@ -250,7 +250,7 @@ tabla.sceneProperty().addListener((obs, oldScene, scene) -> {
         setModoCrear();
     }
 
-    /* ===================  VALIDACIÓN  =================== */
+    
 
     private boolean validar() {
         boolean ok =  ValidationUtil.require(txtNombre,"Nombre")
@@ -260,7 +260,7 @@ tabla.sceneProperty().addListener((obs, oldScene, scene) -> {
             & ValidationUtil.require(txtUsuario,"Usuario")
             & ValidationUtil.require(cbEstado,"Estado");
 
-        // Crear: contraseña obligatoria y debe coincidir con confirmación
+        
         if (seleccionado == null) {
             ok &= ValidationUtil.require(txtContrasena, "Contraseña");
             ok &= ValidationUtil.require(txtContrasenaConf, "Confirmación");
@@ -269,7 +269,7 @@ tabla.sceneProperty().addListener((obs, oldScene, scene) -> {
                 ok = false;
             }
         } else {
-            // Editar: si marcaron cambiar, validar ambas y que coincidan
+            
             if (chkCambiarPass != null && chkCambiarPass.isSelected()) {
                 ok &= ValidationUtil.require(txtContrasena, "Contraseña");
                 ok &= ValidationUtil.require(txtContrasenaConf, "Confirmación");
@@ -282,19 +282,19 @@ tabla.sceneProperty().addListener((obs, oldScene, scene) -> {
         return ok;
     }
 
-    /* ===================  BOTONES  =================== */
+    
 
     @FXML
 private void onBuscar() {
     String filtro = (txtBuscar.getText() == null) ? "" : txtBuscar.getText().trim().toLowerCase();
 
     if (filtro.isEmpty()) {
-        // Mostrar todos otra vez
+        
         tabla.setItems(data);
         return;
     }
 
-    // Filtrar con streams
+    
     List<AdministradorModel> filtrados = data.stream()
             .filter(a ->
                 (a.getNombre() != null && a.getNombre().toLowerCase().contains(filtro)) ||
@@ -308,7 +308,7 @@ private void onBuscar() {
     tabla.setItems(FXCollections.observableArrayList(filtrados));
 }
 
-/** Coincidencia por nombre, apellidos, usuario, correo o cédula (case-insensitive). */
+
 private boolean matches(AdministradorDto a, String q) {
     return contains(a.getNombre(), q)
         || contains(a.getApellidos(), q)
@@ -327,7 +327,7 @@ private boolean contains(String field, String q) {
     }
 
     @FXML private void onAgregar() {
-        // forzar modo creación
+       
         seleccionado = null;
         if (!validar()) return;
 
@@ -353,7 +353,7 @@ private boolean contains(String field, String q) {
         if (!validar()) return;
 
         AdministradorDto dto = AdminMapper.toDto(leerFormulario());
-        // En edición, solo enviar password si marcaron cambiar
+        
         if (chkCambiarPass != null && chkCambiarPass.isSelected()) {
             dto.setPasswordPlain(txtContrasena.getText());
         }
@@ -388,7 +388,7 @@ private boolean contains(String field, String q) {
     private String msg(String original, String fallback) {
         return (original != null && !original.isBlank()) ? original : fallback;
     }
-    /** Retorna true si el target del evento está dentro del nodo contenedor. */
+    
 private boolean isInside(Node container, Object eventTarget) {
     if (!(eventTarget instanceof Node n)) return false;
     for (Node cur = n; cur != null; cur = cur.getParent()) {

@@ -2,8 +2,6 @@ package cr.ac.una.tareaprogramacion3.controller;
 
 import cr.ac.una.tareaprogramacion3.util.Controller;
 import cr.ac.una.tareaprogramacion3.util.AppEvents;
-
-// WS
 import cr.ac.una.client.soap.ProyectoDto;
 import cr.ac.una.client.soap.ProyectoService;
 import cr.ac.una.client.soap.ProyectoWS;
@@ -11,8 +9,6 @@ import cr.ac.una.client.soap.SeguimientoProyectoDto;
 import cr.ac.una.client.soap.SeguimientoService;
 import cr.ac.una.client.soap.SeguimientoWS;
 import jakarta.xml.ws.BindingProvider;
-
-// JavaFX
 import javafx.application.Platform;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -23,8 +19,6 @@ import javafx.scene.chart.PieChart;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
-
-// Java
 import javax.xml.datatype.XMLGregorianCalendar;
 import java.lang.reflect.Method;
 import java.time.LocalDate;
@@ -34,16 +28,16 @@ import java.util.stream.Collectors;
 
 public class DashboardController extends Controller {
 
-    // Top
+   
     @FXML private Button btnActualizar;
 
-    // Indicadores
+   
     @FXML private Label lblTotalProyectos;
     @FXML private Label lblProyectosActivos;
     @FXML private Label lblProyectosFinalizados;
     @FXML private Label lblAvancePromedio;
 
-    // Tabla proyectos activos
+    
     @FXML private TableView<ProyectoDto> tablaProyectosActivos;
     @FXML private TableColumn<ProyectoDto, String>    colProyecto;
     @FXML private TableColumn<ProyectoDto, Number>    colAvance;
@@ -51,24 +45,24 @@ public class DashboardController extends Controller {
     @FXML private TableColumn<ProyectoDto, String>    colEstado;
     @FXML private TableColumn<ProyectoDto, Void>      colAcciones;
 
-    // Gráficos
+    
     @FXML private PieChart graficoEstadoProyectos;
     @FXML private BarChart<String, Number> graficoAvanceProyectos;
 
-    // Puertos WS
+    
     private ProyectoWS proyPort;
     private SeguimientoWS segPort;
 
-    // ========= Ciclo de vida =========
+    
     @FXML
     public void initialize() {
         System.out.println("[V5] initialize()");
         crearPuertos();
         configurarTabla();
         configurarEventos();
-        cargarDashboard(); // carga inicial
+        cargarDashboard(); 
 
-        // Mantener sincronizado cuando otras ventanas actualizan un proyecto
+        
         AppEvents.onProyectoActualizado(id -> Platform.runLater(this::cargarDashboard));
     }
 
@@ -104,7 +98,7 @@ public class DashboardController extends Controller {
                 d.getValue().getEstado() == null ? "" : d.getValue().getEstado()
         ));
 
-        // Acciones: botón por fila para ver seguimientos en diálogo
+        
         colAcciones.setCellFactory(col -> new TableCell<>() {
             private final Button btn = new Button("Ver seguimientos");
             {
@@ -122,17 +116,17 @@ public class DashboardController extends Controller {
         System.out.println("[V5] Tabla configurada");
     }
 
-    // ========= Carga del dashboard =========
+    
     private void cargarDashboard() {
         System.out.println("[V5] cargarDashboard() start");
         new Thread(() -> {
             try {
-                // 1) Proyectos
+                
                 Object r = proyPort.obtenerTodosProyectos();
                 List<ProyectoDto> proyectos = extraerListaRobusta(r, ProyectoDto.class);
                 System.out.println("[V5] Proyectos recibidos: " + proyectos.size());
 
-                // Indicadores
+               
                 int total = proyectos.size();
                 long finalizados = proyectos.stream()
                         .filter(p -> "FINALIZADO".equalsIgnoreCase(n(p.getEstado()))).count();
@@ -144,26 +138,26 @@ public class DashboardController extends Controller {
                                 .mapToInt(Integer::intValue)
                                 .average().orElse(0.0);
 
-                // 2) Pie (estado)
+               
                 Map<String, Long> porEstado = proyectos.stream()
                         .collect(Collectors.groupingBy(p -> {
                             String est = n(p.getEstado());
                             return est.isBlank() ? "PLANIFICADO" : est;
                         }, Collectors.counting()));
 
-                // 3) Solo activos (no finalizados) para tabla + barras
+                
                 List<ProyectoDto> activosList = proyectos.stream()
                         .filter(p -> !"FINALIZADO".equalsIgnoreCase(n(p.getEstado())))
                         .collect(Collectors.toList());
 
-                // 4) Serie de barras
+                
                 XYChart.Series<String, Number> serie = new XYChart.Series<>();
                 for (ProyectoDto p : activosList) {
                     int av = p.getPorcentajeAvance() == null ? 0 : p.getPorcentajeAvance();
                     serie.getData().add(new XYChart.Data<>(n(p.getNombre()), av));
                 }
 
-                // 5) Pintar UI
+               
                 Platform.runLater(() -> {
                     lblTotalProyectos.setText(String.valueOf(total));
                     lblProyectosActivos.setText(String.valueOf(activos));
@@ -190,7 +184,7 @@ public class DashboardController extends Controller {
         }, "dash-load").start();
     }
 
-    // ========= Diálogo de seguimientos =========
+    
     private void mostrarDialogoSeguimientos(ProyectoDto p) {
         if (p == null || p.getId() == null) {
             alertaInfo("Seleccione un proyecto válido.");
@@ -201,7 +195,7 @@ public class DashboardController extends Controller {
                 Object resp = segPort.buscarSeguimientosPorProyecto(p.getId());
                 List<SeguimientoProyectoDto> segs = extraerListaRobusta(resp, SeguimientoProyectoDto.class);
 
-                // Orden DESC por fecha
+               
                 segs.sort(Comparator.comparing(
                         (SeguimientoProyectoDto s) -> toDate(s.getFechaSeguimiento()),
                         Comparator.nullsLast(Comparator.naturalOrder())
@@ -238,7 +232,7 @@ public class DashboardController extends Controller {
         dlg.showAndWait();
     }
 
-    // ========= Helpers de UI/fecha =========
+   
     private void mostrarError(String titulo, Throwable ex) {
         String msg = (ex != null && ex.getMessage() != null) ? ex.getMessage() : "Error desconocido";
         Platform.runLater(() -> {
@@ -264,7 +258,7 @@ public class DashboardController extends Controller {
         return d == null ? null : d.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
     }
 
-    /** Devuelve la fecha del ÚLTIMO seguimiento (más reciente) de un proyecto. */
+   
     private LocalDate ultimoSeguimientoFecha(Long proyectoId) {
         if (proyectoId == null) return null;
         try {
@@ -279,24 +273,24 @@ public class DashboardController extends Controller {
                     .map(s -> toLocalDate(s.getFechaSeguimiento()))
                     .orElse(null);
         } catch (Throwable ex) {
-            // Silencioso; la celda queda vacía
+            
             return null;
         }
     }
 
-    // ========= Extractores ROBUSTOS para WS =========
+   
     @SuppressWarnings("unchecked")
     private <T> List<T> extraerListaRobusta(Object resp, Class<T> type) {
         if (resp == null) return Collections.emptyList();
 
-        // 0) Directo: si ya es lista/array del tipo pedido
+        
         List<T> direct = aLista(resp, type);
         if (direct != null && !direct.isEmpty()) {
             System.out.println("[V5] extraerLista<" + type.getSimpleName() + "> -> " + direct.size() + " (direct)");
             return direct;
         }
 
-        // 1) Probar getters típicos de wrappers
+        
         Object data = null;
         for (String getter : new String[]{
                 "getData", "getDatos", "getLista", "getItems",
@@ -307,17 +301,17 @@ public class DashboardController extends Controller {
             if (data != null) break;
         }
 
-        // 1.b) Si el "data" también es wrapper (ej. getLista() -> objeto con getItem())
+        
         List<Object> bruto = null;
         if (data != null) {
             bruto = aLista(data, Object.class);
             if (bruto == null) {
-                Object items = tryGet(data, "getItem"); // muy común en wrappers JAX-WS
+                Object items = tryGet(data, "getItem"); 
                 bruto = aLista(items, Object.class);
             }
         }
 
-        // 2) Si aún no hay lista, barrer TODOS los getters sin args que devuelvan List/array y tomar el primero útil
+        
         if (bruto == null) bruto = firstListLike(resp);
         if (bruto == null && data != null) bruto = firstListLike(data);
 
@@ -326,12 +320,12 @@ public class DashboardController extends Controller {
             return Collections.emptyList();
         }
 
-        // 3) Des-envolver/adaptar cada item
+       
         List<T> out = new ArrayList<>();
         for (Object o : bruto) {
             Object v = (o instanceof jakarta.xml.bind.JAXBElement<?> j) ? j.getValue() : o;
 
-            // Ya es del tipo
+            
             if (v != null && type.isInstance(v)) {
                 out.add((T) v);
                 continue;
@@ -372,7 +366,7 @@ public class DashboardController extends Controller {
         return out;
     }
 
-    /** Devuelve la PRIMERA lista/array encontrada en cualquier getter sin argumentos del objeto. */
+  
     @SuppressWarnings("unchecked")
     private List<Object> firstListLike(Object src) {
         if (src == null) return null;
@@ -391,14 +385,14 @@ public class DashboardController extends Controller {
         return null;
     }
 
-    /** Convierte un objeto (List, array o wrapper con getItem()) a List<T>. */
+    
     @SuppressWarnings("unchecked")
     private <T> List<T> aLista(Object data, Class<T> type) {
         if (data == null) return null;
 
         List<T> out = new ArrayList<>();
 
-        // Caso: ya es List
+        
         if (data instanceof List<?> l) {
             for (Object o : l) {
                 Object v = (o instanceof jakarta.xml.bind.JAXBElement<?> j) ? j.getValue() : o;
@@ -408,7 +402,7 @@ public class DashboardController extends Controller {
             return out;
         }
 
-        // Caso: array
+        
         if (data.getClass().isArray()) {
             int n = java.lang.reflect.Array.getLength(data);
             for (int i = 0; i < n; i++) {
@@ -420,14 +414,14 @@ public class DashboardController extends Controller {
             return out;
         }
 
-        // Caso: wrapper con getItem()
+        
         Object items = tryGet(data, "getItem");
         if (items != null) return aLista(items, type);
 
         return null;
     }
 
-    // ========= Utilitarios de reflexión / debug =========
+    
     private Object tryGet(Object target, String getter) {
         if (target == null) return null;
         try {

@@ -8,14 +8,14 @@ public class App extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
-        // Inicializa el flujo con el stage principal
+        
         FlowController.getInstance().initializeFlow(stage, null);
 
-        // Configura tamaño mínimo si lo deseas
+        // Configura tamaño mínimo 
         stage.setMinWidth(400);
         stage.setMinHeight(300);
 
-        // Abre la vista login en una ventana
+        // Abre la vista login 
         FlowController.getInstance().goViewInWindow("loginView");
     }
 

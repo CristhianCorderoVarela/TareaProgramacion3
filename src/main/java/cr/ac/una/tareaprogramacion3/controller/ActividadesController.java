@@ -11,7 +11,7 @@ import cr.ac.una.client.soap.ActividadDto;
 import cr.ac.una.client.soap.RespuestaGeneralLista;
 import cr.ac.una.client.soap.RespuestaGeneral;
 
-// >>> NUEVO: Seguimientos
+
 import cr.ac.una.client.soap.SeguimientoService;
 import cr.ac.una.client.soap.SeguimientoWS;
 import cr.ac.una.client.soap.SeguimientoProyectoDto;
@@ -70,13 +70,13 @@ public class ActividadesController extends Controller {
     private final ObservableList<ActividadDto> postergadas  = FXCollections.observableArrayList();
     private final ObservableList<ActividadDto> finalizadas  = FXCollections.observableArrayList();
 
-    // Índice por id para DnD/actualizaciones
+    // Índice por id para actualizaciones
     private final Map<Long, ActividadDto> porId = new ConcurrentHashMap<>();
 
     private ProyectoWS port;
     private ActividadDto actividadActual = null;
 
-    // >>> NUEVO: puerto seguimientos + flag bloqueo
+    
     private SeguimientoWS segPort;
     private boolean edicionBloqueada = false;
 
@@ -99,21 +99,21 @@ public void initialize() {
     // Cuando cambia el proyecto seleccionado
     cbProyectos.getSelectionModel().selectedItemProperty().addListener((obs, oldP, newP) -> {
         if (newP != null) {
-            aplicarBloqueo(true);                 // bloquear YA (optimista)
+            aplicarBloqueo(true);                 
             cargarActividades();
-            actualizarBloqueoPorProyectoId(newP.getId()); // confirma con WS
+            actualizarBloqueoPorProyectoId(newP.getId()); 
         } else {
             aplicarBloqueo(false);
         }
     });
 
-    // Cuando Ventana4 actualiza un proyecto (ej: crea seguimiento)
+    
     AppEvents.onProyectoActualizado(proyectoId -> {
         ProyectoDto pSel = cbProyectos.getValue();
         if (pSel != null && Objects.equals(pSel.getId(), proyectoId)) {
-            aplicarBloqueo(true);                 // bloquear YA
+            aplicarBloqueo(true);                 
             cargarActividades();
-            actualizarBloqueoPorProyectoId(proyectoId); // confirma con WS
+            actualizarBloqueoPorProyectoId(proyectoId);
         }
     });
 }
@@ -129,7 +129,7 @@ public void initialize() {
         }
     }
 
-    // >>> NUEVO
+    
     private void crearSegPort(String endpointUrl) {
         try {
             SeguimientoService svc = new SeguimientoService();
@@ -164,15 +164,15 @@ public void initialize() {
         cbEstadoActividad.setValue("PLANIFICADA");
     }
 
-    /** Deshabilita fechas pasadas y fuerza fin >= inicio para planificadas y reales. */
+    
     private void configurarFechas() {
-        // No permitir días anteriores a hoy en todos los DatePicker
+        
         applyMinToday(fechaInicioPlanificada);
         applyMinToday(fechaFinPlanificada);
         applyMinToday(fechaInicioReal);
         applyMinToday(fechaFinReal);
 
-        // Coherencia de rango: fin >= inicio
+       
         fechaInicioPlanificada.valueProperty().addListener((o, ov, nv) -> {
             if (nv != null && fechaFinPlanificada.getValue() != null &&
                 fechaFinPlanificada.getValue().isBefore(nv)) {
@@ -241,9 +241,9 @@ public void initialize() {
                 }
             };
 
-            // Drag start
+            
             cell.setOnDragDetected(e -> {
-                if (chequearBloqueoYAdvertir()) { e.consume(); return; } // NUEVO
+                if (chequearBloqueoYAdvertir()) { e.consume(); return; } 
                 ActividadDto a = cell.getItem();
                 if (a == null) return;
                 Dragboard db = cell.startDragAndDrop(TransferMode.MOVE);
@@ -253,16 +253,16 @@ public void initialize() {
                 e.consume();
             });
 
-            // Drag over
+            
             cell.setOnDragOver(e -> {
-                if (chequearBloqueoYAdvertir()) { e.consume(); return; } // NUEVO
+                if (chequearBloqueoYAdvertir()) { e.consume(); return; } 
                 if (e.getDragboard().hasString()) e.acceptTransferModes(TransferMode.MOVE);
                 e.consume();
             });
 
-            // Drop sobre celda
+            
             cell.setOnDragDropped(e -> {
-                if (chequearBloqueoYAdvertir()) { e.setDropCompleted(false); e.consume(); return; } // NUEVO
+                if (chequearBloqueoYAdvertir()) { e.setDropCompleted(false); e.consume(); return; } 
                 Dragboard db = e.getDragboard();
                 boolean success = false;
                 if (db.hasString()) {
@@ -286,7 +286,7 @@ public void initialize() {
                 e.consume();
             });
 
-            // Click → cargar en formulario
+            
             cell.setOnMouseClicked(e -> {
                 if (cell.getItem() != null && e.getClickCount() == 1) {
                     cargarActividadEnFormulario(cell.getItem());
@@ -304,12 +304,12 @@ public void initialize() {
         // Drop en zona vacía
         java.util.function.Consumer<ListView<ActividadDto>> setupEmptyDrop = lv -> {
             lv.setOnDragOver(e -> {
-                if (chequearBloqueoYAdvertir()) { e.consume(); return; } // NUEVO
+                if (chequearBloqueoYAdvertir()) { e.consume(); return; } 
                 if (e.getDragboard().hasString()) e.acceptTransferModes(TransferMode.MOVE);
                 e.consume();
             });
             lv.setOnDragDropped(e -> {
-                if (chequearBloqueoYAdvertir()) { e.setDropCompleted(false); e.consume(); return; } // NUEVO
+                if (chequearBloqueoYAdvertir()) { e.setDropCompleted(false); e.consume(); return; } 
                 Dragboard db = e.getDragboard();
                 boolean success = false;
                 if (db.hasString()) {
@@ -376,13 +376,13 @@ instalarFiltroBloqueo(lvFinalizada);
         return "PLANIFICADA";
     }
 
-    /** Mueve, reenumera consecutivo y persiste órdenes de ambas listas inmediatamente. */
+    
     private void moverEntreListas(ActividadDto a,
                                   ObservableList<ActividadDto> source,
                                   ObservableList<ActividadDto> target,
                                   int dropIndex,
                                   String nuevoEstado) {
-        if (chequearBloqueoYAdvertir()) return; // NUEVO
+        if (chequearBloqueoYAdvertir()) return; 
         source.remove(a);
         if (dropIndex < 0 || dropIndex > target.size()) dropIndex = target.size();
         target.add(dropIndex, a);
@@ -391,12 +391,12 @@ instalarFiltroBloqueo(lvFinalizada);
         recomputarOrden(source);
         recomputarOrden(target);
 
-        // Persistir todas las posiciones de ambas listas para evitar #duplicados
+       
         persistirOrdenes(source);
         persistirOrdenes(target);
 
-        // Además, guardamos el cambio del item movido (estado/orden) y sincronizamos proyecto
-        persistirActividad(a, /*syncProyecto*/ true);
+        
+        persistirActividad(a, true);
     }
 
     private void recomputarOrden(ObservableList<ActividadDto> items) {
@@ -405,7 +405,7 @@ instalarFiltroBloqueo(lvFinalizada);
         }
     }
 
-    /** Actualiza en servidor el orden de todos los items de una lista. */
+    
     private void persistirOrdenes(ObservableList<ActividadDto> items) {
         if (items == null || items.isEmpty()) return;
         List<ActividadDto> snapshot = new ArrayList<>(items);
@@ -427,7 +427,7 @@ instalarFiltroBloqueo(lvFinalizada);
         new Thread(t, "persistir-ordenes").start();
     }
 
-    /** Persiste una actividad y opcionalmente sincroniza su proyecto. */
+    
     private void persistirActividad(ActividadDto a, boolean syncProyecto) {
         Task<ActividadDto> t = new Task<>() {
             @Override
@@ -517,7 +517,7 @@ instalarFiltroBloqueo(lvFinalizada);
             ordenarPorOrden(postergadas);
             ordenarPorOrden(finalizadas);
 
-            // mantener estado de botones según modo creación
+            
             limpiarFormulario();
         }));
 
@@ -539,7 +539,7 @@ instalarFiltroBloqueo(lvFinalizada);
     private void configurarBotonesParaNuevaActividad() {
         if (btnGuardarActividad != null) {
             btnGuardarActividad.setVisible(true);
-            btnGuardarActividad.setDisable(false || edicionBloqueada); // respeta bloqueo
+            btnGuardarActividad.setDisable(false || edicionBloqueada); 
         }
         if (btnEditarActividad != null) {
             btnEditarActividad.setVisible(false);
@@ -551,8 +551,8 @@ instalarFiltroBloqueo(lvFinalizada);
         }
         // Reglas de creación
         cbEstadoActividad.setValue("PLANIFICADA");
-        cbEstadoActividad.setDisable(true);          // no se puede cambiar al crear
-        fechaFinReal.setDisable(true);               // no se conoce al crear
+        cbEstadoActividad.setDisable(true);          
+        fechaFinReal.setDisable(true);              
     }
 
     private void configurarBotonesParaEdicion() {
@@ -562,13 +562,13 @@ instalarFiltroBloqueo(lvFinalizada);
         }
         if (btnEditarActividad != null) {
             btnEditarActividad.setVisible(true);
-            btnEditarActividad.setDisable(edicionBloqueada); // respeta bloqueo
+            btnEditarActividad.setDisable(edicionBloqueada); 
         }
         if (btnEliminarActividad != null) {
             btnEliminarActividad.setVisible(true);
-            btnEliminarActividad.setDisable(edicionBloqueada); // respeta bloqueo
+            btnEliminarActividad.setDisable(edicionBloqueada); 
         }
-        // En edición se permite cambiar estado y editar fecha fin real (si no hay bloqueo)
+        // En edición se permite cambiar estado y editar fecha fin real 
         cbEstadoActividad.setDisable(edicionBloqueada);
         fechaFinReal.setDisable(edicionBloqueada);
     }
@@ -613,7 +613,7 @@ instalarFiltroBloqueo(lvFinalizada);
     }
 
     private void guardarActividad() {
-        if (chequearBloqueoYAdvertir()) return; // NUEVO
+        if (chequearBloqueoYAdvertir()) return; 
         if (!validarFormulario()) return;
 
         ProyectoDto proyecto = cbProyectos.getValue();
@@ -625,9 +625,9 @@ instalarFiltroBloqueo(lvFinalizada);
         // construir DTO
         ActividadDto nueva = crearActividadDesdeFormulario();
         nueva.setProyectoId(proyecto.getId());
-        nueva.setEstado("PLANIFICADA"); // fijo al crear
+        nueva.setEstado("PLANIFICADA"); 
 
-        // asignar orden consecutivo al final de la columna PLANIFICADA
+       
         int next = planificadas.size() + 1;
         nueva.setOrdenEjecucion(next);
 
@@ -693,7 +693,7 @@ instalarFiltroBloqueo(lvFinalizada);
     }
 
     private void eliminarActividad() {
-        if (chequearBloqueoYAdvertir()) return; // NUEVO
+        if (chequearBloqueoYAdvertir()) return; 
         if (actividadActual == null) {
             mostrarAdvertencia("Debe seleccionar una actividad para eliminar");
             return;
@@ -741,10 +741,10 @@ instalarFiltroBloqueo(lvFinalizada);
         return a;
     }
 
-    /* =================== Sincronización Proyecto =================== */
+    
 
     private void sincronizarProyectoConActividades() {
-        // Si hay seguimiento vigente, Ventana3 no debe modificar el % del proyecto (regla acordada).
+        
         if (edicionBloqueada) return;
 
         ProyectoDto p = cbProyectos.getValue();
@@ -758,13 +758,13 @@ instalarFiltroBloqueo(lvFinalizada);
 
         String nuevoEstado = calcularEstadoProyecto(todas);
 
-        // % calculado por actividades
+        
         int pAct = calcularAvanceProyecto(todas) == null ? 0 : calcularAvanceProyecto(todas);
 
-        // % vigente en el proyecto (por si algo externo ya lo subió)
+        
         int pActual = p.getPorcentajeAvance() == null ? 0 : p.getPorcentajeAvance();
 
-        // regla: NUNCA bajar
+        
         int nuevoAvance = Math.max(pActual, pAct);
 
         Date fiReal = calcularFechaInicioRealProyecto(todas);
@@ -835,7 +835,6 @@ instalarFiltroBloqueo(lvFinalizada);
                 .orElse(null);
     }
 
-    /* =================== Validaciones y utilitarios =================== */
 
     private boolean validarFormulario() {
         if (txtDescripcion.getText().trim().isEmpty()) {
@@ -861,7 +860,7 @@ instalarFiltroBloqueo(lvFinalizada);
             mostrarAdvertencia("La fecha de fin planificada es obligatoria");
             return false;
         }
-        // Coherencia de rango (extra por si acaso)
+      
         if (fechaFinPlanificada.getValue().isBefore(fechaInicioPlanificada.getValue())) {
             mostrarAdvertencia("La fecha fin planificada no puede ser anterior a la fecha inicio planificada");
             return false;
@@ -876,7 +875,7 @@ instalarFiltroBloqueo(lvFinalizada);
 
     private String nvl(String s) { return s == null ? "" : s; }
 
-    // Date <-> LocalDate
+  
     private LocalDate dateToLocalDate(Date date) {
         if (date == null) return null;
         return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
@@ -937,18 +936,18 @@ instalarFiltroBloqueo(lvFinalizada);
         a.showAndWait();
     }
 
-    /** Refresca todo y reevalúa bloqueo si hay proyecto seleccionado. */
+    
     private void cargarTodos() {
         ProyectoDto sel = cbProyectos.getValue();
         if (sel != null) {
-            actualizarBloqueoPorProyectoId(sel.getId()); // NUEVO
+            actualizarBloqueoPorProyectoId(sel.getId()); 
             cargarActividades();
         }
     }
 
-    // =================== BLOQUEO POR SEGUIMIENTOS (Ventana4) ===================
+    
 
-    /** Consulta al backend si existen seguimientos para el proyecto y aplica bloqueo. */
+   
     private void actualizarBloqueoPorProyectoId(Long proyectoId) {
         if (proyectoId == null) { aplicarBloqueo(false); return; }
         Task<Boolean> t = new Task<>() {
@@ -961,7 +960,7 @@ instalarFiltroBloqueo(lvFinalizada);
             }
         };
         t.setOnSucceeded(e -> aplicarBloqueo(Boolean.TRUE.equals(t.getValue())));
-        t.setOnFailed(e -> aplicarBloqueo(false)); // ante error, no bloquear
+        t.setOnFailed(e -> aplicarBloqueo(false)); 
         new Thread(t, "chk-seguimientos").start();
     }
 
@@ -989,7 +988,7 @@ private void aplicarBloqueo(boolean bloquear) {
         cbEstadoActividad.setDisable(bloquear);
         fechaFinReal.setDisable(bloquear);
 
-        // NO deshabilitar la ListView; solo hacerla “transparente” al mouse si está bloqueado
+        
         setListBlocked(lvPlanificada, bloquear);
         setListBlocked(lvEnCurso, bloquear);
         setListBlocked(lvPostergada, bloquear);
@@ -1000,8 +999,8 @@ private void aplicarBloqueo(boolean bloquear) {
 }
 
 private void setListBlocked(ListView<?> lv, boolean bloquear) {
-    lv.setDisable(false);                 // <- SIEMPRE habilitada
-    lv.setMouseTransparent(bloquear);     // <- bloquea interacción (incluye DnD) cuando hay seguimiento
+    lv.setDisable(false);                 
+    lv.setMouseTransparent(bloquear);     
 }
 
     private boolean chequearBloqueoYAdvertir() {
