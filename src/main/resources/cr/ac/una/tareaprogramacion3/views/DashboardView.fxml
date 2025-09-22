@@ -13,7 +13,7 @@
             fx:controller="cr.ac.una.tareaprogramacion3.controller.DashboardController"
             prefWidth="1000" prefHeight="650">
 
-    <!-- HEADER -->
+    
     <top>
         <HBox alignment="CENTER_LEFT" spacing="15">
             <padding>
@@ -26,7 +26,7 @@
         </HBox>
     </top>
 
-    <!-- CONTENIDO RESPONSIVE (sin scroll) -->
+    
     <center>
         <AnchorPane>
             <children>
@@ -37,7 +37,7 @@
                         <Insets top="16" right="16" bottom="16" left="16"/>
                     </padding>
 
-                    <!-- FILA 1: Indicadores -->
+                    
                     <HBox spacing="16" alignment="CENTER_LEFT">
                         <VBox alignment="CENTER" spacing="4" prefHeight="100"
                               style="-fx-background-color: #3498db; -fx-background-radius: 10; -fx-padding: 12;">
@@ -68,7 +68,7 @@
                         </VBox>
                     </HBox>
 
-                    <!-- FILA 2: Gráfico + Tabla -->
+                    
                     <HBox spacing="16" VBox.vgrow="ALWAYS">
                         <VBox spacing="8" HBox.hgrow="ALWAYS">
                             <Label text="Estado de Proyectos"
@@ -91,7 +91,7 @@
                         </VBox>
                     </HBox>
 
-                    <!-- FILA 3: Barras -->
+                    
                     <VBox spacing="8" VBox.vgrow="ALWAYS">
                         <Label text="Progreso de Proyectos Activos"
                                style="-fx-font-weight: bold; -fx-font-size: 16px;"/>

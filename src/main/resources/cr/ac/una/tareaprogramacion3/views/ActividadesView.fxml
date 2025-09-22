@@ -23,7 +23,7 @@
 
     <top>
         <VBox spacing="5">
-            <!-- Barra superior -->
+            
             <HBox alignment="CENTER_LEFT" spacing="15">
                 <padding>
                     <Insets bottom="10" left="10" right="10" top="10" />
@@ -34,7 +34,7 @@
                 <Region HBox.hgrow="ALWAYS" />
             </HBox>
 
-            <!-- Aviso de bloqueo -->
+            
             <Label fx:id="lblBloqueoInfo" managed="false" style="-fx-background-color: #fff3cd; -fx-text-fill: #856404; -fx-padding: 8 15 8 15; -fx-background-radius: 4; -fx-border-color: #ffeaa7; -fx-border-width: 1; -fx-border-radius: 4; -fx-font-weight: bold;" text="⚠️ Las actividades de este proyecto no pueden modificarse mientras existan seguimientos activos. Para habilitar los cambios, elimine primero esos seguimientos." visible="false">
                 <VBox.margin>
                     <Insets bottom="5" left="10" right="10" />
@@ -45,35 +45,35 @@
 
     <center>
         <SplitPane dividerPositions="0.55">
-            <!-- KANBAN (izquierda) -->
+           
             <ScrollPane fitToHeight="true" fitToWidth="true" hbarPolicy="NEVER" pannable="true" SplitPane.resizableWithParent="true">
                 <HBox spacing="12" style="-fx-background-color: #f6f8fa;">
                     <padding>
                         <Insets bottom="10" left="10" right="10" top="10" />
                     </padding>
 
-                    <!-- PLANIFICADA -->
+                    
                     <VBox maxWidth="220" minWidth="220" prefWidth="220" spacing="8" style="-fx-background-color: #ffffff; -fx-padding:10; -fx-background-radius:8;">
                         <Label style="-fx-font-weight: bold; -fx-text-fill: #2980b9; -fx-font-size: 14px;" text="PLANIFICADA" />
                         <ListView fx:id="lvPlanificada" prefHeight="520" />
                         <Label style="-fx-font-size: 10px; -fx-text-fill: #95a5a6;" text="Arrastra para ordenar / mover" />
                     </VBox>
 
-                    <!-- EN_CURSO -->
+                    
                     <VBox maxWidth="220" minWidth="220" prefWidth="220" spacing="8" style="-fx-background-color: #ffffff; -fx-padding:10; -fx-background-radius:8;">
                         <Label style="-fx-font-weight: bold; -fx-text-fill: #16a085; -fx-font-size: 14px;" text="EN_CURSO" />
                         <ListView fx:id="lvEnCurso" prefHeight="520" />
                         <Label style="-fx-font-size: 10px; -fx-text-fill: #95a5a6;" text="Arrastra para ordenar / mover" />
                     </VBox>
 
-                    <!-- POSTERGADA -->
+                   
                     <VBox maxWidth="220" minWidth="220" prefWidth="220" spacing="8" style="-fx-background-color: #ffffff; -fx-padding:10; -fx-background-radius:8;">
                         <Label style="-fx-font-weight: bold; -fx-text-fill: #d35400; -fx-font-size: 14px;" text="POSTERGADA" />
                         <ListView fx:id="lvPostergada" prefHeight="520" />
                         <Label style="-fx-font-size: 10px; -fx-text-fill: #95a5a6;" text="Arrastra para ordenar / mover" />
                     </VBox>
 
-                    <!-- FINALIZADA -->
+                    
                     <VBox maxWidth="220" minWidth="220" prefWidth="220" spacing="8" style="-fx-background-color: #ffffff; -fx-padding:10; -fx-background-radius:8;">
                         <Label style="-fx-font-weight: bold; -fx-text-fill: #7f8c8d; -fx-font-size: 14px;" text="FINALIZADA" />
                         <ListView fx:id="lvFinalizada" prefHeight="520" />
@@ -82,7 +82,7 @@
                 </HBox>
             </ScrollPane>
 
-            <!-- FORMULARIO DE ACTIVIDAD (derecha) -->
+           
             <ScrollPane fitToWidth="true" maxWidth="420" minWidth="320" prefWidth="360" SplitPane.resizableWithParent="false">
                 <VBox spacing="10">
                     <padding><Insets bottom="10" left="10" right="10" top="10" /></padding>

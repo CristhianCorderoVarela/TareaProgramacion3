@@ -3,18 +3,15 @@ package cr.ac.una.tareaprogramacion3.controller;
 import cr.ac.una.tareaprogramacion3.util.Controller;
 import cr.ac.una.tareaprogramacion3.util.DateUtil;
 import cr.ac.una.tareaprogramacion3.util.AppEvents;
-
 import cr.ac.una.client.soap.ProyectoService;
 import cr.ac.una.client.soap.ProyectoWS;
 import cr.ac.una.client.soap.ProyectoDto;
 import cr.ac.una.client.soap.ActividadDto;
 import cr.ac.una.client.soap.RespuestaGeneralLista;
 import cr.ac.una.client.soap.RespuestaGeneral;
-
 import cr.ac.una.client.soap.SeguimientoService;
 import cr.ac.una.client.soap.SeguimientoWS;
 import cr.ac.una.client.soap.SeguimientoProyectoDto;
-
 import jakarta.xml.bind.JAXBElement;
 import jakarta.xml.ws.BindingProvider;
 import javafx.application.Platform;
@@ -26,7 +23,6 @@ import javafx.scene.control.*;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
-
 import java.lang.reflect.Method;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -35,18 +31,18 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class ActividadesController extends Controller {
 
-    // Top bar
+    
     @FXML private ComboBox<ProyectoDto> cbProyectos;
     @FXML private Button btnCargarActividades;
     
 
-    // Kanban: 4 columnas
+    
     @FXML private ListView<ActividadDto> lvPlanificada;
     @FXML private ListView<ActividadDto> lvEnCurso;
     @FXML private ListView<ActividadDto> lvPostergada;
     @FXML private ListView<ActividadDto> lvFinalizada;
 
-    // Formulario de actividad
+    
     @FXML private TextArea txtDescripcion;
     @FXML private TextField txtEncargado;
     @FXML private TextField txtEncargadoCorreo;
@@ -61,7 +57,7 @@ public class ActividadesController extends Controller {
     @FXML private Button btnEliminarActividad;
     @FXML private Button btnLimpiar;
 
-    // Datos observables
+    
     private final ObservableList<ProyectoDto> proyectos  = FXCollections.observableArrayList();
 
     private final ObservableList<ActividadDto> planificadas = FXCollections.observableArrayList();
@@ -69,7 +65,7 @@ public class ActividadesController extends Controller {
     private final ObservableList<ActividadDto> postergadas  = FXCollections.observableArrayList();
     private final ObservableList<ActividadDto> finalizadas  = FXCollections.observableArrayList();
 
-    // Índice por id para actualizaciones
+    
     private final Map<Long, ActividadDto> porId = new ConcurrentHashMap<>();
 
     private ProyectoWS port;
@@ -94,11 +90,10 @@ public class ActividadesController extends Controller {
 
         Platform.runLater(this::cargarTodos);
 
-        // Cuando cambia el proyecto seleccionado
         cbProyectos.getSelectionModel().selectedItemProperty().addListener((obs, oldP, newP) -> {
             if (newP != null) {
                 aplicarBloqueo(true);
-                aplicarRangosProyectoEnPickers(newP); // <<< aplica límites estrictos a los DatePicker
+                aplicarRangosProyectoEnPickers(newP); 
                 cargarActividades();
                 actualizarBloqueoPorProyectoId(newP.getId());
             } else {
@@ -162,13 +157,13 @@ public class ActividadesController extends Controller {
     }
 
     private void configurarFechas() {
-        // Deshabilitar días pasados como base
+        
         applyMinToday(fechaInicioPlanificada);
         applyMinToday(fechaFinPlanificada);
         applyMinToday(fechaInicioReal);
         applyMinToday(fechaFinReal);
 
-        // Coherencia inicio/fin planificadas
+        
         fechaInicioPlanificada.valueProperty().addListener((o, ov, nv) -> {
             if (nv != null && fechaFinPlanificada.getValue() != null &&
                 fechaFinPlanificada.getValue().isBefore(nv)) {
@@ -182,7 +177,7 @@ public class ActividadesController extends Controller {
             }
         });
 
-        // Coherencia inicio/fin reales
+        
         fechaInicioReal.valueProperty().addListener((o, ov, nv) -> {
             if (nv != null && fechaFinReal.getValue() != null &&
                 fechaFinReal.getValue().isBefore(nv)) {
@@ -238,7 +233,7 @@ public class ActividadesController extends Controller {
                 }
             };
 
-            // Drag & drop con bloqueo
+            
             cell.setOnDragDetected(e -> {
                 if (chequearBloqueoYAdvertir()) { e.consume(); return; }
                 ActividadDto a = cell.getItem();
@@ -281,7 +276,7 @@ public class ActividadesController extends Controller {
                 e.consume();
             });
 
-            // Click para cargar al formulario
+            
             cell.setOnMouseClicked(e -> {
                 if (cell.getItem() != null && e.getClickCount() == 1) {
                     cargarActividadEnFormulario(cell.getItem());
@@ -296,7 +291,7 @@ public class ActividadesController extends Controller {
         lvPostergada.setCellFactory(factory);
         lvFinalizada.setCellFactory(factory);
 
-        // Drop en zona vacía
+        
         java.util.function.Consumer<ListView<ActividadDto>> setupEmptyDrop = lv -> {
             lv.setOnDragOver(e -> {
                 if (chequearBloqueoYAdvertir()) { e.consume(); return; }
@@ -538,7 +533,7 @@ public class ActividadesController extends Controller {
             btnEliminarActividad.setVisible(false);
             btnEliminarActividad.setDisable(true);
         }
-        // Reglas de creación
+        
         cbEstadoActividad.setValue("PLANIFICADA");
         cbEstadoActividad.setDisable(true);
         fechaFinReal.setDisable(true);
@@ -557,7 +552,7 @@ public class ActividadesController extends Controller {
             btnEliminarActividad.setVisible(true);
             btnEliminarActividad.setDisable(edicionBloqueada);
         }
-        // En edición se permite cambiar estado y editar fecha fin real
+        
         cbEstadoActividad.setDisable(edicionBloqueada);
         fechaFinReal.setDisable(edicionBloqueada);
     }
@@ -598,7 +593,7 @@ public class ActividadesController extends Controller {
         fechaInicioReal.setValue(null);
         fechaFinReal.setValue(null);
 
-        // si hay proyecto seleccionado, reaplica límites a los pickers
+        
         ProyectoDto pSel = cbProyectos.getValue();
         if (pSel != null) aplicarRangosProyectoEnPickers(pSel);
 
@@ -615,7 +610,7 @@ public class ActividadesController extends Controller {
             return;
         }
 
-        // construir DTO
+        
         ActividadDto nueva = crearActividadDesdeFormulario();
         nueva.setProyectoId(proyecto.getId());
         nueva.setEstado("PLANIFICADA");
@@ -658,7 +653,7 @@ public class ActividadesController extends Controller {
         ActividadDto mod = crearActividadDesdeFormulario();
         mod.setId(actividadActual.getId());
         mod.setProyectoId(actividadActual.getProyectoId());
-        mod.setOrdenEjecucion(actividadActual.getOrdenEjecucion()); // se conserva
+        mod.setOrdenEjecucion(actividadActual.getOrdenEjecucion()); 
 
         Task<ActividadDto> task = new Task<>() {
             @Override
@@ -853,7 +848,7 @@ public class ActividadesController extends Controller {
             return false;
         }
 
-        // === Validar contra rango del PROYECTO (estrictamente dentro) ===
+        
         ProyectoDto p = cbProyectos.getValue();
         if (p != null) {
             LocalDate pIni = dateToLocalDate(DateUtil.fromXml(p.getFechaInicioPlanificada()));
@@ -938,7 +933,7 @@ public class ActividadesController extends Controller {
     private void cargarTodos() {
         ProyectoDto sel = cbProyectos.getValue();
         if (sel != null) {
-            aplicarRangosProyectoEnPickers(sel); // <<< asegura límites al iniciar
+            aplicarRangosProyectoEnPickers(sel); 
             actualizarBloqueoPorProyectoId(sel.getId());
             cargarActividades();
         }
@@ -992,7 +987,7 @@ public class ActividadesController extends Controller {
     }
 
     private void setListBlocked(ListView<?> lv, boolean bloquear) {
-        lv.setDisable(false);             // visible pero sin interacción si está bloqueado
+        lv.setDisable(false);             
         lv.setMouseTransparent(bloquear);
     }
 
@@ -1002,21 +997,18 @@ public class ActividadesController extends Controller {
         return true;
     }
 
-    // ================== NUEVOS HELPERS DE RANGO PARA FECHAS ==================
-
-    /** Aplica el rango del proyecto a los DatePicker de la actividad (estrictamente dentro). */
     private void aplicarRangosProyectoEnPickers(ProyectoDto p) {
         LocalDate minExcl = dateToLocalDate(DateUtil.fromXml(p.getFechaInicioPlanificada()));
         LocalDate maxExcl = dateToLocalDate(DateUtil.fromXml(p.getFechaFinalPlanificada()));
 
-        // si faltan fechas en el proyecto, no aplicamos límites
+        
         if (minExcl == null || maxExcl == null) return;
 
         applyBetweenExclusive(fechaInicioPlanificada, minExcl, maxExcl);
         applyBetweenExclusive(fechaFinPlanificada,   minExcl, maxExcl);
     }
 
-    /** Limita un DatePicker a (minExcl, maxExcl) de forma estricta: deshabilita <=min y >=max. */
+    
     private void applyBetweenExclusive(DatePicker dp, LocalDate minExcl, LocalDate maxExcl) {
         if (dp == null) return;
         dp.setDayCellFactory(picker -> new DateCell() {
@@ -1024,7 +1016,7 @@ public class ActividadesController extends Controller {
             public void updateItem(LocalDate item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || item == null) return;
-                boolean fuera = !item.isAfter(minExcl) || !item.isBefore(maxExcl); // <= min || >= max
+                boolean fuera = !item.isAfter(minExcl) || !item.isBefore(maxExcl);
                 setDisable(fuera);
             }
         });

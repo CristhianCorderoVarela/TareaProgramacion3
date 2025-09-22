@@ -1,26 +1,19 @@
-/* ============================
-   LAYOUT PRINCIPAL Y VARIABLES
-   ============================ */
-
-/* Antes era .root: ahora solo la raíz de esta vista */
 .app-root {
     -fx-background-color: radial-gradient(center 50% 50%, radius 70%, #4a5568, #3a4553, #2d3748);
     -fx-font-family: "Segoe UI", "Arial", sans-serif;
 
-    /* Variable para el color del host central */
-    -content-bg: rgba(245, 245, 245, 0.92); /* cámbialo a gusto */
+    
+    -content-bg: rgba(245, 245, 245, 0.92); 
 }
 
-/* Área central donde se cargan las sub-vistas */
+
 .content-host {
     -fx-background-color: -content-bg;
     -fx-background-radius: 12;
     -fx-padding: 12;
 }
 
-/* ============================
-   MENÚ LATERAL
-   ============================ */
+
 .menu-lateral {
     -fx-background-color: rgba(36, 44, 58, 0.92);
     -fx-background-radius: 12;
@@ -28,7 +21,7 @@
     -fx-border-radius: 12;
     -fx-border-width: 1;
     -fx-padding: 28 16 22 16;
-    -fx-spacing: 0; /* botones pegados */
+    -fx-spacing: 0;
     -fx-effect:
         dropshadow(gaussian, rgba(136,166,255,0.12), 26, 0.35, 0, 0),
         innershadow(gaussian, rgba(129,161,193,0.05), 22, 0.25, 0, 0);
@@ -36,7 +29,7 @@
 .menu-lateral .text { -fx-fill:#aab6c7; -fx-font-weight:600; }
 .menu-lateral .line { -fx-stroke: rgba(129,161,193,0.35); }
 
-/* Botones segmentados (planos) */
+
 .menu-lateral > .boton-menu {
     -fx-background-color: rgba(45, 55, 72, 0.86);
     -fx-background-radius: 0;
@@ -91,7 +84,7 @@
     -fx-background-color: rgba(69, 80, 103, 1.0);
 }
 
-/* Botón “Cerrar sesión” */
+
 .boton-cerrar-sesion {
     -fx-background-color: rgba(45, 55, 72, 0.86);
     -fx-background-radius: 8;
@@ -117,11 +110,6 @@
     -fx-background-color: rgba(40, 50, 67, 0.98);
 }
 
-/* ============================
-   CONTROLES & ESTILOS GENERALES
-   ============================ */
-
-/* Panel principal glassmorphism */
 .panel-blanco-sombra {
     -fx-background-color: #ccffcc;
     -fx-background-radius: 15;
@@ -131,7 +119,7 @@
     -fx-effect: dropshadow(gaussian, rgba(136, 166, 255, 0.15), 30, 0.3, 0, 0);
 }
 
-/* Logo Projex */
+
 .logo-projex {
     -fx-text-fill: #88a6ff;
     -fx-font-weight: bold;
@@ -139,7 +127,7 @@
     -fx-effect: dropshadow(gaussian, rgba(136, 166, 255, 0.4), 15, 0.5, 0, 0);
 }
 
-/* Etiquetas */
+
 .label-link-gris {
     -fx-text-fill: #a0aec0;
     -fx-font-weight: 500;
@@ -156,7 +144,7 @@
     -fx-effect: dropshadow(gaussian, white, 8, 0.3, 0, 0);
 }
 
-/* Labels de formulario */
+
 .form-label {
     -fx-text-fill: #cbd5e0;
     -fx-font-weight: 500;
@@ -166,11 +154,6 @@
 }
 
 
-
-
-
-
-/* Botón principal activo */
 .boton-menu-activo {
     -fx-background-color: linear-gradient(to bottom, rgba(136, 166, 255, 0.9), rgba(129, 161, 193, 0.9));
     -fx-background-radius: 8;
@@ -206,7 +189,7 @@
     -fx-effect: dropshadow(gaussian, rgba(91, 122, 191, 0.3), 8, 0.3, 0, 2);
 }
 
-/* Label de error */
+
 .error-label {
     -fx-text-fill: #e53e3e;
     -fx-font-size: 12px;
@@ -214,9 +197,6 @@
     -fx-effect: dropshadow(gaussian, rgba(229, 62, 62, 0.2), 5, 0.3, 0, 0);
 }
 
-/* ============================
-   EFECTOS CYBERPUNK EXTRA
-   ============================ */
 .cyberpunk-container {
     -fx-background-color: rgba(230, 234, 241, 0.85);
     -fx-background-radius: 15;

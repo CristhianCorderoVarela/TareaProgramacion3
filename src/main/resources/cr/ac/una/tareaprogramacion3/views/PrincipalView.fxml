@@ -14,7 +14,7 @@
 <BorderPane prefHeight="600.0" prefWidth="1000.0" styleClass="panel-blanco-sombra" stylesheets="@styles.css" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="cr.ac.una.tareaprogramacion3.controller.PrincipalViewController">
 
     <center>
-        <!-- Host del contenido cargado dinámicamente -->
+        
         <VBox fx:id="contentHost" alignment="CENTER" prefHeight="500.0" prefWidth="587.0" styleClass="cyberpunk-container" stylesheets="@cssPrincipalView.css" BorderPane.alignment="CENTER_RIGHT" />
     </center>
 
@@ -22,7 +22,7 @@
         <AnchorPane prefHeight="621.0" prefWidth="244.0" BorderPane.alignment="CENTER">
             <children>
 
-                <!-- Menú Administrador -->
+                
                 <VBox fx:id="VBoxMenuAdmin" alignment="CENTER" prefHeight="600.0" prefWidth="200.0" styleClass="menu-lateral" AnchorPane.bottomAnchor="0" AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0" AnchorPane.topAnchor="0">
                     <padding>
                         <Insets top="40" />

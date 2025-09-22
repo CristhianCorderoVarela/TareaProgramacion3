@@ -18,14 +18,14 @@
     <children>
         <BorderPane prefHeight="700" prefWidth="1100">
 
-            <!-- Barra superior: CRUD (izq) · Excel (centro) · Búsqueda (der) -->
+            
             <top>
     <HBox alignment="CENTER_LEFT" fillHeight="true" spacing="10">
         <padding>
             <Insets bottom="10" left="10" right="10" top="10" />
         </padding>
 
-        <!-- CRUD -->
+       
         <Button minWidth="67.0" onAction="#onNuevoProyecto" prefHeight="25.0" prefWidth="67.0" style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;" text="+ Nuevo" HBox.hgrow="NEVER" />
         <Button minWidth="57.0" onAction="#onEditarSeleccion" prefHeight="25.0" prefWidth="57.0" style="-fx-background-color: #2980b9; -fx-text-fill: white; -fx-font-weight: bold;" text="Editar" HBox.hgrow="NEVER" />
 
@@ -34,7 +34,7 @@
 
         <Separator orientation="VERTICAL" />
 
-        <!-- Excel -->
+        
         <Label prefHeight="17.0" prefWidth="86.0" style="-fx-font-weight: bold;" text="Proyecto:" HBox.hgrow="NEVER" />
         <Label fx:id="lblProyectoSeleccionado" maxWidth="Infinity" prefHeight="17.0" prefWidth="179.0" text="Ninguno" textOverrun="ELLIPSIS" wrapText="false" HBox.hgrow="ALWAYS" />
 
@@ -50,16 +50,16 @@
                        visible="false"/>
 </StackPane>
 
-        <!-- Espaciador -->
+        
         <Region HBox.hgrow="ALWAYS" />
 
-        <!-- Limitar el ancho del estado y poner elipsis -->
+        
         <Label fx:id="lblEstadoExcel" maxWidth="200" prefHeight="17.0" prefWidth="176.0" text="" textOverrun="ELLIPSIS" visible="false" HBox.hgrow="NEVER">
                   <HBox.margin>
                      <Insets />
                   </HBox.margin></Label>
 
-        <!-- Búsqueda (que crezca pero con tope) -->
+        
         <TextField fx:id="txtBuscar" maxWidth="320" prefHeight="25.0" prefWidth="261.0" promptText="Buscar en todos los campos..." HBox.hgrow="NEVER" />
         <Button fx:id="btnBuscar" minWidth="57.0" prefHeight="25.0" prefWidth="57.0" text="Buscar" HBox.hgrow="NEVER" />
         <Button fx:id="btnEliminar"
@@ -70,35 +70,35 @@
     </HBox>
 </top>
 
-            <!-- 4 columnas de estado -->
+           
             <center>
                 <HBox spacing="20">
                     <padding>
                         <Insets bottom="15" left="15" right="15" top="15" />
                     </padding>
 
-                    <!-- PLANIFICADO -->
+                    
                     <VBox prefWidth="250" spacing="10" style="-fx-background-color: #ecf0f1; -fx-border-color: #bdc3c7; -fx-border-width: 1;">
                         <padding><Insets bottom="10" left="10" right="10" top="10" /></padding>
                         <Label style="-fx-font-size: 16px; -fx-font-weight: bold;" text="Planificados" />
                         <ListView fx:id="listaPlanificados" prefHeight="580" />
                     </VBox>
 
-                    <!-- EN CURSO -->
+                   
                     <VBox prefWidth="250" spacing="10" style="-fx-background-color: #ecf0f1; -fx-border-color: #bdc3c7; -fx-border-width: 1;">
                         <padding><Insets bottom="10" left="10" right="10" top="10" /></padding>
                         <Label style="-fx-font-size: 16px; -fx-font-weight: bold;" text="En Curso" />
                         <ListView fx:id="listaEnProceso" prefHeight="580" />
                     </VBox>
 
-                    <!-- SUSPENDIDO -->
+                   
                     <VBox prefWidth="250" spacing="10" style="-fx-background-color: #ecf0f1; -fx-border-color: #bdc3c7; -fx-border-width: 1;">
                         <padding><Insets bottom="10" left="10" right="10" top="10" /></padding>
                         <Label style="-fx-font-size: 16px; -fx-font-weight: bold;" text="Suspendidos" />
                         <ListView fx:id="listaSuspendidos" prefHeight="580" />
                     </VBox>
 
-                    <!-- FINALIZADO -->
+                    
                     <VBox prefWidth="250" spacing="10" style="-fx-background-color: #ecf0f1; -fx-border-color: #bdc3c7; -fx-border-width: 1;">
                         <padding><Insets bottom="10" left="10" right="10" top="10" /></padding>
                         <Label style="-fx-font-size: 16px; -fx-font-weight: bold;" text="Finalizados" />

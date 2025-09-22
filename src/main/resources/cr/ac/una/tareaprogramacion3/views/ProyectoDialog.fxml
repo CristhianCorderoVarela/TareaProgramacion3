@@ -18,36 +18,36 @@
             <ColumnConstraints percentWidth="65"/>
         </columnConstraints>
 
-        <!-- 0 -->
+        
         <Label text="Nombre:"                GridPane.rowIndex="0" GridPane.columnIndex="0"/>
         <TextField fx:id="txtNombre"         GridPane.rowIndex="0" GridPane.columnIndex="1"/>
 
-        <!-- 1 -->
+        
         <Label text="Estado:"                GridPane.rowIndex="1" GridPane.columnIndex="0"/>
         <ComboBox fx:id="cmbEstado"          GridPane.rowIndex="1" GridPane.columnIndex="1"/>
 
-        <!-- 2-3 Patrocinador -->
+       
         <Label text="Patrocinador (Nombre):" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
         <TextField fx:id="txtPatrocinador"   GridPane.rowIndex="2" GridPane.columnIndex="1"/>
 
         <Label text="Patrocinador (Correo):" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
         <TextField fx:id="txtCorreoPatrocinador" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
 
-        <!-- 4-5 Líder Usuario -->
+        
         <Label text="Líder Usuario (Nombre):" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
         <TextField fx:id="txtLiderUsuario"    GridPane.rowIndex="4" GridPane.columnIndex="1"/>
 
         <Label text="Líder Usuario (Correo):" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
         <TextField fx:id="txtCorreoLiderUsuario" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
 
-        <!-- 6-7 Líder Técnico -->
+        
         <Label text="Líder Técnico (Nombre):" GridPane.rowIndex="6" GridPane.columnIndex="0"/>
         <TextField fx:id="txtLiderTecnico"    GridPane.rowIndex="6" GridPane.columnIndex="1"/>
 
         <Label text="Líder Técnico (Correo):" GridPane.rowIndex="7" GridPane.columnIndex="0"/>
         <TextField fx:id="txtCorreoLiderTecnico" GridPane.rowIndex="7" GridPane.columnIndex="1"/>
 
-        <!-- 8-11 Fechas -->
+        
         <Label text="Inicio Plan:"           GridPane.rowIndex="8"  GridPane.columnIndex="0"/>
         <DatePicker fx:id="dpInicioPlan"     GridPane.rowIndex="8"  GridPane.columnIndex="1"/>
 
