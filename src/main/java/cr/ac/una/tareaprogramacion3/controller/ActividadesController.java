@@ -34,24 +34,17 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import cr.ac.una.tareaprogramacion3.util.ValidationUtil;
 
-/**
- * Controlador con Drag&Drop restaurado y SIN referencias a btnNuevaActividad.
- * Compatible con el FXML que me compartiste.
- */
 public class ActividadesController extends Controller {
 
-    // Top bar
     @FXML private ComboBox<ProyectoDto> cbProyectos;
     @FXML private Button btnCargarActividades;
     @FXML private Label  lblBloqueoInfo;
 
-    // Kanban: 4 columnas
     @FXML private ListView<ActividadDto> lvPlanificada;
     @FXML private ListView<ActividadDto> lvEnCurso;
     @FXML private ListView<ActividadDto> lvPostergada;
     @FXML private ListView<ActividadDto> lvFinalizada;
 
-    // Formulario de actividad
     @FXML private TextArea txtDescripcion;
     @FXML private TextField txtEncargado;
     @FXML private TextField txtEncargadoCorreo;
@@ -66,7 +59,6 @@ public class ActividadesController extends Controller {
     @FXML private Button btnEliminarActividad;
     @FXML private Button btnLimpiar;
 
-    // Datos observables
     private final ObservableList<ProyectoDto> proyectos  = FXCollections.observableArrayList();
 
     private final ObservableList<ActividadDto> planificadas = FXCollections.observableArrayList();
@@ -74,14 +66,14 @@ public class ActividadesController extends Controller {
     private final ObservableList<ActividadDto> postergadas  = FXCollections.observableArrayList();
     private final ObservableList<ActividadDto> finalizadas  = FXCollections.observableArrayList();
 
-    // Índice por id para actualizaciones
     private final Map<Long, ActividadDto> porId = new ConcurrentHashMap<>();
 
     private ProyectoWS port;
     private SeguimientoWS segPort;
 
     private ActividadDto actividadActual = null;
-    private boolean edicionBloqueada = false;
+    private boolean edicionBloqueada = false;       // bloqueo general (temporal o por seguimiento)
+    private boolean bloqueoPorSeguimiento = false;  // indica si el bloqueo actual es por seguimientos
 
     @Override
     public void initialize() {
@@ -90,7 +82,7 @@ public class ActividadesController extends Controller {
 
         configurarComboProyectos();
         configurarComboEstados();
-        configurarColumnasKanban();     // <-- Drag & Drop aquí
+        configurarColumnasKanban();
         conectarEventos();
         configurarFechas();
         configurarLimitadoresTexto();
@@ -99,10 +91,9 @@ public class ActividadesController extends Controller {
         cargarProyectos();
         Platform.runLater(this::cargarTodos);
 
-        // Cuando cambia el proyecto seleccionado
         cbProyectos.getSelectionModel().selectedItemProperty().addListener((obs, oldP, newP) -> {
             if (newP != null) {
-                aplicarBloqueo(true); // UI bloqueada mientras se refresca
+                aplicarBloqueo(true); // bloqueo temporal de UI mientras se refresca
                 aplicarRangosProyectoEnPickers(newP);
                 cargarActividades();
                 actualizarBloqueoPorProyectoId(newP.getId());
@@ -121,7 +112,6 @@ public class ActividadesController extends Controller {
         });
     }
 
-    /* ===================== Puertos ===================== */
     private void crearPort(String endpointUrl) {
         try {
             ProyectoService svc = new ProyectoService();
@@ -144,7 +134,6 @@ public class ActividadesController extends Controller {
         }
     }
 
-    /* ===================== UI Básica ===================== */
     private void configurarComboProyectos() {
         cbProyectos.setItems(proyectos);
         cbProyectos.setCellFactory(listView -> new ListCell<>() {
@@ -164,7 +153,6 @@ public class ActividadesController extends Controller {
     private void configurarComboEstados() {
         cbEstadoActividad.getItems().setAll("PLANIFICADA", "EN_CURSO", "POSTERGADA", "FINALIZADA");
         cbEstadoActividad.setValue("PLANIFICADA");
-        // Si cambia el estado desde el formulario, mueve entre listas
         cbEstadoActividad.valueProperty().addListener((obs, oldV, newV) -> {
             if (actividadActual == null || newV == null) return;
             ObservableList<ActividadDto> source = listOfEstado(actividadActual.getEstado());
@@ -189,7 +177,6 @@ public class ActividadesController extends Controller {
         applyMinToday(fechaInicioReal);
         applyMinToday(fechaFinReal);
 
-        // Coherencia planificadas
         fechaInicioPlanificada.valueProperty().addListener((o, ov, nv) -> {
             if (nv != null && fechaFinPlanificada.getValue() != null &&
                 fechaFinPlanificada.getValue().isBefore(nv)) {
@@ -203,7 +190,6 @@ public class ActividadesController extends Controller {
             }
         });
 
-        // Coherencia reales
         fechaInicioReal.valueProperty().addListener((o, ov, nv) -> {
             if (nv != null && fechaFinReal.getValue() != null &&
                 fechaFinReal.getValue().isBefore(nv)) {
@@ -217,16 +203,12 @@ public class ActividadesController extends Controller {
             }
         });
     }
-    
-    
+
     private void configurarLimitadoresTexto() {
-        // Descripción: solo cap por esquema
         if (txtDescripcion != null) {
             txtDescripcion.setTextFormatter(new TextFormatter<>(c
                     -> c.getControlNewText().length() <= ValidationUtil.FieldLimits.ACTIVIDAD_DESCRIPCION ? c : null));
         }
-
-        // Encargado: SOLO letras/espacios/acentos/apóstrofe/guion + cap
         if (txtEncargado != null) {
             txtEncargado.setTextFormatter(new TextFormatter<>(c -> {
                 String t = c.getControlNewText();
@@ -236,14 +218,11 @@ public class ActividadesController extends Controller {
                 return t.matches("[\\p{L}\\s'\\-áéíóúÁÉÍÓÚñÑ]*") ? c : null;
             }));
         }
-
-        // Correo encargado: solo cap por esquema
         if (txtEncargadoCorreo != null) {
             txtEncargadoCorreo.setTextFormatter(new TextFormatter<>(c
                     -> c.getControlNewText().length() <= ValidationUtil.FieldLimits.ACTIVIDAD_ENCARGADO_CORREO ? c : null));
         }
     }
-
 
     private void applyMinToday(DatePicker dp) {
         dp.setDayCellFactory(picker -> new DateCell() {
@@ -289,7 +268,6 @@ public class ActividadesController extends Controller {
         fechaFinReal.setDisable(edicionBloqueada);
     }
 
-    /* ===================== Drag & Drop Kanban ===================== */
     private void configurarColumnasKanban() {
         lvPlanificada.setItems(planificadas);
         lvEnCurso.setItems(enCurso);
@@ -309,7 +287,6 @@ public class ActividadesController extends Controller {
                 }
             };
 
-            // Iniciar drag
             cell.setOnDragDetected(e -> {
                 if (chequearBloqueoYAdvertir()) { e.consume(); return; }
                 ActividadDto a = cell.getItem();
@@ -321,14 +298,12 @@ public class ActividadesController extends Controller {
                 e.consume();
             });
 
-            // Permitir arrastrar sobre otras celdas
             cell.setOnDragOver(e -> {
                 if (chequearBloqueoYAdvertir()) { e.consume(); return; }
                 if (e.getDragboard().hasString()) e.acceptTransferModes(TransferMode.MOVE);
                 e.consume();
             });
 
-            // Soltar sobre una celda (insert en índice)
             cell.setOnDragDropped(e -> {
                 if (chequearBloqueoYAdvertir()) { e.setDropCompleted(false); e.consume(); return; }
                 Dragboard db = e.getDragboard();
@@ -354,7 +329,6 @@ public class ActividadesController extends Controller {
                 e.consume();
             });
 
-            // Click para cargar al formulario
             cell.setOnMouseClicked(e -> {
                 if (cell.getItem() != null && e.getClickCount() == 1) {
                     cargarActividadEnFormulario(cell.getItem());
@@ -369,7 +343,6 @@ public class ActividadesController extends Controller {
         lvPostergada.setCellFactory(factory);
         lvFinalizada.setCellFactory(factory);
 
-        // Drop en zona vacía (al final)
         java.util.function.Consumer<ListView<ActividadDto>> setupEmptyDrop = lv -> {
             lv.setOnDragOver(e -> {
                 if (chequearBloqueoYAdvertir()) { e.consume(); return; }
@@ -401,7 +374,6 @@ public class ActividadesController extends Controller {
         setupEmptyDrop.accept(lvPostergada);
         setupEmptyDrop.accept(lvFinalizada);
 
-        // Filtros de bloqueo
         instalarFiltroBloqueo(lvPlanificada);
         instalarFiltroBloqueo(lvEnCurso);
         instalarFiltroBloqueo(lvPostergada);
@@ -452,7 +424,6 @@ public class ActividadesController extends Controller {
         }
     }
 
-    /* ===================== Carga y persistencia ===================== */
     private void cargarProyectos() {
         Task<List<ProyectoDto>> task = new Task<>() {
             @Override protected List<ProyectoDto> call() throws Exception {
@@ -568,7 +539,6 @@ public class ActividadesController extends Controller {
         new Thread(t, "persistir-actividad").start();
     }
 
-    /* ===================== CRUD ===================== */
     private void guardarActividad() {
         if (chequearBloqueoYAdvertir()) return;
         if (!validarFormulario()) return;
@@ -662,7 +632,6 @@ public class ActividadesController extends Controller {
         });
     }
 
-    /* ===================== Helpers de formulario ===================== */
     private void cargarActividadEnFormulario(ActividadDto actividad) {
         actividadActual = actividad;
 
@@ -671,7 +640,6 @@ public class ActividadesController extends Controller {
         txtEncargadoCorreo.setText(nvl(actividad.getEncargadoCorreo()));
         cbEstadoActividad.setValue(nvl(actividad.getEstado()));
 
-        // límites razonables
         txtDescripcion.setTextFormatter(new TextFormatter<>(c -> c.getControlNewText().length() <= 500 ? c : null));
         txtEncargado.setTextFormatter(new TextFormatter<>(c -> c.getControlNewText().length() <= 100 ? c : null));
         txtEncargadoCorreo.setTextFormatter(new TextFormatter<>(c -> c.getControlNewText().length() <= 120 ? c : null));
@@ -713,7 +681,6 @@ public class ActividadesController extends Controller {
             mostrarAdvertencia("La fecha fin real no puede ser anterior a la fecha inicio real"); return false;
         }
 
-        // Validar rango del proyecto (estrictamente dentro)
         ProyectoDto p = cbProyectos.getValue();
         if (p != null) {
             LocalDate pIni = dateToLocalDate(DateUtil.fromXml(p.getFechaInicioPlanificada()));
@@ -746,7 +713,6 @@ public class ActividadesController extends Controller {
         return a;
     }
 
-    /* ===================== Sincronización Proyecto ===================== */
     private void sincronizarProyectoConActividades() {
         if (edicionBloqueada) return;
 
@@ -831,7 +797,6 @@ public class ActividadesController extends Controller {
                 .orElse(null);
     }
 
-    /* ===================== Bloqueo por Seguimientos ===================== */
     private void actualizarBloqueoPorProyectoId(Long proyectoId) {
         if (proyectoId == null) { aplicarBloqueo(false); return; }
         Task<Boolean> t = new Task<>() {
@@ -842,8 +807,14 @@ public class ActividadesController extends Controller {
                 return segs != null && !segs.isEmpty();
             }
         };
-        t.setOnSucceeded(e -> aplicarBloqueo(Boolean.TRUE.equals(t.getValue())));
-        t.setOnFailed(e -> aplicarBloqueo(false));
+        t.setOnSucceeded(e -> {
+            bloqueoPorSeguimiento = Boolean.TRUE.equals(t.getValue());
+            aplicarBloqueo(bloqueoPorSeguimiento);
+        });
+        t.setOnFailed(e -> {
+            bloqueoPorSeguimiento = false;
+            aplicarBloqueo(false);
+        });
         new Thread(t, "chk-seguimientos").start();
     }
 
@@ -851,20 +822,17 @@ public class ActividadesController extends Controller {
         Runnable ui = () -> {
             this.edicionBloqueada = bloquear;
 
-            // Botones y campos
             btnGuardarActividad.setDisable(bloquear);
             btnEditarActividad.setDisable(bloquear);
             btnEliminarActividad.setDisable(bloquear);
             cbEstadoActividad.setDisable(bloquear);
             fechaFinReal.setDisable(bloquear);
 
-            // Mostrar / ocultar aviso
             if (lblBloqueoInfo != null) {
-                lblBloqueoInfo.setVisible(bloquear);
-                lblBloqueoInfo.setManaged(bloquear);
+                lblBloqueoInfo.setVisible(bloqueoPorSeguimiento);
+                lblBloqueoInfo.setManaged(bloqueoPorSeguimiento);
             }
 
-            // Listas
             setListBlocked(lvPlanificada, bloquear);
             setListBlocked(lvEnCurso, bloquear);
             setListBlocked(lvPostergada, bloquear);
@@ -875,14 +843,16 @@ public class ActividadesController extends Controller {
     }
 
     private void setListBlocked(ListView<?> lv, boolean bloquear) {
-        lv.setDisable(false);             // visible
-        lv.setMouseTransparent(bloquear); // pero sin interacción si está bloqueado
+        lv.setDisable(false);
+        lv.setMouseTransparent(bloquear);
     }
 
     private void instalarFiltroBloqueo(ListView<?> lv) {
         lv.addEventFilter(javafx.scene.input.MouseEvent.DRAG_DETECTED, e -> {
             if (edicionBloqueada) {
-                mostrarAdvertencia("No se pueden modificar actividades porque existe un seguimiento registrado para este proyecto. Elimine el seguimiento para habilitar cambios.");
+                if (bloqueoPorSeguimiento) {
+                    mostrarAdvertencia("No se pueden modificar actividades porque existe un seguimiento registrado para este proyecto. Elimine el seguimiento para habilitar cambios.");
+                }
                 e.consume();
             }
         });
@@ -893,11 +863,12 @@ public class ActividadesController extends Controller {
 
     private boolean chequearBloqueoYAdvertir() {
         if (!edicionBloqueada) return false;
-        mostrarAdvertencia("No se pueden modificar actividades porque existe un seguimiento registrado para este proyecto. Elimine el seguimiento para habilitar cambios.");
+        if (bloqueoPorSeguimiento) {
+            mostrarAdvertencia("No se pueden modificar actividades porque existe un seguimiento registrado para este proyecto. Elimine el seguimiento para habilitar cambios.");
+        }
         return true;
     }
 
-    /* ===================== Varios ===================== */
     private void cargarTodos() {
         ProyectoDto sel = cbProyectos.getValue();
         if (sel != null) {
@@ -907,7 +878,6 @@ public class ActividadesController extends Controller {
         }
     }
 
-    /** Aplica el rango del proyecto a los DatePicker (estrictamente dentro). */
     private void aplicarRangosProyectoEnPickers(ProyectoDto p) {
         LocalDate minExcl = dateToLocalDate(DateUtil.fromXml(p.getFechaInicioPlanificada()));
         LocalDate maxExcl = dateToLocalDate(DateUtil.fromXml(p.getFechaFinalPlanificada()));
@@ -917,7 +887,6 @@ public class ActividadesController extends Controller {
         applyBetweenExclusive(fechaFinPlanificada,   minExcl, maxExcl);
     }
 
-    /** Limita un DatePicker a (minExcl, maxExcl): deshabilita <=min y >=max. */
     private void applyBetweenExclusive(DatePicker dp, LocalDate minExcl, LocalDate maxExcl) {
         if (dp == null) return;
         dp.setDayCellFactory(picker -> new DateCell() {
