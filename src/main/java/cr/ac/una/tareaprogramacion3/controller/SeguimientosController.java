@@ -382,30 +382,25 @@ private void actualizarEstadoFormularioSegunSeleccion() {
 }
 
  
-    private void guardar() {
+   private void guardar() {
     ProyectoDto pSel = cbProyectos.getSelectionModel().getSelectedItem();
     if (pSel == null || pSel.getId() == null) { warn("Seleccione un proyecto."); return; }
 
-   
     ProyectoDto p = respData(proyPort().buscarProyectoPorId(pSel.getId()), ProyectoDto.class);
-    if (p == null) p = pSel; 
+    if (p == null) p = pSel;     
     String estadoActual = (p.getEstado() == null) ? "" : p.getEstado().trim().toUpperCase();
 
-    
     if ("FINALIZADO".equals(estadoActual)) {
         warn("Este proyecto ya está FINALIZADO. No es posible agregar nuevos seguimientos.");
         return;
     }
 
-    
     if (!proyectoTieneActividades(p.getId())) {
         warn("Antes de registrar un seguimiento, debe existir al menos una actividad en el proyecto.");
         return;
     }
 
-  
     int pct = (int) Math.round(sliderPorcentaje.getValue());
-    
     pct = Math.max(pct, ultimoPct);
     if (pct < 0 || pct > 100) { warn("El porcentaje debe estar entre 0 y 100."); return; }
 
@@ -416,7 +411,6 @@ private void actualizarEstadoFormularioSegunSeleccion() {
     Long adminId = UserSession.get().getAdminId();
     if (adminId == null) { warn("No hay usuario autenticado en sesión."); return; }
 
-    
     SeguimientoProyectoDto dto = new SeguimientoProyectoDto();
     dto.setProyectoId(p.getId());
     dto.setFechaSeguimiento(toXmlCal(LocalDate.now()));
@@ -425,7 +419,6 @@ private void actualizarEstadoFormularioSegunSeleccion() {
     dto.setCreadoPorId(adminId);
 
     try {
-        
         Object res = segPort().crearSeguimiento(dto);
         if (!respOk(res)) {
             String m = respMsg(res);
@@ -433,17 +426,23 @@ private void actualizarEstadoFormularioSegunSeleccion() {
             return;
         }
 
-        
         int pctProyectoActual = (p.getPorcentajeAvance() == null) ? 0 : p.getPorcentajeAvance();
         int nuevoPctProyecto   = Math.max(pctProyectoActual, pct);
 
         boolean debeFinalizar = (pct >= 100) || (nuevoPctProyecto >= 100);
+
+        // NUEVO: si pasó de 0 a >0, poner EN_CURSO y setear fechaInicioReal
+        if (pctProyectoActual == 0 && nuevoPctProyecto > 0 && !"EN_CURSO".equals(p.getEstado())) {
+            p.setEstado("EN_CURSO");
+            p.setFechaInicioReal(toXmlCal(LocalDate.now()));
+        }
+
         if (debeFinalizar) {
             nuevoPctProyecto = 100;
             p.setEstado("FINALIZADO");
+            p.setFechaFinalReal(toXmlCal(LocalDate.now())); // NUEVO
         }
 
-       
         if (!Objects.equals(p.getPorcentajeAvance(), nuevoPctProyecto) || debeFinalizar) {
             p.setPorcentajeAvance(nuevoPctProyecto);
             Object upd = proyPort().actualizarProyecto(p);
@@ -452,18 +451,15 @@ private void actualizarEstadoFormularioSegunSeleccion() {
             } else if (debeFinalizar) {
                 info("Seguimiento guardado y proyecto marcado como FINALIZADO (100%).");
             }
-            
             AppEvents.fireProyectoActualizado(p.getId());
         } else {
             info("Seguimiento guardado.");
         }
 
-        
         ultimoPct = (p.getPorcentajeAvance() == null) ? nuevoPctProyecto : p.getPorcentajeAvance();
         sliderPorcentaje.setMin(ultimoPct);
         sliderPorcentaje.setValue(ultimoPct);
 
-        // Recargar tabla y limpiar form
         cargarSeguimientos();
         ordenarTablaDescPorFecha();
         limpiarFormulario();
@@ -480,34 +476,29 @@ private void actualizarEstadoFormularioSegunSeleccion() {
     if (pSel == null || pSel.getId() == null) { warn("Seleccione un proyecto."); return; }
     if (sel == null) { warn("Seleccione un seguimiento de la tabla."); return; }
 
-    // Refrescar estado actual del proyecto desde WS
     ProyectoDto p = respData(proyPort().buscarProyectoPorId(pSel.getId()), ProyectoDto.class);
-    if (p == null) p = pSel; // fallback
+    if (p == null) p = pSel;
     String estadoActual = (p.getEstado() == null) ? "" : p.getEstado().trim().toUpperCase();
 
-    // Si ya está finalizado, no permitir edición
     if ("FINALIZADO".equals(estadoActual)) {
         warn("Este proyecto ya está FINALIZADO. No se pueden editar seguimientos.");
         return;
     }
 
-    // Solo permitir editar el de MAYOR porcentaje
     if (!esMayorPorcentajeSeleccionado()) {
         warn("Solo se puede editar el seguimiento con mayor porcentaje.");
         return;
     }
 
-    
     int minEdicion = pctAnteriorPorPorcentaje(sel);
     int pct = (int) Math.round(sliderPorcentaje.getValue());
-    pct = Math.max(pct, minEdicion); // no decrecer por debajo del anterior
+    pct = Math.max(pct, minEdicion);
     if (pct < 0 || pct > 100) { warn("El porcentaje debe estar entre 0 y 100."); return; }
 
     String obs = txtObservaciones.getText() == null ? "" : txtObservaciones.getText().trim();
     if (obs.isEmpty()) { warn("Las observaciones son obligatorias."); return; }
     if (obs.length() > OBS_MAX) { warn("Las observaciones no deben exceder " + OBS_MAX + " caracteres."); return; }
 
-    // Actualizar DTO de seguimie
     sel.setPorcentajeAvance(pct);
     sel.setObservaciones(obs);
 
@@ -519,14 +510,21 @@ private void actualizarEstadoFormularioSegunSeleccion() {
             return;
         }
 
-        // Ajustar porcentaje y estado del proyecto
         int currentPct = (p.getPorcentajeAvance() == null) ? 0 : p.getPorcentajeAvance();
         int nuevoPct   = Math.max(currentPct, pct);
 
         boolean debeFinalizar = (pct >= 100) || (nuevoPct >= 100);
+
+        // NUEVO: si pasó de 0 a >0, poner EN_CURSO y setear fechaInicioReal si no estaba ya
+        if (currentPct == 0 && nuevoPct > 0 && !"EN_CURSO".equals(p.getEstado())) {
+            p.setEstado("EN_CURSO");
+            p.setFechaInicioReal(toXmlCal(toLocalDate(sel.getFechaSeguimiento())));
+        }
+
         if (debeFinalizar) {
             nuevoPct = 100;
             p.setEstado("FINALIZADO");
+            p.setFechaFinalReal(toXmlCal(toLocalDate(sel.getFechaSeguimiento()))); // NUEVO
         }
 
         if (!Objects.equals(p.getPorcentajeAvance(), nuevoPct) || debeFinalizar) {
@@ -542,12 +540,10 @@ private void actualizarEstadoFormularioSegunSeleccion() {
             info("Seguimiento actualizado.");
         }
 
-      
         ultimoPct = nuevoPct;
         sliderPorcentaje.setMin(nuevoPct);
         sliderPorcentaje.setValue(nuevoPct);
 
-        
         cargarSeguimientos();
 
     } catch (Exception ex) {
@@ -557,77 +553,96 @@ private void actualizarEstadoFormularioSegunSeleccion() {
 
     
     private void actualizarProyectoTrasEliminarSeguimiento(Long proyectoId) {
-        try {
-            
-            Object rSeg = segPort().buscarSeguimientosPorProyecto(proyectoId);
-            List<SeguimientoProyectoDto> segs = respListOf(rSeg, SeguimientoProyectoDto.class);
-            int pSeg = -1;
-            if (segs != null && !segs.isEmpty()) {
-                pSeg = segs.stream()
-                        .map(s -> s.getPorcentajeAvance() == null ? 0 : s.getPorcentajeAvance())
-                        .max(Integer::compareTo)
-                        .orElse(0);
+    try {
+        // Consultar seguimientos del proyecto
+        Object rSeg = segPort().buscarSeguimientosPorProyecto(proyectoId);
+        List<SeguimientoProyectoDto> segs = respListOf(rSeg, SeguimientoProyectoDto.class);
+
+        int nuevoPct = 0;
+        String nuevoEstado = "PLANIFICADO";
+        XMLGregorianCalendar fechaInicioReal = null;
+        XMLGregorianCalendar fechaFinalReal = null;
+
+        if (segs != null && !segs.isEmpty()) {
+            // Ordenar por fecha ascendente y descendente
+            List<SeguimientoProyectoDto> segsOrdenados = new ArrayList<>(segs);
+            segsOrdenados.sort(Comparator.comparing(s -> toDate(s.getFechaSeguimiento())));
+
+            // Primer y último seguimiento
+            SeguimientoProyectoDto primero = segsOrdenados.get(0);
+            SeguimientoProyectoDto ultimo = segsOrdenados.get(segsOrdenados.size() - 1);
+
+            nuevoPct = Math.max(0, Math.min(100, ultimo.getPorcentajeAvance() == null ? 0 : ultimo.getPorcentajeAvance()));
+
+            if (nuevoPct >= 100) {
+                nuevoEstado = "FINALIZADO";
+                fechaInicioReal = primero.getFechaSeguimiento();
+                fechaFinalReal = ultimo.getFechaSeguimiento();
+            } else if (nuevoPct > 0) {
+                nuevoEstado = "EN_CURSO";
+                fechaInicioReal = primero.getFechaSeguimiento();
             }
+        }
 
-            
-            Object rAct = proyPort().obtenerActividadesPorProyecto(proyectoId);
-            List<cr.ac.una.client.soap.ActividadDto> acts =
-                    respListOf(rAct, cr.ac.una.client.soap.ActividadDto.class);
-            int pAct = 0;
-            if (acts != null && !acts.isEmpty()) {
-                long fin = acts.stream()
-                        .filter(a -> "FINALIZADA".equalsIgnoreCase(String.valueOf(a.getEstado())))
-                        .count();
-                pAct = (int) Math.floor((fin * 100.0) / acts.size());
-            }
-
-           
-            int nuevoPct = (pSeg >= 0) ? Math.max(pSeg, pAct) : pAct;
-            nuevoPct = Math.max(0, Math.min(100, nuevoPct));
-
-         
-            String nuevoEstado = "PLANIFICADO";
-            if (acts != null && !acts.isEmpty()) {
-                boolean anyEnCurso = acts.stream().anyMatch(a -> "EN_CURSO".equalsIgnoreCase(String.valueOf(a.getEstado())));
-                boolean anyPost = acts.stream().anyMatch(a -> "POSTERGADA".equalsIgnoreCase(String.valueOf(a.getEstado())));
-                boolean allFin = acts.stream().allMatch(a -> "FINALIZADA".equalsIgnoreCase(String.valueOf(a.getEstado())));
-                if (allFin || nuevoPct >= 100) nuevoEstado = "FINALIZADO";
-                else if (anyEnCurso) nuevoEstado = "EN_CURSO";
-                else if (anyPost) nuevoEstado = "SUSPENDIDO";
-            }
-
-           
-            ProyectoDto p = respData(proyPort().buscarProyectoPorId(proyectoId), ProyectoDto.class);
+        // Cargar proyecto actual
+        ProyectoDto p = respData(proyPort().buscarProyectoPorId(proyectoId), ProyectoDto.class);
+        if (p == null) {
+            p = cbProyectos.getSelectionModel().getSelectedItem();
             if (p == null) {
-                p = cbProyectos.getSelectionModel().getSelectedItem();
-                if (p == null) { warn("No se pudo obtener el proyecto para actualizar su porcentaje."); return; }
-            }
-
-            Integer actualPct = p.getPorcentajeAvance() == null ? 0 : p.getPorcentajeAvance();
-            String  actualEst = p.getEstado();
-            if (Objects.equals(actualPct, nuevoPct) && Objects.equals(actualEst, nuevoEstado)) {
-                ultimoPct = nuevoPct;
-                sliderPorcentaje.setMin(nuevoPct);
-                sliderPorcentaje.setValue(nuevoPct);
-                AppEvents.fireProyectoActualizado(proyectoId);
+                warn("No se pudo obtener el proyecto para actualizar su porcentaje.");
                 return;
             }
+        }
 
+        // Solo actualizar si cambió algo
+        boolean cambio = false;
+        if (!Objects.equals(p.getPorcentajeAvance(), nuevoPct)) {
             p.setPorcentajeAvance(nuevoPct);
+            cambio = true;
+        }
+        if (!Objects.equals(p.getEstado(), nuevoEstado)) {
             p.setEstado(nuevoEstado);
+            cambio = true;
+        }
 
+        // Actualizar fechas reales según el estado
+        if ("PLANIFICADO".equals(nuevoEstado)) {
+            if (p.getFechaInicioReal() != null || p.getFechaFinalReal() != null) {
+                p.setFechaInicioReal(null);
+                p.setFechaFinalReal(null);
+                cambio = true;
+            }
+        } else if ("EN_CURSO".equals(nuevoEstado)) {
+            if (!Objects.equals(p.getFechaInicioReal(), fechaInicioReal)) {
+                p.setFechaInicioReal(fechaInicioReal);
+                cambio = true;
+            }
+            p.setFechaFinalReal(null);
+        } else if ("FINALIZADO".equals(nuevoEstado)) {
+            if (!Objects.equals(p.getFechaInicioReal(), fechaInicioReal)) {
+                p.setFechaInicioReal(fechaInicioReal);
+                cambio = true;
+            }
+            if (!Objects.equals(p.getFechaFinalReal(), fechaFinalReal)) {
+                p.setFechaFinalReal(fechaFinalReal);
+                cambio = true;
+            }
+        }
+
+        if (cambio) {
             Object upd = proyPort().actualizarProyecto(p);
             if (!respOk(upd)) warn("No se pudo actualizar el proyecto con el nuevo porcentaje/estado.");
-
-            ultimoPct = nuevoPct;
-            sliderPorcentaje.setMin(nuevoPct);
-            sliderPorcentaje.setValue(nuevoPct);
-            AppEvents.fireProyectoActualizado(proyectoId);
-
-        } catch (Exception ex) {
-            warn("No se pudo ajustar el proyecto tras eliminar el seguimiento: " + ex.getMessage());
         }
+
+        ultimoPct = nuevoPct;
+        sliderPorcentaje.setMin(nuevoPct);
+        sliderPorcentaje.setValue(nuevoPct);
+        AppEvents.fireProyectoActualizado(proyectoId);
+
+    } catch (Exception ex) {
+        warn("No se pudo ajustar el proyecto tras eliminar el seguimiento: " + ex.getMessage());
     }
+}
 
     private void eliminar() {
         SeguimientoProyectoDto sel = tablaSeguimientos.getSelectionModel().getSelectedItem();
