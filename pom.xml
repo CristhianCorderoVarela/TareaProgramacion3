@@ -15,19 +15,19 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.compiler.release>21</maven.compiler.release>
 
-    
+    <!-- JavaFX -->
     <javafx.version>23.0.1</javafx.version>
 
-    
+    <!-- JPA / EclipseLink -->
     <jakarta.persistence.version>3.1.0</jakarta.persistence.version>
     <eclipselink.version>4.0.2</eclipselink.version>
 
-    
+    <!-- Oracle JDBC -->
     <oracle.driver.version>23.4.0.24.05</oracle.driver.version>
   </properties>
 
   <dependencies>
-    
+    <!-- JavaFX (Windows) -->
     <dependency>
       <groupId>org.openjfx</groupId>
       <artifactId>javafx-controls</artifactId>
@@ -47,7 +47,7 @@
       <classifier>win</classifier>
     </dependency>
 
-   
+    <!-- JPA / EclipseLink -->
     <dependency>
       <groupId>jakarta.persistence</groupId>
       <artifactId>jakarta.persistence-api</artifactId>
@@ -59,7 +59,7 @@
       <version>${eclipselink.version}</version>
     </dependency>
 
-    
+    <!-- Oracle JDBC -->
     <dependency>
       <groupId>com.oracle.database.jdbc</groupId>
       <artifactId>ojdbc11</artifactId>
@@ -67,19 +67,27 @@
       <scope>runtime</scope>
     </dependency>
 
-   
+    <!-- Utilidades -->
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-math3</artifactId>
       <version>3.6.1</version>
     </dependency>
+
+    <!-- Log4j -->
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-core</artifactId>
       <version>2.23.1</version>
     </dependency>
+    <!-- (añadido) API de Log4j para mayor compatibilidad -->
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-api</artifactId>
+      <version>2.23.1</version>
+    </dependency>
 
-    
+    <!-- JAX-WS (Metro) -->
     <dependency>
       <groupId>com.sun.xml.ws</groupId>
       <artifactId>jaxws-rt</artifactId>
@@ -96,7 +104,7 @@
       <version>2.1.1</version>
     </dependency>
 
-    
+    <!-- JAXB -->
     <dependency>
       <groupId>jakarta.xml.bind</groupId>
       <artifactId>jakarta.xml.bind-api</artifactId>
@@ -107,12 +115,11 @@
       <artifactId>jaxb-runtime</artifactId>
       <version>4.0.4</version>
     </dependency>
-   
   </dependencies>
 
   <build>
     <plugins>
-     
+      <!-- Compilación -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -122,7 +129,7 @@
         </configuration>
       </plugin>
 
-      
+      <!-- Ejecución en desarrollo (no afecta al jar sombreado) -->
       <plugin>
         <groupId>org.openjfx</groupId>
         <artifactId>javafx-maven-plugin</artifactId>
@@ -132,7 +139,7 @@
         </configuration>
       </plugin>
 
-     
+      <!-- Generación de clientes SOAP -->
       <plugin>
         <groupId>com.sun.xml.ws</groupId>
         <artifactId>jaxws-maven-plugin</artifactId>
@@ -155,7 +162,7 @@
               </vmArgs>
             </configuration>
           </execution>
-          
+
           <execution>
             <id>wsimport-adminws</id>
             <phase>generate-sources</phase>
@@ -228,26 +235,27 @@
         </executions>
       </plugin>
 
-     
+      <!-- Empaquetado ejecutable (fat-jar) -->
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-shade-plugin</artifactId>
-        <version>3.5.1</version>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <goals><goal>shade</goal></goals>
-            <configuration>
-              <createDependencyReducedPom>false</createDependencyReducedPom>
-              <transformers>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <mainClass>cr.ac.una.tareaprogramacion3.App</mainClass>
-                </transformer>
-              </transformers>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
+  <groupId>org.apache.maven.plugins</groupId>
+  <artifactId>maven-shade-plugin</artifactId>
+  <version>3.5.1</version>
+  <executions>
+    <execution>
+      <phase>package</phase>
+      <goals><goal>shade</goal></goals>
+      <configuration>
+        <createDependencyReducedPom>false</createDependencyReducedPom>
+        <transformers>
+          <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+            <!-- IMPORTANTE: apuntar al wrapper con public static void main -->
+            <mainClass>cr.ac.una.tareaprogramacion3.Main</mainClass>
+          </transformer>
+        </transformers>
+      </configuration>
+    </execution>
+  </executions>
+</plugin>
 
     </plugins>
   </build>
