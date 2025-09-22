@@ -895,7 +895,7 @@ private void actualizarEstadoFormularioSegunSeleccion() {
         tablaSeguimientos.sort();
     }
 
-    /** Verifica si el proyecto tiene al menos una actividad. */
+    
     private boolean proyectoTieneActividades(Long proyectoId) {
         try {
             Object rAct = proyPort().obtenerActividadesPorProyecto(proyectoId);
