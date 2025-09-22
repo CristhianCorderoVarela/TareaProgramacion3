@@ -1,4 +1,4 @@
-/* ===== Menú lateral oscuro (segmentado/flat) ===== */
+
 .menu-lateral {
     -fx-background-color: rgba(36, 44, 58, 0.92);
     -fx-background-radius: 12;
@@ -6,7 +6,7 @@
     -fx-border-radius: 12;
     -fx-border-width: 1;
     -fx-padding: 28 16 22 16;
-    -fx-spacing: 0; /* <- botones pegados */
+    -fx-spacing: 0; 
     -fx-effect:
         dropshadow(gaussian, rgba(136,166,255,0.12), 26, 0.35, 0, 0),
         innershadow(gaussian, rgba(129,161,193,0.05), 22, 0.25, 0, 0);
@@ -14,12 +14,12 @@
 .menu-lateral .text { -fx-fill:#aab6c7; -fx-font-weight:600; }
 .menu-lateral .line { -fx-stroke: rgba(129,161,193,0.35); }
 
-/* ===== Botones segmentados (planos, línea divisoria) ===== */
+
 .menu-lateral > .boton-menu {
-    /* base plana oscura */
+   
     -fx-background-color: rgba(45, 55, 72, 0.86);
     -fx-background-radius: 0;
-    /* línea finísima inferior como separador */
+    
     -fx-border-color: transparent transparent rgba(129,161,193,0.22) transparent;
     -fx-border-width: 0 0 1 0;
     -fx-border-radius: 0;
@@ -33,30 +33,30 @@
     -fx-padding: 12 14 12 14;
     -fx-cursor: hand;
 
-    -fx-effect: none;            /* plano */
+    -fx-effect: none;           
     -fx-opacity: 1.0;
 }
 
-/* primer y último para “pastilla” completa */
+
 .menu-lateral > .boton-menu:first-child {
     -fx-background-radius: 10 10 0 0;
     -fx-border-radius: 10 10 0 0;
-    /* sin línea arriba */
+    
     -fx-border-color: transparent transparent rgba(129,161,193,0.22) transparent;
 }
 .menu-lateral > .boton-menu:last-child {
     -fx-background-radius: 0 0 10 10;
     -fx-border-radius: 0 0 10 10;
-    /* sin línea abajo (ya es el final) */
+    
     -fx-border-width: 0;
 }
 
-/* hover: mismo tono, un poco más claro (sutil) */
+
 .menu-lateral > .boton-menu:hover {
     -fx-background-color: rgba(56, 66, 86, 0.95);
 }
 
-/* pressed: un pelín más oscuro */
+
 .menu-lateral > .boton-menu:pressed {
     -fx-background-color: rgba(40, 49, 65, 0.95);
 }

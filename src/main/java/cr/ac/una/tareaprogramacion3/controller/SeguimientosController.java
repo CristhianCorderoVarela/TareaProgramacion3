@@ -20,7 +20,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.util.StringConverter;
 
-// WS
+
 import cr.ac.una.client.soap.ProyectoDto;
 import cr.ac.una.client.soap.ProyectoService;
 import cr.ac.una.client.soap.ProyectoWS;
@@ -29,25 +29,25 @@ import cr.ac.una.client.soap.SeguimientoService;
 import cr.ac.una.client.soap.SeguimientoWS;
 import cr.ac.una.tareaprogramacion3.util.AppEvents;
 
-// Base/Utils
+
 import cr.ac.una.tareaprogramacion3.util.Controller;
 import cr.ac.una.tareaprogramacion3.util.UserSession;
 import jakarta.xml.ws.BindingProvider;
 
 public class SeguimientosController extends Controller implements Initializable {
 
-    // --- Top bar
+    
     @FXML private ComboBox<ProyectoDto> cbProyectos;
     @FXML private Button btnCargarSeguimientos;
 
-    // --- Tabla
+   
     @FXML private TableView<SeguimientoProyectoDto> tablaSeguimientos;
     @FXML private TableColumn<SeguimientoProyectoDto, LocalDate> colFecha;
     @FXML private TableColumn<SeguimientoProyectoDto, Number> colPorcentaje;
     @FXML private TableColumn<SeguimientoProyectoDto, String> colObservaciones;
     @FXML private TableColumn<SeguimientoProyectoDto, String> colResponsable;
 
-    // --- Formulario
+   
     @FXML private DatePicker fechaSeguimiento;
     @FXML private Slider sliderPorcentaje;
     @FXML private Label lblPorcentaje;
@@ -59,10 +59,10 @@ public class SeguimientosController extends Controller implements Initializable 
     @FXML private Button btnEliminarSeguimiento;
     @FXML private Button btnLimpiarSeguimiento;
 
-    // % vigente (último seguimiento o % del proyecto); gobierna “no decrecer”
+    
     private int ultimoPct = 0;
 
-    // ===== Endpoints =====
+    
     private <T> T withEndpoint(T port, String path) {
         String base = "http://localhost:8080";
         Map<String, Object> ctx = ((BindingProvider) port).getRequestContext();
@@ -78,7 +78,7 @@ public class SeguimientosController extends Controller implements Initializable 
                 "/ProyectoService/ProyectoWS");
     }
 
-    // ====== Inicialización JavaFX ======
+    
     @Override
 public void initialize(URL url, ResourceBundle rb) {
     configurarTabla();
@@ -87,9 +87,9 @@ public void initialize(URL url, ResourceBundle rb) {
     prepararResponsableDesdeSesion();
     prepararReglasFormulario();
     limpiarFormulario();
-    cargarProyectos(); // carga inicial
+    cargarProyectos(); 
 
-    // Permite que otra ventana te diga “cargá X proyecto y mostrámelo”
+    
     AppEvents.onIrASeguimientos(proyectoId -> {
         cbProyectos.getItems().stream()
                 .filter(p -> Objects.equals(p.getId(), proyectoId))
@@ -100,11 +100,11 @@ public void initialize(URL url, ResourceBundle rb) {
                 });
     });
 
-    // Limpiar selección y volver a "agregar nuevo" solo si hacen clic FUERA de la tabla y del formulario
+   
     tablaSeguimientos.sceneProperty().addListener((obs, oldScene, scene) -> {
         if (scene == null) return;
         scene.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> {
-            // Si el clic es dentro de la tabla o de cualquiera de los controles del formulario, no limpiar
+            
             if (isInside(tablaSeguimientos, e.getTarget())
                     || isInside(txtObservaciones, e.getTarget())
                     || isInside(sliderPorcentaje, e.getTarget())
@@ -117,7 +117,7 @@ public void initialize(URL url, ResourceBundle rb) {
                 return;
             }
 
-            // Clic fuera -> limpiar selección y volver a modo "agregar nuevo"
+            
             if (tablaSeguimientos.getSelectionModel().getSelectedItem() != null) {
                 tablaSeguimientos.getSelectionModel().clearSelection();
                 limpiarFormulario();
@@ -125,7 +125,7 @@ public void initialize(URL url, ResourceBundle rb) {
         });
     });
 }
-    public void initialize() { /* no-op; compatible con Controller base */ }
+    public void initialize() {}
 
     private void prepararResponsableDesdeSesion() {
         try {
@@ -171,7 +171,7 @@ public void initialize(URL url, ResourceBundle rb) {
         colResponsable.setCellValueFactory(d ->
                 new SimpleStringProperty(d.getValue().getCreadoPorNombre() == null ? "" : d.getValue().getCreadoPorNombre()));
 
-        // Orden visual por fecha DESC
+        
         colFecha.setSortType(TableColumn.SortType.DESCENDING);
         tablaSeguimientos.getSortOrder().setAll(colFecha);
     }
@@ -202,7 +202,7 @@ public void initialize(URL url, ResourceBundle rb) {
         });
 
         cbProyectos.getSelectionModel().selectedItemProperty().addListener((obs, oldP, newP) -> {
-            if (newP != null) cargarSeguimientos(); // fija ultimoPct + slider
+            if (newP != null) cargarSeguimientos(); 
         });
     }
 
@@ -229,23 +229,20 @@ public void initialize(URL url, ResourceBundle rb) {
         return c;
     }));
 
-    // Pasos de 1, sin "snap" a marcas de 5
+    
     sliderPorcentaje.setBlockIncrement(1);
     sliderPorcentaje.setMajorTickUnit(10);
-    sliderPorcentaje.setMinorTickCount(9); // marcas cada 1
-    sliderPorcentaje.setSnapToTicks(false); // evita saltos de 5
+    sliderPorcentaje.setMinorTickCount(9); 
+    sliderPorcentaje.setSnapToTicks(false); 
     sliderPorcentaje.setShowTickLabels(true);
     sliderPorcentaje.setShowTickMarks(true);
 }
     
-    /** Devuelve el porcentaje del seguimiento inmediatamente anterior
- *  en el orden de MAYOR A MENOR POR PORCENTAJE (empates: más reciente primero).
- *  Si no hay anterior, usa ultimoPct como base.
- */
+   
 private int pctAnteriorPorPorcentaje(SeguimientoProyectoDto sel) {
     if (sel == null) return ultimoPct;
 
-    // Ordenar por % desc, empate por fecha desc
+    
     List<SeguimientoProyectoDto> items = new ArrayList<>(tablaSeguimientos.getItems());
     items.sort(Comparator
             .comparingInt((SeguimientoProyectoDto s) -> s.getPorcentajeAvance() == null ? 0 : s.getPorcentajeAvance())
@@ -254,7 +251,7 @@ private int pctAnteriorPorPorcentaje(SeguimientoProyectoDto sel) {
                     Comparator.nullsLast(Comparator.reverseOrder()))
     );
 
-    // Ubicar sel por id; si no hay id, por (% , fecha)
+    
     int idx = -1;
     for (int i = 0; i < items.size(); i++) {
         SeguimientoProyectoDto s = items.get(i);
@@ -272,7 +269,7 @@ private int pctAnteriorPorPorcentaje(SeguimientoProyectoDto sel) {
     return ultimoPct;
 }
 
-    // ====== Cargas ======
+  
     private void cargarProyectos() {
         try {
             Object r = proyPort().obtenerTodosProyectos();
@@ -286,7 +283,7 @@ private int pctAnteriorPorPorcentaje(SeguimientoProyectoDto sel) {
         }
     }
 
-    /** Listener reutilizable para selección en tabla */
+    
     private final javafx.beans.value.ChangeListener<SeguimientoProyectoDto> tablaSelListener =
             (obs, oldSel, sel) -> {
                 if (sel != null) {
@@ -301,7 +298,7 @@ private int pctAnteriorPorPorcentaje(SeguimientoProyectoDto sel) {
                 actualizarEstadoFormularioSegunSeleccion();
             };
 
-    /** Carga y deja todo ordenado DESC por fecha, ajusta slider y botones. */
+    /** Carga y deja todo ordenado  */
     private void cargarSeguimientos() {
         ProyectoDto p = cbProyectos.getSelectionModel().getSelectedItem();
         if (p == null || p.getId() == null) { warn("Seleccione un proyecto."); return; }
@@ -311,17 +308,17 @@ private int pctAnteriorPorPorcentaje(SeguimientoProyectoDto sel) {
             List<SeguimientoProyectoDto> lista =
                     SeguimientosController.<SeguimientoProyectoDto>respListOf(r, SeguimientoProyectoDto.class);
 
-            // Ordenar DESC por fecha
+            
             lista = ordenarDescPorFecha(lista);
 
-            // Cargar en tabla y ordenar por columna fecha DESC
+            
             tablaSeguimientos.getItems().setAll(lista);
             colFecha.setSortable(true);
             colFecha.setSortType(TableColumn.SortType.DESCENDING);
             tablaSeguimientos.getSortOrder().setAll(colFecha);
             tablaSeguimientos.sort();
 
-            // % base: max(% proyecto, % del último seguimiento)
+            
             int base = p.getPorcentajeAvance() == null ? 0 : p.getPorcentajeAvance();
             if (!lista.isEmpty()) {
                 Integer ult = lista.get(0).getPorcentajeAvance();
@@ -333,11 +330,11 @@ private int pctAnteriorPorPorcentaje(SeguimientoProyectoDto sel) {
 
             fechaSeguimiento.setValue(LocalDate.now());
 
-            // Registrar (o re-registrar) el listener de selección una sola vez
+            
             tablaSeguimientos.getSelectionModel().selectedItemProperty().removeListener(tablaSelListener);
             tablaSeguimientos.getSelectionModel().selectedItemProperty().addListener(tablaSelListener);
 
-            // Estado del formulario según selección actual
+            
             actualizarEstadoFormularioSegunSeleccion();
 
         } catch (Exception ex) {
@@ -345,28 +342,14 @@ private int pctAnteriorPorPorcentaje(SeguimientoProyectoDto sel) {
         }
     }
 
-    // ====== Reglas de UI segun selección ======
-    /** Reglas:
-     *  - Sin selección: Guardar habilitado, Editar/Eliminar deshabilitados, slider activo con min=ultimoPct.
-     *  - Selección NO mayor %: Guardar/Editar deshabilitados, slider deshabilitado.
-     *  - Selección ES mayor %: Guardar deshabilitado, Editar habilitado, slider activo con min=porcentaje del anterior por FECHA.
-     */
-    /** Reglas para edición:
- *  - Sin selección: se puede AGREGAR (Guardar habilitado), slider desde ultimoPct, observación editable.
- *  - Con selección:
- *      * Solo si es el ÚLTIMO por FECHA (el más reciente) se puede EDITAR:
- *          - Editar habilitado, Guardar deshabilitado.
- *          - Slider habilitado con mínimo = porcentaje del seguimiento anterior por FECHA.
- *          - Observación editable.
- *      * Cualquier otro registro queda solo lectura (sin editar, slider deshabilitado, observación no editable).
- */
+   
 private void actualizarEstadoFormularioSegunSeleccion() {
     SeguimientoProyectoDto sel = tablaSeguimientos.getSelectionModel().getSelectedItem();
     boolean hayItems = !tablaSeguimientos.getItems().isEmpty();
     boolean mayorPct = esMayorPorcentajeSeleccionado();
 
     if (sel == null) {
-        // modo "agregar nuevo"
+       
         btnGuardarSeguimiento.setDisable(false);
         btnEditarSeguimiento.setDisable(true);
         btnEliminarSeguimiento.setDisable(true);
@@ -375,7 +358,7 @@ private void actualizarEstadoFormularioSegunSeleccion() {
         sliderPorcentaje.setValue(Math.max(sliderPorcentaje.getValue(), ultimoPct));
     } else {
         if (mayorPct) {
-            // Solo el de mayor % es editable; mínimo = penúltimo por porcentaje
+            
             btnGuardarSeguimiento.setDisable(true);
             btnEditarSeguimiento.setDisable(false);
             btnEliminarSeguimiento.setDisable(!(hayItems));
@@ -386,7 +369,7 @@ private void actualizarEstadoFormularioSegunSeleccion() {
             int val = sel.getPorcentajeAvance() == null ? min : sel.getPorcentajeAvance();
             sliderPorcentaje.setValue(Math.max(val, min));
         } else {
-            // No mayor %: no se puede editar ni mover slider
+           
             btnGuardarSeguimiento.setDisable(true);
             btnEditarSeguimiento.setDisable(true);
             btnEliminarSeguimiento.setDisable(true);
@@ -398,31 +381,31 @@ private void actualizarEstadoFormularioSegunSeleccion() {
     }
 }
 
-    // ====== Acciones ======
+ 
     private void guardar() {
     ProyectoDto pSel = cbProyectos.getSelectionModel().getSelectedItem();
     if (pSel == null || pSel.getId() == null) { warn("Seleccione un proyecto."); return; }
 
-    // 0) Refrescar estado real del proyecto desde el WS (evita decidir con datos viejos)
+   
     ProyectoDto p = respData(proyPort().buscarProyectoPorId(pSel.getId()), ProyectoDto.class);
-    if (p == null) p = pSel; // fallback
+    if (p == null) p = pSel; 
     String estadoActual = (p.getEstado() == null) ? "" : p.getEstado().trim().toUpperCase();
 
-    // 1) Si el proyecto YA está finalizado -> NO permitir agregar seguimiento
+    
     if ("FINALIZADO".equals(estadoActual)) {
         warn("Este proyecto ya está FINALIZADO. No es posible agregar nuevos seguimientos.");
         return;
     }
 
-    // (opcional) Regla de negocio previa que ya tenías: debe haber al menos 1 actividad
+    
     if (!proyectoTieneActividades(p.getId())) {
         warn("Antes de registrar un seguimiento, debe existir al menos una actividad en el proyecto.");
         return;
     }
 
-    // 2) Lectura/validación de formulario
+  
     int pct = (int) Math.round(sliderPorcentaje.getValue());
-    // no permitir retroceder respecto al % vigente
+    
     pct = Math.max(pct, ultimoPct);
     if (pct < 0 || pct > 100) { warn("El porcentaje debe estar entre 0 y 100."); return; }
 
@@ -433,7 +416,7 @@ private void actualizarEstadoFormularioSegunSeleccion() {
     Long adminId = UserSession.get().getAdminId();
     if (adminId == null) { warn("No hay usuario autenticado en sesión."); return; }
 
-    // 3) Construir DTO de seguimiento
+    
     SeguimientoProyectoDto dto = new SeguimientoProyectoDto();
     dto.setProyectoId(p.getId());
     dto.setFechaSeguimiento(toXmlCal(LocalDate.now()));
@@ -442,7 +425,7 @@ private void actualizarEstadoFormularioSegunSeleccion() {
     dto.setCreadoPorId(adminId);
 
     try {
-        // 4) Crear seguimiento
+        
         Object res = segPort().crearSeguimiento(dto);
         if (!respOk(res)) {
             String m = respMsg(res);
@@ -450,7 +433,7 @@ private void actualizarEstadoFormularioSegunSeleccion() {
             return;
         }
 
-        // 5) Ajustar % y estado del proyecto si corresponde
+        
         int pctProyectoActual = (p.getPorcentajeAvance() == null) ? 0 : p.getPorcentajeAvance();
         int nuevoPctProyecto   = Math.max(pctProyectoActual, pct);
 
@@ -460,7 +443,7 @@ private void actualizarEstadoFormularioSegunSeleccion() {
             p.setEstado("FINALIZADO");
         }
 
-        // Sólo llamar al WS si hay cambios
+       
         if (!Objects.equals(p.getPorcentajeAvance(), nuevoPctProyecto) || debeFinalizar) {
             p.setPorcentajeAvance(nuevoPctProyecto);
             Object upd = proyPort().actualizarProyecto(p);
@@ -469,13 +452,13 @@ private void actualizarEstadoFormularioSegunSeleccion() {
             } else if (debeFinalizar) {
                 info("Seguimiento guardado y proyecto marcado como FINALIZADO (100%).");
             }
-            // Notificar a otras ventanas/listeners
+            
             AppEvents.fireProyectoActualizado(p.getId());
         } else {
             info("Seguimiento guardado.");
         }
 
-        // 6) Dejar UI coherente con el nuevo % del proyecto
+        
         ultimoPct = (p.getPorcentajeAvance() == null) ? nuevoPctProyecto : p.getPorcentajeAvance();
         sliderPorcentaje.setMin(ultimoPct);
         sliderPorcentaje.setValue(ultimoPct);
@@ -514,7 +497,7 @@ private void actualizarEstadoFormularioSegunSeleccion() {
         return;
     }
 
-    // Calcular mínimo válido (penúltimo por porcentaje)
+    
     int minEdicion = pctAnteriorPorPorcentaje(sel);
     int pct = (int) Math.round(sliderPorcentaje.getValue());
     pct = Math.max(pct, minEdicion); // no decrecer por debajo del anterior
@@ -524,7 +507,7 @@ private void actualizarEstadoFormularioSegunSeleccion() {
     if (obs.isEmpty()) { warn("Las observaciones son obligatorias."); return; }
     if (obs.length() > OBS_MAX) { warn("Las observaciones no deben exceder " + OBS_MAX + " caracteres."); return; }
 
-    // Actualizar DTO de seguimiento
+    // Actualizar DTO de seguimie
     sel.setPorcentajeAvance(pct);
     sel.setObservaciones(obs);
 
@@ -559,12 +542,12 @@ private void actualizarEstadoFormularioSegunSeleccion() {
             info("Seguimiento actualizado.");
         }
 
-        // Ajustar UI
+      
         ultimoPct = nuevoPct;
         sliderPorcentaje.setMin(nuevoPct);
         sliderPorcentaje.setValue(nuevoPct);
 
-        // Recargar tabla
+        
         cargarSeguimientos();
 
     } catch (Exception ex) {
@@ -572,10 +555,10 @@ private void actualizarEstadoFormularioSegunSeleccion() {
     }
 }
 
-    /** Tras eliminar un seguimiento, recalcula el % del proyecto */
+    
     private void actualizarProyectoTrasEliminarSeguimiento(Long proyectoId) {
         try {
-            // 1) % por seguimiento remanente de MAYOR porcentaje
+            
             Object rSeg = segPort().buscarSeguimientosPorProyecto(proyectoId);
             List<SeguimientoProyectoDto> segs = respListOf(rSeg, SeguimientoProyectoDto.class);
             int pSeg = -1;
@@ -586,7 +569,7 @@ private void actualizarEstadoFormularioSegunSeleccion() {
                         .orElse(0);
             }
 
-            // 2) % por actividades actuales (vía ProyectoWS)
+            
             Object rAct = proyPort().obtenerActividadesPorProyecto(proyectoId);
             List<cr.ac.una.client.soap.ActividadDto> acts =
                     respListOf(rAct, cr.ac.una.client.soap.ActividadDto.class);
@@ -598,11 +581,11 @@ private void actualizarEstadoFormularioSegunSeleccion() {
                 pAct = (int) Math.floor((fin * 100.0) / acts.size());
             }
 
-            // 3) Nuevo % (max del mayor seguimiento remanente vs % por actividades; si no hay seguimientos, solo pAct)
+           
             int nuevoPct = (pSeg >= 0) ? Math.max(pSeg, pAct) : pAct;
             nuevoPct = Math.max(0, Math.min(100, nuevoPct));
 
-            // 4) Estado coherente
+         
             String nuevoEstado = "PLANIFICADO";
             if (acts != null && !acts.isEmpty()) {
                 boolean anyEnCurso = acts.stream().anyMatch(a -> "EN_CURSO".equalsIgnoreCase(String.valueOf(a.getEstado())));
@@ -613,7 +596,7 @@ private void actualizarEstadoFormularioSegunSeleccion() {
                 else if (anyPost) nuevoEstado = "SUSPENDIDO";
             }
 
-            // 5) Actualizar el proyecto (usar DTO completo)
+           
             ProyectoDto p = respData(proyPort().buscarProyectoPorId(proyectoId), ProyectoDto.class);
             if (p == null) {
                 p = cbProyectos.getSelectionModel().getSelectedItem();
@@ -667,13 +650,13 @@ private void actualizarEstadoFormularioSegunSeleccion() {
                 info("Seguimiento eliminado.");
 
                 if (pSel != null && pSel.getId() != null) {
-                    // Recalcular % del proyecto después de eliminar (puede bajar)
+                   
                     actualizarProyectoTrasEliminarSeguimiento(pSel.getId());
-                    // Notificar a otras ventanas
+                   
                     AppEvents.fireProyectoActualizado(pSel.getId());
                 }
 
-                // Recargar tabla y limpiar form
+               
                 cargarSeguimientos();
                 limpiarFormulario();
 
@@ -687,28 +670,28 @@ private void actualizarEstadoFormularioSegunSeleccion() {
     }
 
     private void limpiarFormulario() {
-        // Limpiar textos
+        
         txtObservaciones.clear();
         String nombre = null;
         try { nombre = UserSession.get().getAdminNombre(); } catch (Exception ignored) {}
         txtResponsable.setText(nombre != null ? nombre : "");
 
-        // Quitar selección de la tabla
+        
         tablaSeguimientos.getSelectionModel().clearSelection();
 
-        // Slider en modo "agregar nuevo"
+        
         sliderPorcentaje.setDisable(false);
         sliderPorcentaje.setMin(ultimoPct);
         sliderPorcentaje.setValue(ultimoPct);
         fechaSeguimiento.setValue(LocalDate.now());
 
-        // Botones en modo "agregar"
+        
         btnGuardarSeguimiento.setDisable(false);
         btnEditarSeguimiento.setDisable(true);
         btnEliminarSeguimiento.setDisable(true);
     }
 
-    // ====== Helpers de respuesta ======
+    
     private static boolean respOk(Object resp) {
         if (resp == null) return false;
         Boolean ok = asBool(callNoArg(resp, "isOk", "getOk", "getExito"));
@@ -781,7 +764,7 @@ private void actualizarEstadoFormularioSegunSeleccion() {
         return in == null ? Collections.emptyList() : (List<T>) in;
     }
 
-    // ====== Fechas ======
+   
     private static XMLGregorianCalendar toXmlCal(Date d) {
         if (d == null) return null;
         GregorianCalendar gc = new GregorianCalendar();
@@ -803,7 +786,7 @@ private void actualizarEstadoFormularioSegunSeleccion() {
         return d.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
     }
 
-    // ====== Debug ======
+    
     private void debugIfEmpty(String quien, Object resp) {
         try {
             List<?> l = respListGeneric(resp);
@@ -827,7 +810,7 @@ private void actualizarEstadoFormularioSegunSeleccion() {
         }
     }
 
-    // ====== Helpers extra ======
+   
     @SuppressWarnings("unchecked")
     private static <T> T respData(Object resp, Class<T> type) {
         if (resp == null) return null;
@@ -836,9 +819,7 @@ private void actualizarEstadoFormularioSegunSeleccion() {
         return (type.isInstance(d)) ? type.cast(d) : null;
     }
 
-    /** True si el seleccionado es el seguimiento con MAYOR porcentaje.
-     *  En caso de empate por %, se toma el más reciente.
-     */
+    
     private boolean esMayorPorcentajeSeleccionado() {
         SeguimientoProyectoDto sel = tablaSeguimientos.getSelectionModel().getSelectedItem();
         if (sel == null) return false;
@@ -849,7 +830,7 @@ private void actualizarEstadoFormularioSegunSeleccion() {
                         .comparingInt((SeguimientoProyectoDto s) ->
                                 s.getPorcentajeAvance() == null ? 0 : s.getPorcentajeAvance())
                         .thenComparing(s -> toDate(s.getFechaSeguimiento()),
-                                Comparator.nullsLast(Comparator.naturalOrder())) // más reciente gana empates
+                                Comparator.nullsLast(Comparator.naturalOrder())) 
                 )
                 .orElse(null);
 
@@ -858,7 +839,7 @@ private void actualizarEstadoFormularioSegunSeleccion() {
         if (mayor.getId() != null && sel.getId() != null) {
             return Objects.equals(mayor.getId(), sel.getId());
         }
-        // Fallback si no hay id:
+        
         Integer pSel = sel.getPorcentajeAvance() == null ? 0 : sel.getPorcentajeAvance();
         Integer pMax = mayor.getPorcentajeAvance() == null ? 0 : mayor.getPorcentajeAvance();
         Date dSel = toDate(sel.getFechaSeguimiento());
@@ -866,7 +847,7 @@ private void actualizarEstadoFormularioSegunSeleccion() {
         return Objects.equals(pSel, pMax) && Objects.equals(dSel, dMax);
     }
 
-    /** Devuelve nueva lista ordenada DESC por fecha (más reciente primero). */
+    
     private List<SeguimientoProyectoDto> ordenarDescPorFecha(List<SeguimientoProyectoDto> lista) {
         if (lista == null) return Collections.emptyList();
         List<SeguimientoProyectoDto> out = new ArrayList<>(lista);
@@ -877,15 +858,13 @@ private void actualizarEstadoFormularioSegunSeleccion() {
         return out;
     }
 
-    /** Devuelve el porcentaje del seguimiento inmediatamente anterior por FECHA al seleccionado.
-     *  Si no existe anterior, devuelve ultimoPct (base del proyecto/último registro).
-     */
+    
     private int pctAnteriorPorFecha(SeguimientoProyectoDto sel) {
         if (sel == null) return ultimoPct;
-        List<SeguimientoProyectoDto> items = ordenarDescPorFecha(new ArrayList<>(tablaSeguimientos.getItems())); // más reciente primero
+        List<SeguimientoProyectoDto> items = ordenarDescPorFecha(new ArrayList<>(tablaSeguimientos.getItems())); 
         int idx = items.indexOf(sel);
         if (idx == -1) {
-            // Si equals() no coincide, buscar por id/fecha
+            
             for (int i = 0; i < items.size(); i++) {
                 SeguimientoProyectoDto s = items.get(i);
                 if ((s.getId() != null && sel.getId() != null && Objects.equals(s.getId(), sel.getId())) ||
@@ -901,7 +880,7 @@ private void actualizarEstadoFormularioSegunSeleccion() {
         return ultimoPct;
     }
 
-    /** Reordenamiento visual redundante (por si hay cambios en caliente). */
+   
     private void ordenarTablaDescPorFecha() {
         List<SeguimientoProyectoDto> items = new ArrayList<>(tablaSeguimientos.getItems());
         items.sort(Comparator.comparing(
@@ -928,7 +907,7 @@ private void actualizarEstadoFormularioSegunSeleccion() {
         }
     }
 
-    // ====== Click fuera de la tabla ======
+   
     private boolean isInside(Node root, Object target) {
         if (!(target instanceof Node n)) return false;
         for (Node x = n; x != null; x = x.getParent()) {
@@ -937,7 +916,7 @@ private void actualizarEstadoFormularioSegunSeleccion() {
         return false;
     }
 
-    // ====== Alerts ======
+    
     private void info(String m){ Alert a=new Alert(Alert.AlertType.INFORMATION,"",ButtonType.OK); a.setHeaderText(null); a.setContentText(m); a.showAndWait(); }
     private void warn(String m){ Alert a=new Alert(Alert.AlertType.WARNING,"",ButtonType.OK); a.setHeaderText(null); a.setContentText(m); a.showAndWait(); }
     private void error(String t,String d){ Alert a=new Alert(Alert.AlertType.ERROR,"",ButtonType.OK); a.setHeaderText(t); a.setContentText(d!=null?d:""); a.showAndWait(); }

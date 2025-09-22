@@ -7,7 +7,7 @@ import cr.ac.una.client.soap.ProyectoWS;
 import cr.ac.una.client.soap.ReporteWS;
 import cr.ac.una.client.soap.ReporteWSService;
 import cr.ac.una.client.soap.RespuestaExcel;
-import cr.ac.una.client.soap.RespuestaGeneralLista; // se mantiene para los métodos que ya te funcionaban
+import cr.ac.una.client.soap.RespuestaGeneralLista; 
 import cr.ac.una.client.soap.SeguimientoProyectoDto;
 import cr.ac.una.client.soap.SeguimientoService;
 import cr.ac.una.client.soap.SeguimientoWS;
@@ -38,10 +38,10 @@ import java.util.stream.Collectors;
 
 public class ProyectosController extends Controller {
 
-    // ======= Búsqueda =======
+  
     @FXML private TextField txtBuscar;
 
-    // ======= Listas por estado =======
+    
     @FXML private ListView<ProyectoDto> listaPlanificados;
     @FXML private ListView<ProyectoDto> listaEnProceso;
     @FXML private ListView<ProyectoDto> listaSuspendidos;
@@ -52,66 +52,66 @@ public class ProyectosController extends Controller {
     private final ObservableList<ProyectoDto> dataSuspendidos  = FXCollections.observableArrayList();
     private final ObservableList<ProyectoDto> dataFinalizados  = FXCollections.observableArrayList();
 
-    // ======= Controles Excel / estado =======
+   
     @FXML private Button btnGenerarExcel;
     @FXML private ProgressIndicator progressExcel;
     @FXML private Label lblEstadoExcel;
     @FXML private Label lblProyectoSeleccionado;
 
-    // ======= CRUD barra =======
-    @FXML private Button btnEliminar; // botón Eliminar del FXML
+    
+    @FXML private Button btnEliminar; 
 
-    // ======= WS Ports =======
+    
     private ProyectoWS proyectoPort;
     private ReporteWS  reportePort;
     private SeguimientoWS seguimientoPort;
 
-    // ======= Endpoints =======
+    
     private static final String PROYECTO_ENDPOINT    = "http://localhost:8080/ProyectoService/ProyectoWS";
     private static final String REPORTE_ENDPOINT     = "http://localhost:8080/ReporteWSService/ReporteWS";
     private static final String SEGUIMIENTO_ENDPOINT = "http://localhost:8080/SeguimientoService/SeguimientoWS";
 
-    // Cache para búsqueda
+   
     private List<ProyectoDto> cache = new ArrayList<>();
 
-    // Proyecto marcado con Excel generado vigente (para resaltar)
+   
     private ProyectoDto proyectoConExcelGenerado = null;
 
     private final SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy");
 
     @Override
     public void initialize() {
-        // Puertos
+        
         crearProyectoPort(PROYECTO_ENDPOINT);
         crearReportePort(REPORTE_ENDPOINT);
         crearSeguimientoPort(SEGUIMIENTO_ENDPOINT);
 
-        // Listas
+        
         prepararLista(listaPlanificados, dataPlanificados);
         prepararLista(listaEnProceso,    dataEnProceso);
         prepararLista(listaSuspendidos,  dataSuspendidos);
         prepararLista(listaFinalizados,  dataFinalizados);
 
-        // Búsqueda
+        
         if (txtBuscar != null) {
             txtBuscar.textProperty().addListener((obs, ov, nv) -> aplicarFiltro());
         }
 
-        // Estado inicial
+        
         if (btnGenerarExcel != null) btnGenerarExcel.setDisable(true);
         if (progressExcel != null)   progressExcel.setVisible(false);
         if (lblEstadoExcel != null)  lblEstadoExcel.setVisible(false);
         if (lblProyectoSeleccionado != null) lblProyectoSeleccionado.setText("Ninguno");
         if (btnEliminar != null)     btnEliminar.setDisable(true);
 
-        // Suscripción eventos globales
+        
         AppEvents.onProyectoActualizado(id -> Platform.runLater(this::cargarTodos));
 
-        // Datos
+        
         cargarTodos();
     }
 
-    // ===================== Puertos SOAP =====================
+    
     private void crearProyectoPort(String endpointUrl) {
         ProyectoService svc = new ProyectoService();
         this.proyectoPort = svc.getProyectoWSPort();
@@ -135,7 +135,7 @@ public class ProyectosController extends Controller {
                 .put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, endpointUrl);
     }
 
-    // ===================== Listas y celdas =====================
+ 
     private void prepararLista(ListView<ProyectoDto> lv, ObservableList<ProyectoDto> backing) {
         if (lv == null) return;
 
@@ -186,7 +186,7 @@ public class ProyectosController extends Controller {
             }
         });
 
-        // Doble click -> editar
+        
         lv.setOnMouseClicked(e -> {
             if (e.getClickCount() == 2) {
                 ProyectoDto sel = lv.getSelectionModel().getSelectedItem();
@@ -194,7 +194,7 @@ public class ProyectosController extends Controller {
             }
         });
 
-        // Selección
+       
         lv.getSelectionModel().selectedItemProperty().addListener((obs, o, n) -> {
             if (n != null) {
                 limpiarOtrasSelecciones(lv);
@@ -357,7 +357,7 @@ public class ProyectosController extends Controller {
         });
     }
 
-    // ===================== Acciones CRUD / Excel =====================
+    
     @FXML private void onNuevoProyecto() { abrirDialogoViaFlow(null); }
 
     @FXML private void onRefrescar() { cargarTodos(); }
@@ -435,7 +435,7 @@ public class ProyectosController extends Controller {
         new Thread(task, "generar-excel").start();
     }
 
-    // ===================== Eliminar Proyecto (cascada) =====================
+ 
     @FXML
     private void onEliminarSeleccion() {
         ProyectoDto sel = obtenerSeleccion();
@@ -463,7 +463,7 @@ public class ProyectosController extends Controller {
             protected Void call() throws Exception {
                 Long proyectoId = sel.getId();
 
-                // 1) Eliminar seguimientos
+              
                 Object rSeg = seguimientoPort.buscarSeguimientosPorProyecto(proyectoId);
                 List<Object> itemsSeg = extraerLista(rSeg);
                 for (Object o : itemsSeg) {
@@ -476,7 +476,7 @@ public class ProyectosController extends Controller {
                     }
                 }
 
-                // 2) Eliminar actividades
+               
                 Object rAct = proyectoPort.obtenerActividadesPorProyecto(proyectoId);
                 List<Object> itemsAct = extraerLista(rAct);
                 for (Object o : itemsAct) {
@@ -489,7 +489,7 @@ public class ProyectosController extends Controller {
                     }
                 }
 
-                // 3) Eliminar proyecto
+          
                 Object rDelProy = proyectoPort.eliminarProyecto(proyectoId);
                 if (!respOk(rDelProy)) {
                     throw new RuntimeException(nvl(respMsg(rDelProy)) + " (al eliminar el proyecto).");
@@ -525,7 +525,7 @@ public class ProyectosController extends Controller {
         new Thread(task, "eliminar-proyecto-cascada").start();
     }
 
-    // ===================== Auxiliares =====================
+    
     private ProyectoDto obtenerSeleccion() {
         ProyectoDto p;
         if (listaPlanificados!=null && (p = listaPlanificados.getSelectionModel().getSelectedItem()) != null) return p;
@@ -695,9 +695,9 @@ public class ProyectosController extends Controller {
         a.showAndWait();
     }
 
-    /* =================== Helpers genéricos de respuesta =================== */
 
-    /** Intenta evaluar "éxito" en una respuesta cualquiera (isOk/getOk/getExito o getEstado=OK/SUCCESS). */
+
+    
     private boolean respOk(Object resp) {
         if (resp == null) return false;
         Boolean ok = (Boolean) callNoArgOrNull(resp, "isOk", "getOk", "getExito");
@@ -706,26 +706,26 @@ public class ProyectosController extends Controller {
         return estado != null && (estado.equalsIgnoreCase("OK") || estado.equalsIgnoreCase("SUCCESS"));
     }
 
-    /** Extrae un posible mensaje de la respuesta. */
+   
     private String respMsg(Object resp) {
         Object m = callNoArgOrNull(resp, "getMensaje", "getMessage", "getDetalle");
         return m == null ? "" : String.valueOf(m);
     }
 
-    /** Devuelve la lista contenida en respuestas tipo RespuestaWsLista/RespuestaGeneralLista, etc. */
+
     @SuppressWarnings("unchecked")
     private List<Object> extraerLista(Object respuesta) {
         if (respuesta == null) return List.of();
-        // Casos típicos: resp.getItems().getItem()
+        
         Object items = callNoArgOrNull(respuesta, "getItems", "getLista", "getDatos", "getData");
         if (items == null) return List.of();
         if (items instanceof JAXBElement<?> j) items = j.getValue();
 
-        // getItem() dentro de items
+        
         Object itemList = callNoArgOrNull(items, "getItem", "getItems", "getProyectos", "getActividades", "getSeguimientos");
         if (itemList instanceof List<?>) return (List<Object>) itemList;
 
-        // Si items ya es List
+        
         if (items instanceof List<?>) return (List<Object>) items;
 
         return List.of();

@@ -63,13 +63,13 @@ public class ProyectoDialogController extends cr.ac.una.tareaprogramacion3.util.
     
     /** Llamado por Ventana1Controller antes de abrir el modal */
 public void init(String proyectoEndpointUrl, ProyectoDto dto) {
-    // ====== Configurar WS Proyecto ======
+    
     ProyectoService svc = new ProyectoService();
     this.proyPort = svc.getProyectoWSPort();
     Map<String, Object> ctx = ((BindingProvider) proyPort).getRequestContext();
     ctx.put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, proyectoEndpointUrl);
 
-    // ====== Configurar WS Seguimiento (derivado del endpoint de proyecto) ======
+    
     String segEndpoint = proyectoEndpointUrl
             .replace("ProyectoService/ProyectoWS", "SeguimientoService/SeguimientoWS");
     SeguimientoService segSvc = new SeguimientoService();
@@ -77,21 +77,21 @@ public void init(String proyectoEndpointUrl, ProyectoDto dto) {
     Map<String, Object> ctx2 = ((BindingProvider) segPort).getRequestContext();
     ctx2.put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, segEndpoint);
 
-    // ====== DTO (nuevo o edición) ======
+   
     this.modelo = (dto != null) ? dto : new ProyectoDto();
 
     txtNombre.setText(nv(modelo.getNombre()));
 
-    // Siempre mostrar SOLO "PLANIFICADO" y dejarlo fijo (no editable)
+    
     cmbEstado.getItems().setAll("PLANIFICADO");
     cmbEstado.getSelectionModel().select("PLANIFICADO");
-    cmbEstado.setDisable(true); // evita cambios por el usuario
+    cmbEstado.setDisable(true); 
 
-    // Mantener estado interno coherente
-    bloquearPlanificado = false;         // ya no aplica la lógica de bloqueo dinámico
-    ultimoEstadoValido  = "PLANIFICADO"; // por si en el futuro reactivas el control
+    
+    bloquearPlanificado = false;         
+    ultimoEstadoValido  = "PLANIFICADO"; 
 
-    // Resto de campos
+   
     txtPatrocinador.setText(nv(modelo.getPatrocinadorNombre()));
     txtCorreoPatrocinador.setText(nv(modelo.getPatrocinadorCorreo()));
 
@@ -101,13 +101,13 @@ public void init(String proyectoEndpointUrl, ProyectoDto dto) {
     txtLiderTecnico.setText(nv(modelo.getLiderTecnicoNombre()));
     txtCorreoLiderTecnico.setText(nv(modelo.getLiderTecnicoCorreo()));
 
-    // Cargar fechas en los DatePicker
+    
     setDate(dpInicioPlan, modelo.getFechaInicioPlanificada());
     setDate(dpFinPlan,    modelo.getFechaFinalPlanificada());
     setDate(dpInicioReal, modelo.getFechaInicioReal());
     setDate(dpFinReal,    modelo.getFechaFinalReal());
 
-    // Desactiva días pasados y amarra rangos fin >= inicio
+    
     configurarDatePickers();
 }
 
@@ -148,7 +148,7 @@ public void init(String proyectoEndpointUrl, ProyectoDto dto) {
 private void onGuardar() {
     LocalDate hoy = LocalDate.now();
 
-    // --- Validaciones mínimas ---
+    // Validaciones 
     if (blank(txtNombre.getText())) { warn("Validación", "El nombre es obligatorio."); return; }
     if (cmbEstado.getValue() == null) { warn("Validación", "Seleccione un estado."); return; }
 
@@ -161,7 +161,7 @@ private void onGuardar() {
     if (blank(txtLiderTecnico.getText())) { warn("Validación", "El nombre del líder técnico es obligatorio."); return; }
     if (!emailOk(txtCorreoLiderTecnico.getText())) { warn("Validación", "El correo del líder técnico es obligatorio y debe ser válido."); return; }
 
-    // ===== Fechas planificadas (OBLIGATORIAS) =====
+    //Fechas planificadas 
     LocalDate iniPlan = (dpInicioPlan != null) ? dpInicioPlan.getValue() : null;
     LocalDate finPlan = (dpFinPlan    != null) ? dpFinPlan.getValue()    : null;
 
@@ -178,7 +178,7 @@ private void onGuardar() {
         return;
     }
 
-    // ===== Fechas reales (opcionales; los DatePicker pueden NO existir) =====
+    //  Fechas reales 
     LocalDate iniReal = (dpInicioReal != null) ? dpInicioReal.getValue() : null;
     LocalDate finReal = (dpFinReal    != null) ? dpFinReal.getValue()    : null;
 
@@ -201,7 +201,7 @@ private void onGuardar() {
         }
     }
 
-    // ===== Estado =====
+    // Estado 
     String estadoElegido = cmbEstado.getValue();
     if (bloquearPlanificado && "PLANIFICADO".equals(estadoElegido)) {
         warn("No permitido",
@@ -210,7 +210,7 @@ private void onGuardar() {
         return;
     }
 
-    // --- UI -> DTO ---
+    
     modelo.setNombre(txtNombre.getText().trim());
     modelo.setEstado(estadoElegido);
 
@@ -223,14 +223,14 @@ private void onGuardar() {
     modelo.setLiderTecnicoNombre(nv(txtLiderTecnico.getText()).trim());
     modelo.setLiderTecnicoCorreo(nv(txtCorreoLiderTecnico.getText()).trim());
 
-    // Fechas planificadas (obligatorias) y reales (opcionales)
+    // Fechas planificadas y reales 
     modelo.setFechaInicioPlanificada(toXml(iniPlan));
     modelo.setFechaFinalPlanificada(toXml(finPlan));
     modelo.setFechaInicioReal(toXml(iniReal));
     modelo.setFechaFinalReal(toXml(finReal));
 
-    // --- Guardar vía WS ---
-    Long idAdministrador = 1L; // TODO: reemplazar por el id real de sesión si corresponde
+    
+    Long idAdministrador = 1L; 
 
     RespuestaGeneral r = (modelo.getId() == null)
             ? proyPort.crearProyecto(modelo, idAdministrador)
@@ -258,7 +258,7 @@ private void onGuardar() {
 
     public boolean isGuardado() { return guardado; }
 
-    // ===== Alerts =====
+   
     private void warn(String titulo, String msg) {
         Alert a = new Alert(Alert.AlertType.WARNING);
         a.setHeaderText(titulo);
@@ -273,9 +273,9 @@ private void onGuardar() {
         a.showAndWait();
     }
 
-    // ====== Helpers: contar seguimientos de forma robusta ======
+    
 
-    /** Devuelve la cantidad de seguimientos para el proyecto. */
+   
     private int contarSeguimientos(Long proyectoId) {
         try {
             Object resp = segPort.buscarSeguimientosPorProyecto(proyectoId);
@@ -287,7 +287,7 @@ private void onGuardar() {
         }
     }
 
-    /** Intenta extraer una lista desde distintas formas comunes de respuesta JAX-WS. */
+    
     @SuppressWarnings("unchecked")
     private List<?> extraerLista(Object resp) {
         if (resp == null) return Collections.emptyList();
@@ -334,13 +334,13 @@ private void onGuardar() {
             return out;
         }
 
-        Object items = tryGet(data, "getItem"); // muy común en wrappers JAX-WS
+        Object items = tryGet(data, "getItem");
         if (items != null) return aLista(items);
 
         return null;
     }
 
-    /** Devuelve la PRIMERA lista/array encontrada en cualquier getter sin argumentos del objeto. */
+    
     @SuppressWarnings("unchecked")
     private List<?> firstListLike(Object src) {
         if (src == null) return null;
@@ -360,17 +360,17 @@ private void onGuardar() {
         return null;
     }
 
-    // ======== DatePicker helpers (desactivar pasados y amarrar rangos) ========
+    
 
-    /** Desactiva días pasados y asegura rangos: finPlan >= inicioPlan, finReal >= inicioReal */
+   
     private void configurarDatePickers() {
-        // Desactivar días pasados en todos
+       
         bloquearPasados(dpInicioPlan);
         bloquearPasados(dpFinPlan);
         bloquearPasados(dpInicioReal);
         bloquearPasados(dpFinReal);
 
-        // Enlazar rangos fin >= inicio para planificadas y reales
+        
         actualizarFactoryFinPlan();
         if (dpInicioPlan != null) {
             dpInicioPlan.valueProperty().addListener((o, ov, nv) -> actualizarFactoryFinPlan());
@@ -382,7 +382,7 @@ private void onGuardar() {
         }
     }
 
-    /** Desactiva cualquier fecha < hoy en un DatePicker */
+    
     private void bloquearPasados(DatePicker dp) {
         if (dp == null) return;
         dp.setDayCellFactory(picker -> new DateCell() {
@@ -399,7 +399,7 @@ private void onGuardar() {
         });
     }
 
-    /** Reaplica la fábrica de celdas para que Fin Plan >= max(Hoy, Inicio Plan) */
+   
     private void actualizarFactoryFinPlan() {
         if (dpFinPlan == null) return;
         LocalDate hoy = LocalDate.now();
@@ -418,7 +418,7 @@ private void onGuardar() {
         });
     }
 
-    /** Reaplica la fábrica de celdas para que Fin Real >= max(Hoy, Inicio Real) */
+    
     private void actualizarFactoryFinReal() {
         if (dpFinReal == null) return;
         LocalDate hoy = LocalDate.now();
