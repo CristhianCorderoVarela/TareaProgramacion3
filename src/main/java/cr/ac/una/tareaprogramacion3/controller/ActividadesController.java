@@ -38,7 +38,7 @@ public class ActividadesController extends Controller {
     // Top bar
     @FXML private ComboBox<ProyectoDto> cbProyectos;
     @FXML private Button btnCargarActividades;
-    @FXML private Button btnNuevaActividad;
+    
 
     // Kanban: 4 columnas
     @FXML private ListView<ActividadDto> lvPlanificada;
@@ -210,7 +210,7 @@ public class ActividadesController extends Controller {
 
     private void conectarEventos() {
         btnCargarActividades.setOnAction(e -> cargarActividades());
-        btnNuevaActividad.setOnAction(e -> { limpiarFormulario(); txtDescripcion.requestFocus(); });
+        
         btnGuardarActividad.setOnAction(e -> guardarActividad());
         btnEditarActividad.setOnAction(e -> editarActividad());
         btnEliminarActividad.setOnAction(e -> eliminarActividad());

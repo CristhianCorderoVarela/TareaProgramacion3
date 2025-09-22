@@ -1,37 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
 
-<BorderPane xmlns="http://javafx.com/javafx/23.0.1"
-            xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="cr.ac.una.tareaprogramacion3.controller.ActividadesController"
-            prefWidth="900" prefHeight="600">
+<BorderPane prefHeight="600" prefWidth="900" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="cr.ac.una.tareaprogramacion3.controller.ActividadesController">
 
     <top>
         <VBox spacing="5">
             <!-- Barra superior -->
             <HBox alignment="CENTER_LEFT" spacing="15">
                 <padding>
-                    <Insets top="10" right="10" bottom="10" left="10"/>
+                    <Insets bottom="10" left="10" right="10" top="10" />
                 </padding>
-                <Label text="Proyecto:" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
-                <ComboBox fx:id="cbProyectos" prefWidth="300"/>
-                <Button fx:id="btnCargarActividades" text="Cargar Actividades"/>
-                <Region HBox.hgrow="ALWAYS"/>
-                <Button fx:id="btnNuevaActividad" text="+ Nueva Actividad"
-                        style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;"/>
+                <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="Proyecto:" />
+                <ComboBox fx:id="cbProyectos" prefWidth="300" />
+                <Button fx:id="btnCargarActividades" text="Cargar Actividades" />
+                <Region HBox.hgrow="ALWAYS" />
             </HBox>
 
             <!-- Aviso de bloqueo -->
-            <Label fx:id="lblBloqueoInfo"
-                   text="⚠️ Las actividades de este proyecto no pueden modificarse mientras existan seguimientos activos. Para habilitar los cambios, elimine primero esos seguimientos."
-                   style="-fx-background-color: #fff3cd; -fx-text-fill: #856404; -fx-padding: 8 15 8 15; -fx-background-radius: 4; -fx-border-color: #ffeaa7; -fx-border-width: 1; -fx-border-radius: 4; -fx-font-weight: bold;"
-                   visible="false"
-                   managed="false">
+            <Label fx:id="lblBloqueoInfo" managed="false" style="-fx-background-color: #fff3cd; -fx-text-fill: #856404; -fx-padding: 8 15 8 15; -fx-background-radius: 4; -fx-border-color: #ffeaa7; -fx-border-width: 1; -fx-border-radius: 4; -fx-font-weight: bold;" text="⚠️ Las actividades de este proyecto no pueden modificarse mientras existan seguimientos activos. Para habilitar los cambios, elimine primero esos seguimientos." visible="false">
                 <VBox.margin>
-                    <Insets left="10" right="10" bottom="5"/>
+                    <Insets bottom="5" left="10" right="10" />
                 </VBox.margin>
             </Label>
         </VBox>
@@ -40,97 +46,96 @@
     <center>
         <SplitPane dividerPositions="0.55">
             <!-- KANBAN (izquierda) -->
-            <ScrollPane fitToWidth="true" fitToHeight="true" hbarPolicy="NEVER" pannable="true"
-                        SplitPane.resizableWithParent="true">
+            <ScrollPane fitToHeight="true" fitToWidth="true" hbarPolicy="NEVER" pannable="true" SplitPane.resizableWithParent="true">
                 <HBox spacing="12" style="-fx-background-color: #f6f8fa;">
                     <padding>
-                        <Insets top="10" right="10" bottom="10" left="10"/>
+                        <Insets bottom="10" left="10" right="10" top="10" />
                     </padding>
 
                     <!-- PLANIFICADA -->
-                    <VBox spacing="8" minWidth="220" prefWidth="220" maxWidth="220"
-                          style="-fx-background-color: #ffffff; -fx-padding:10; -fx-background-radius:8;">
-                        <Label text="PLANIFICADA" style="-fx-font-weight: bold; -fx-text-fill: #2980b9; -fx-font-size: 14px;"/>
-                        <ListView fx:id="lvPlanificada" prefHeight="520"/>
-                        <Label text="Arrastra para ordenar / mover" style="-fx-font-size: 10px; -fx-text-fill: #95a5a6;"/>
+                    <VBox maxWidth="220" minWidth="220" prefWidth="220" spacing="8" style="-fx-background-color: #ffffff; -fx-padding:10; -fx-background-radius:8;">
+                        <Label style="-fx-font-weight: bold; -fx-text-fill: #2980b9; -fx-font-size: 14px;" text="PLANIFICADA" />
+                        <ListView fx:id="lvPlanificada" prefHeight="520" />
+                        <Label style="-fx-font-size: 10px; -fx-text-fill: #95a5a6;" text="Arrastra para ordenar / mover" />
                     </VBox>
 
                     <!-- EN_CURSO -->
-                    <VBox spacing="8" minWidth="220" prefWidth="220" maxWidth="220"
-                          style="-fx-background-color: #ffffff; -fx-padding:10; -fx-background-radius:8;">
-                        <Label text="EN_CURSO" style="-fx-font-weight: bold; -fx-text-fill: #16a085; -fx-font-size: 14px;"/>
-                        <ListView fx:id="lvEnCurso" prefHeight="520"/>
-                        <Label text="Arrastra para ordenar / mover" style="-fx-font-size: 10px; -fx-text-fill: #95a5a6;"/>
+                    <VBox maxWidth="220" minWidth="220" prefWidth="220" spacing="8" style="-fx-background-color: #ffffff; -fx-padding:10; -fx-background-radius:8;">
+                        <Label style="-fx-font-weight: bold; -fx-text-fill: #16a085; -fx-font-size: 14px;" text="EN_CURSO" />
+                        <ListView fx:id="lvEnCurso" prefHeight="520" />
+                        <Label style="-fx-font-size: 10px; -fx-text-fill: #95a5a6;" text="Arrastra para ordenar / mover" />
                     </VBox>
 
                     <!-- POSTERGADA -->
-                    <VBox spacing="8" minWidth="220" prefWidth="220" maxWidth="220"
-                          style="-fx-background-color: #ffffff; -fx-padding:10; -fx-background-radius:8;">
-                        <Label text="POSTERGADA" style="-fx-font-weight: bold; -fx-text-fill: #d35400; -fx-font-size: 14px;"/>
-                        <ListView fx:id="lvPostergada" prefHeight="520"/>
-                        <Label text="Arrastra para ordenar / mover" style="-fx-font-size: 10px; -fx-text-fill: #95a5a6;"/>
+                    <VBox maxWidth="220" minWidth="220" prefWidth="220" spacing="8" style="-fx-background-color: #ffffff; -fx-padding:10; -fx-background-radius:8;">
+                        <Label style="-fx-font-weight: bold; -fx-text-fill: #d35400; -fx-font-size: 14px;" text="POSTERGADA" />
+                        <ListView fx:id="lvPostergada" prefHeight="520" />
+                        <Label style="-fx-font-size: 10px; -fx-text-fill: #95a5a6;" text="Arrastra para ordenar / mover" />
                     </VBox>
 
                     <!-- FINALIZADA -->
-                    <VBox spacing="8" minWidth="220" prefWidth="220" maxWidth="220"
-                          style="-fx-background-color: #ffffff; -fx-padding:10; -fx-background-radius:8;">
-                        <Label text="FINALIZADA" style="-fx-font-weight: bold; -fx-text-fill: #7f8c8d; -fx-font-size: 14px;"/>
-                        <ListView fx:id="lvFinalizada" prefHeight="520"/>
-                        <Label text="Arrastra para ordenar / mover" style="-fx-font-size: 10px; -fx-text-fill: #95a5a6;"/>
+                    <VBox maxWidth="220" minWidth="220" prefWidth="220" spacing="8" style="-fx-background-color: #ffffff; -fx-padding:10; -fx-background-radius:8;">
+                        <Label style="-fx-font-weight: bold; -fx-text-fill: #7f8c8d; -fx-font-size: 14px;" text="FINALIZADA" />
+                        <ListView fx:id="lvFinalizada" prefHeight="520" />
+                        <Label style="-fx-font-size: 10px; -fx-text-fill: #95a5a6;" text="Arrastra para ordenar / mover" />
                     </VBox>
                 </HBox>
             </ScrollPane>
 
             <!-- FORMULARIO DE ACTIVIDAD (derecha) -->
-            <ScrollPane fitToWidth="true"
-                        SplitPane.resizableWithParent="false"
-                        prefWidth="360" minWidth="320" maxWidth="420">
+            <ScrollPane fitToWidth="true" maxWidth="420" minWidth="320" prefWidth="360" SplitPane.resizableWithParent="false">
                 <VBox spacing="10">
-                    <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
-                    <Label text="Detalles de Actividad" style="-fx-font-weight: bold; -fx-font-size: 16px;"/>
+                    <padding><Insets bottom="10" left="10" right="10" top="10" /></padding>
+                    <Label style="-fx-font-weight: bold; -fx-font-size: 16px;" text="Detalles de Actividad" />
 
                     <GridPane hgap="10" vgap="12">
                         <columnConstraints>
-                            <ColumnConstraints minWidth="120" prefWidth="120"/>
-                            <ColumnConstraints minWidth="200" prefWidth="250"/>
+                            <ColumnConstraints minWidth="120" prefWidth="120" />
+                            <ColumnConstraints minWidth="200" prefWidth="250" />
                         </columnConstraints>
 
-                        <Label text="Descripción:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
-                        <TextArea fx:id="txtDescripcion" prefRowCount="3" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                        <Label text="Descripción:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                        <TextArea fx:id="txtDescripcion" prefRowCount="3" GridPane.columnIndex="1" GridPane.rowIndex="0" />
 
-                        <Label text="Encargado (Nombre):" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
-                        <TextField fx:id="txtEncargado" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                        <Label text="Encargado (Nombre):" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                        <TextField fx:id="txtEncargado" GridPane.columnIndex="1" GridPane.rowIndex="1" />
 
-                        <Label text="Correo del Encargado:" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
-                        <TextField fx:id="txtEncargadoCorreo" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                        <Label text="Correo del Encargado:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                        <TextField fx:id="txtEncargadoCorreo" GridPane.columnIndex="1" GridPane.rowIndex="2" />
 
-                        <Label text="Estado:" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
-                        <ComboBox fx:id="cbEstadoActividad" prefWidth="250" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                        <Label text="Estado:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+                        <ComboBox fx:id="cbEstadoActividad" prefWidth="250" GridPane.columnIndex="1" GridPane.rowIndex="3" />
 
-                        <Label text="Fecha Inicio Planificada:" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
-                        <DatePicker fx:id="fechaInicioPlanificada" prefWidth="250" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+                        <Label text="Fecha Inicio Planificada:" GridPane.columnIndex="0" GridPane.rowIndex="4" />
+                        <DatePicker fx:id="fechaInicioPlanificada" prefWidth="250" GridPane.columnIndex="1" GridPane.rowIndex="4" />
 
-                        <Label text="Fecha Fin Planificada:" GridPane.rowIndex="5" GridPane.columnIndex="0"/>
-                        <DatePicker fx:id="fechaFinPlanificada" prefWidth="250" GridPane.rowIndex="5" GridPane.columnIndex="1"/>
+                        <Label text="Fecha Fin Planificada:" GridPane.columnIndex="0" GridPane.rowIndex="5" />
+                        <DatePicker fx:id="fechaFinPlanificada" prefWidth="250" GridPane.columnIndex="1" GridPane.rowIndex="5" />
 
-                        <Label text="Fecha Inicio Real:" GridPane.rowIndex="6" GridPane.columnIndex="0"/>
-                        <DatePicker fx:id="fechaInicioReal" prefWidth="250" GridPane.rowIndex="6" GridPane.columnIndex="1"/>
+                        <Label text="Fecha Inicio Real:" GridPane.columnIndex="0" GridPane.rowIndex="6" />
+                        <DatePicker fx:id="fechaInicioReal" prefWidth="250" GridPane.columnIndex="1" GridPane.rowIndex="6" />
 
-                        <Label text="Fecha Fin Real:" GridPane.rowIndex="7" GridPane.columnIndex="0"/>
-                        <DatePicker fx:id="fechaFinReal" prefWidth="250" GridPane.rowIndex="7" GridPane.columnIndex="1"/>
+                        <Label text="Fecha Fin Real:" GridPane.columnIndex="0" GridPane.rowIndex="7" />
+                        <DatePicker fx:id="fechaFinReal" prefWidth="250" GridPane.columnIndex="1" GridPane.rowIndex="7" />
+                  <rowConstraints>
+                     <RowConstraints />
+                     <RowConstraints />
+                     <RowConstraints />
+                     <RowConstraints />
+                     <RowConstraints />
+                     <RowConstraints />
+                     <RowConstraints />
+                     <RowConstraints />
+                  </rowConstraints>
                     </GridPane>
 
-                    <Separator/>
+                    <Separator />
 
-                    <HBox spacing="10" alignment="CENTER">
-                        <Button fx:id="btnGuardarActividad" text="Guardar Actividad"
-                                style="-fx-background-color: #27ae60; -fx-text-fill: white;"
-                                prefWidth="120"/>
-                        <Button fx:id="btnEditarActividad" text="Editar Actividad" prefWidth="120"/>
-                        <Button fx:id="btnEliminarActividad" text="Eliminar Actividad"
-                                style="-fx-background-color: #e74c3c; -fx-text-fill: white;"
-                                prefWidth="120"/>
-                        <Button fx:id="btnLimpiar" text="Limpiar" prefWidth="80"/>
+                    <HBox alignment="CENTER" spacing="10">
+                        <Button fx:id="btnGuardarActividad" prefWidth="120" style="-fx-background-color: #27ae60; -fx-text-fill: white;" text="Guardar Actividad" />
+                        <Button fx:id="btnEditarActividad" prefWidth="120" text="Editar Actividad" />
+                        <Button fx:id="btnEliminarActividad" prefWidth="120" style="-fx-background-color: #e74c3c; -fx-text-fill: white;" text="Eliminar Actividad" />
+                        <Button fx:id="btnLimpiar" prefWidth="80" text="Limpiar" />
                     </HBox>
                 </VBox>
             </ScrollPane>

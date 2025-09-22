@@ -77,7 +77,7 @@
                         </content>
                     </TitledPane>
 
-                    <TitledPane expanded="true" text="Contraseña">
+                    <TitledPane expanded="true" stylesheets="@cssPrincipalView.css" text="Contraseña">
                         <content>
                             <VBox spacing="8">
                                 <CheckBox fx:id="chkCambiarPass" text="Cambiar contraseña" />

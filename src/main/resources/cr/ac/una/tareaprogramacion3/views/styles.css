@@ -289,3 +289,16 @@
     -fx-effect: dropshadow(gaussian, rgba(91, 122, 191, 0.4), 20, 0.5, 0, 0), 
                 dropshadow(gaussian, rgba(129, 161, 193, 0.2), 35, 0.3, 0, 0); 
 } 
+/* Fuerza fondo neutro SOLO en los PasswordField de Administradores */
+#txtContrasena, #txtContrasena:focused,
+#txtContrasenaConf, #txtContrasenaConf:focused {
+    -fx-background-color: white;
+    -fx-text-fill: black;
+    -fx-border-color: -fx-box-border;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+    -fx-effect: none;
+     -fx-padding: 3 6 3 6;   /* top right bottom left */
+    -fx-font-size: 13px;
+}
