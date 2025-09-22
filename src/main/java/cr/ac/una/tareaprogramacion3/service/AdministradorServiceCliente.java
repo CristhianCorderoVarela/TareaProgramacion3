@@ -1,4 +1,3 @@
-// AdministradorServiceCliente.java (cliente JavaFX)
 package cr.ac.una.tareaprogramacion3.service;
 
 import cr.ac.una.client.soap.AdministradorDto;
@@ -12,7 +11,7 @@ import java.util.List;
 
 public class AdministradorServiceCliente {
 
-    // Usa localhost para que funcione donde se despliegue el WS localmente
+    
     private String endpoint = "http://localhost:8080/AdministradorService/AdministradorWS";
 
     public String getEndpoint() { return endpoint; }
@@ -29,7 +28,7 @@ public class AdministradorServiceCliente {
         try { port().ping(); return true; } catch (Exception e) { return false; }
     }
 
-    // --- Listado plano ---
+   
     public List<AdministradorDto> obtenerTodosList() {
         try {
             List<AdministradorDto> lista = port().obtenerTodosPlano();
@@ -39,7 +38,7 @@ public class AdministradorServiceCliente {
         }
     }
 
-    // --- CRUD envueltos en RespuestaGeneral (generados por wsimport) ---
+    
     public RespuestaGeneral crear(AdministradorDto dto)      { return port().crearAdministrador(dto); }
     public RespuestaGeneral actualizar(AdministradorDto dto)  { return port().actualizarAdministrador(dto); }
     public RespuestaGeneral eliminar(Long id)                 { return port().eliminarAdministrador(id); }

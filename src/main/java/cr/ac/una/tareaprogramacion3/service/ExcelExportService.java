@@ -21,7 +21,7 @@ public class ExcelExportService {
     private static final String EXCEL_EXTENSION = ".xlsx";
     private static final String EXCEL_DESCRIPTION = "Archivos Excel";
 
-    /** Guarda los bytes del Excel en una ruta específica (sobrescribe si no está abierto). */
+   
     public static boolean guardarExcelEn(String rutaCompleta, byte[] excelBytes) {
         try {
             Path path = Paths.get(rutaCompleta);
@@ -29,7 +29,7 @@ public class ExcelExportService {
             if (parent != null) {
                 Files.createDirectories(parent);
             }
-            // Sobrescribir si existe y no está bloqueado
+           
             Files.write(path, excelBytes,
                     StandardOpenOption.CREATE,
                     StandardOpenOption.TRUNCATE_EXISTING,
@@ -37,7 +37,7 @@ public class ExcelExportService {
             return true;
         } catch (IOException e) {
             e.printStackTrace();
-            return false; // false incluye casos de archivo bloqueado
+            return false; 
         }
     }
 
@@ -46,7 +46,7 @@ public class ExcelExportService {
         return Files.exists(Paths.get(rutaCompleta));
     }
 
-    /** Devuelve true si el archivo existe y no podemos adquirir un lock de escritura (p.ej. abierto en Excel). */
+    /** Devuelve true si el archivo existe  */
     public static boolean estaBloqueado(String rutaCompleta) {
         Path path = Paths.get(rutaCompleta);
         if (!Files.exists(path)) return false;
@@ -55,20 +55,20 @@ public class ExcelExportService {
                 FileLock lock = ch.tryLock();
                 if (lock != null) {
                     try { lock.release(); } catch (Exception ignore) {}
-                    return false; // pudimos bloquearlo → no está bloqueado por otro proceso
+                    return false; 
                 }
-                return true; // no pudimos bloquearlo
+                return true; 
             } catch (Exception lockEx) {
-                // En Windows Excel suele lanzar excepción al intentar lock si está abierto
+                
                 return true;
             }
         } catch (Exception openEx) {
-            // No pudimos abrir para WRITE (típico con archivo abierto) → considerarlo bloqueado
+            
             return true;
         }
     }
 
-    /** Proponer nombre de copia con timestamp para evitar choques. */
+   
     public static String proponerNombreCopia(String rutaOriginal) {
         Path p = Paths.get(rutaOriginal);
         String fileName = p.getFileName().toString();
@@ -88,27 +88,27 @@ public class ExcelExportService {
         return p.getParent() == null ? candidato : p.getParent().resolve(candidato).toString();
     }
 
-    /** Normaliza/asegura extensión .xlsx y limpia caracteres problemáticos. */
+    
     public static String limpiarNombreArchivo(String nombre) {
         if (nombre == null || nombre.trim().isEmpty()) {
             return "cronograma_proyecto" + EXCEL_EXTENSION;
         }
         String n = nombre.replaceAll("[^a-zA-Z0-9\\-_.\\s]", "_").trim();
         if (!n.toLowerCase().endsWith(EXCEL_EXTENSION)) {
-            // Evitar doble extensión si el nombre ya trae algo parecido
+            
             n = n.replaceAll("(?i)\\.xlsx$", "");
             n += EXCEL_EXTENSION;
         }
         return n;
     }
 
-    /** Devuelve el directorio Descargas del usuario. */
+   
     public static String obtenerDirectorioDescargas() {
         String userHome = System.getProperty("user.home");
         return userHome + File.separator + "Downloads";
     }
 
-    /** Diálogo "Guardar como…" asíncrono (FileChooser) */
+    
     public static CompletableFuture<Boolean> guardarExcel(Window parentWindow, byte[] excelBytes, String nombreSugerido) {
         return CompletableFuture.supplyAsync(() -> {
             try {
@@ -140,7 +140,7 @@ public class ExcelExportService {
         });
     }
 
-    /** Task con progreso para el diálogo de Guardar como… */
+   
     public static Task<Boolean> crearTareaDescargaExcel(Window parentWindow, byte[] excelBytes, String nombreArchivo) {
         return new Task<>() {
             @Override

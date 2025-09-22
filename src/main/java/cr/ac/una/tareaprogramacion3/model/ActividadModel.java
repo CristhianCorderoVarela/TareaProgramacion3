@@ -9,27 +9,27 @@ public class ActividadModel {
     private final ObjectProperty<Long> id = new SimpleObjectProperty<>(null);
     private final ObjectProperty<Long> proyectoId = new SimpleObjectProperty<>(null);
 
-    private final IntegerProperty orden = new SimpleIntegerProperty(0); // orden de ejecución
+    private final IntegerProperty orden = new SimpleIntegerProperty(0); 
     private final StringProperty descripcion = new SimpleStringProperty("");
 
     private final StringProperty encargado = new SimpleStringProperty("");
     private final StringProperty correoEncargado = new SimpleStringProperty("");
 
-    private final StringProperty estado = new SimpleStringProperty(""); // PLANIFICADA/EN_CURSO/POSTERGADA/FINALIZADA
+    private final StringProperty estado = new SimpleStringProperty(""); 
 
-    // Fechas planificadas
+    
     private final ObjectProperty<Date> fechaInicioPlanificada = new SimpleObjectProperty<>(null);
     private final ObjectProperty<Date> fechaFinalPlanificada = new SimpleObjectProperty<>(null);
 
-    // Fechas reales
+    
     private final ObjectProperty<Date> fechaInicioReal = new SimpleObjectProperty<>(null);
     private final ObjectProperty<Date> fechaFinalReal = new SimpleObjectProperty<>(null);
 
-    // Apoyo para tabla (texto)
+   
     private final StringProperty fechaInicioPlanificadaStr = new SimpleStringProperty("");
     private final StringProperty fechaFinalPlanificadaStr = new SimpleStringProperty("");
 
-    // id
+    
     public Long getId() { return id.get(); }
     public void setId(Long v) { id.set(v); }
     public ObjectProperty<Long> idProperty() { return id; }

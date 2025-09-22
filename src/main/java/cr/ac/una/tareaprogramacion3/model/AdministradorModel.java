@@ -16,14 +16,14 @@ public class AdministradorModel {
     private final ObjectProperty<Date> fechaCreacion = new SimpleObjectProperty<>(null);
     private final ObjectProperty<Date> fechaModificacion = new SimpleObjectProperty<>(null);
 
-    // --- Propiedad útil para tabla: nombre + apellidos
+    
     private final StringProperty nombreApellidos = new SimpleStringProperty("");
 
     public AdministradorModel() {
         nombreApellidos.bind(nombre.concat(" ").concat(apellidos));
     }
 
-    // Getters/Setters simples
+    // Getters y Setters 
     public Long getId() { return id.get(); }
     public void setId(Long v) { id.set(v); }
     public ObjectProperty<Long> idProperty() { return id; }
