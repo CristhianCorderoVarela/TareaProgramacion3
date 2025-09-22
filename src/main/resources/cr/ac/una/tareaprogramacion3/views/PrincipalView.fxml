@@ -7,6 +7,7 @@
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.shape.Line?>
 <?import javafx.scene.text.Font?>
 <?import javafx.scene.text.Text?>
@@ -108,18 +109,25 @@
                             </graphic>
                         </Button>
 
-                        <Button fx:id="btnSalir" onAction="#onActionBtnSalir" prefHeight="38.0" prefWidth="145.0" styleClass="boton-cerrar-sesion" text="Cerrar sesión">
+                        <!-- ÚNICO CAMBIO: Ayuda (?) + Cerrar sesión en la misma línea -->
+                        <HBox spacing="6">
                             <VBox.margin>
                                 <Insets top="20" />
                             </VBox.margin>
-                            <graphic>
-                                <ImageView fitHeight="20" fitWidth="43" pickOnBounds="true" preserveRatio="true">
-                                    <image>
-                                        <Image url="@images/icons8-logout-50.png" />
-                                    </image>
-                                </ImageView>
-                            </graphic>
-                        </Button>
+
+                            <Button fx:id="btnAyuda" onAction="#onActionBtnAyuda" text="?" prefHeight="38.0" prefWidth="45.0"
+                                    style="-fx-font-weight: bold; -fx-background-radius: 999; -fx-cursor: hand;" />
+
+                            <Button fx:id="btnSalir" onAction="#onActionBtnSalir" prefHeight="38.0" prefWidth="145.0" styleClass="boton-cerrar-sesion" text="Cerrar sesión">
+                                <graphic>
+                                    <ImageView fitHeight="20" fitWidth="43" pickOnBounds="true" preserveRatio="true">
+                                        <image>
+                                            <Image url="@images/icons8-logout-50.png" />
+                                        </image>
+                                    </ImageView>
+                                </graphic>
+                            </Button>
+                        </HBox>
                     </children>
                 </VBox>
 
