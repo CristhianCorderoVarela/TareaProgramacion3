@@ -144,95 +144,106 @@ public void init(String proyectoEndpointUrl, ProyectoDto dto) {
     }
 
     
-    @FXML
-    private void onGuardar() {
-        LocalDate hoy = LocalDate.now();
+   @FXML
+private void onGuardar() {
+    LocalDate hoy = LocalDate.now();
 
-        
-        if (blank(txtNombre.getText())) { warn("Validación", "El nombre es obligatorio."); return; }
-        if (cmbEstado.getValue() == null) { warn("Validación", "Seleccione un estado."); return; }
+    // --- Validaciones mínimas ---
+    if (blank(txtNombre.getText())) { warn("Validación", "El nombre es obligatorio."); return; }
+    if (cmbEstado.getValue() == null) { warn("Validación", "Seleccione un estado."); return; }
 
-        if (blank(txtPatrocinador.getText())) { warn("Validación", "El nombre del patrocinador es obligatorio."); return; }
-        if (!emailOk(txtCorreoPatrocinador.getText())) { warn("Validación", "El correo del patrocinador es obligatorio y debe ser válido."); return; }
+    if (blank(txtPatrocinador.getText())) { warn("Validación", "El nombre del patrocinador es obligatorio."); return; }
+    if (!emailOk(txtCorreoPatrocinador.getText())) { warn("Validación", "El correo del patrocinador es obligatorio y debe ser válido."); return; }
 
-        if (blank(txtLiderUsuario.getText())) { warn("Validación", "El nombre del líder de usuario es obligatorio."); return; }
-        if (!emailOk(txtCorreoLiderUsuario.getText())) { warn("Validación", "El correo del líder de usuario es obligatorio y debe ser válido."); return; }
+    if (blank(txtLiderUsuario.getText())) { warn("Validación", "El nombre del líder de usuario es obligatorio."); return; }
+    if (!emailOk(txtCorreoLiderUsuario.getText())) { warn("Validación", "El correo del líder de usuario es obligatorio y debe ser válido."); return; }
 
-        if (blank(txtLiderTecnico.getText())) { warn("Validación", "El nombre del líder técnico es obligatorio."); return; }
-        if (!emailOk(txtCorreoLiderTecnico.getText())) { warn("Validación", "El correo del líder técnico es obligatorio y debe ser válido."); return; }
+    if (blank(txtLiderTecnico.getText())) { warn("Validación", "El nombre del líder técnico es obligatorio."); return; }
+    if (!emailOk(txtCorreoLiderTecnico.getText())) { warn("Validación", "El correo del líder técnico es obligatorio y debe ser válido."); return; }
 
-       
-        if (dpInicioPlan.getValue() == null || dpFinPlan.getValue() == null) {
-            warn("Validación", "Las fechas planificadas (inicio y fin) son obligatorias."); return;
-        }
-        if (dpInicioPlan.getValue().isBefore(hoy)) {
-            warn("Validación", "La fecha de inicio planificada no puede ser anterior a hoy."); return;
-        }
-        if (dpFinPlan.getValue().isBefore(dpInicioPlan.getValue())) {
-            warn("Validación", "La fecha fin planificada no puede ser menor que la fecha inicio planificada."); return;
-        }
+    // ===== Fechas planificadas (OBLIGATORIAS) =====
+    LocalDate iniPlan = (dpInicioPlan != null) ? dpInicioPlan.getValue() : null;
+    LocalDate finPlan = (dpFinPlan    != null) ? dpFinPlan.getValue()    : null;
 
-        // ===== Fechas reales (opcionales) =====
-        LocalDate iniReal = dpInicioReal.getValue();
-        LocalDate finReal = dpFinReal.getValue();
-
-        if (iniReal != null && iniReal.isBefore(hoy)) {
-            warn("Validación", "La fecha de inicio real no puede ser anterior a hoy."); return;
-        }
-        if (iniReal == null && finReal != null) {
-            warn("Validación", "Ingrese la fecha de inicio real antes de la fecha de fin real."); return;
-        }
-        if (iniReal != null && finReal != null) {
-            if (finReal.isBefore(iniReal)) {
-                warn("Validación", "La fecha fin real no puede ser menor que la fecha inicio real."); return;
-            }
-            if (finReal.isBefore(hoy)) {
-                warn("Validación", "La fecha fin real no puede ser anterior a hoy."); return;
-            }
-        }
-
-        // ===== Estado =====
-        String estadoElegido = cmbEstado.getValue();
-        if (bloquearPlanificado && "PLANIFICADO".equals(estadoElegido)) {
-            warn("No permitido",
-                    "Este proyecto ya tiene seguimientos registrados.\n" +
-                    "No puede guardar en estado PLANIFICADO.");
-            return;
-        }
-
-        // --- UI -> DTO ---
-        modelo.setNombre(txtNombre.getText().trim());
-        modelo.setEstado(estadoElegido);
-
-        modelo.setPatrocinadorNombre(nv(txtPatrocinador.getText()).trim());
-        modelo.setPatrocinadorCorreo(nv(txtCorreoPatrocinador.getText()).trim());
-
-        modelo.setLiderUsuarioNombre(nv(txtLiderUsuario.getText()).trim());
-        modelo.setLiderUsuarioCorreo(nv(txtCorreoLiderUsuario.getText()).trim());
-
-        modelo.setLiderTecnicoNombre(nv(txtLiderTecnico.getText()).trim());
-        modelo.setLiderTecnicoCorreo(nv(txtCorreoLiderTecnico.getText()).trim());
-
-        modelo.setFechaInicioPlanificada(toXml(dpInicioPlan.getValue()));
-        modelo.setFechaFinalPlanificada(toXml(dpFinPlan.getValue()));
-        modelo.setFechaInicioReal(toXml(iniReal));
-        modelo.setFechaFinalReal(toXml(finReal));
-
-        // --- Guardar vía WS ---
-        Long idAdministrador = 1L; // TODO: reemplazar por el id real de sesión si corresponde
-
-        RespuestaGeneral r = (modelo.getId() == null)
-                ? proyPort.crearProyecto(modelo, idAdministrador)
-                : proyPort.actualizarProyecto(modelo);
-
-        if (r == null || !Boolean.TRUE.equals(r.isOk())) {
-            error("Error", (r == null) ? "Sin respuesta del servidor" : nv(r.getMensaje()));
-            return;
-        }
-
-        guardado = true;
-        cerrar();
+    if (iniPlan == null || finPlan == null) {
+        warn("Validación", "Las fechas planificadas (inicio y fin) son obligatorias."); 
+        return;
     }
+    if (iniPlan.isBefore(hoy)) {
+        warn("Validación", "La fecha de inicio planificada no puede ser anterior a hoy."); 
+        return;
+    }
+    if (finPlan.isBefore(iniPlan)) {
+        warn("Validación", "La fecha fin planificada no puede ser menor que la fecha inicio planificada."); 
+        return;
+    }
+
+    // ===== Fechas reales (opcionales; los DatePicker pueden NO existir) =====
+    LocalDate iniReal = (dpInicioReal != null) ? dpInicioReal.getValue() : null;
+    LocalDate finReal = (dpFinReal    != null) ? dpFinReal.getValue()    : null;
+
+    if (iniReal != null && iniReal.isBefore(hoy)) {
+        warn("Validación", "La fecha de inicio real no puede ser anterior a hoy."); 
+        return;
+    }
+    if (iniReal == null && finReal != null) {
+        warn("Validación", "Ingrese la fecha de inicio real antes de la fecha de fin real."); 
+        return;
+    }
+    if (iniReal != null && finReal != null) {
+        if (finReal.isBefore(iniReal)) {
+            warn("Validación", "La fecha fin real no puede ser menor que la fecha inicio real."); 
+            return;
+        }
+        if (finReal.isBefore(hoy)) {
+            warn("Validación", "La fecha fin real no puede ser anterior a hoy."); 
+            return;
+        }
+    }
+
+    // ===== Estado =====
+    String estadoElegido = cmbEstado.getValue();
+    if (bloquearPlanificado && "PLANIFICADO".equals(estadoElegido)) {
+        warn("No permitido",
+             "Este proyecto ya tiene seguimientos registrados.\n" +
+             "No puede guardar en estado PLANIFICADO.");
+        return;
+    }
+
+    // --- UI -> DTO ---
+    modelo.setNombre(txtNombre.getText().trim());
+    modelo.setEstado(estadoElegido);
+
+    modelo.setPatrocinadorNombre(nv(txtPatrocinador.getText()).trim());
+    modelo.setPatrocinadorCorreo(nv(txtCorreoPatrocinador.getText()).trim());
+
+    modelo.setLiderUsuarioNombre(nv(txtLiderUsuario.getText()).trim());
+    modelo.setLiderUsuarioCorreo(nv(txtCorreoLiderUsuario.getText()).trim());
+
+    modelo.setLiderTecnicoNombre(nv(txtLiderTecnico.getText()).trim());
+    modelo.setLiderTecnicoCorreo(nv(txtCorreoLiderTecnico.getText()).trim());
+
+    // Fechas planificadas (obligatorias) y reales (opcionales)
+    modelo.setFechaInicioPlanificada(toXml(iniPlan));
+    modelo.setFechaFinalPlanificada(toXml(finPlan));
+    modelo.setFechaInicioReal(toXml(iniReal));
+    modelo.setFechaFinalReal(toXml(finReal));
+
+    // --- Guardar vía WS ---
+    Long idAdministrador = 1L; // TODO: reemplazar por el id real de sesión si corresponde
+
+    RespuestaGeneral r = (modelo.getId() == null)
+            ? proyPort.crearProyecto(modelo, idAdministrador)
+            : proyPort.actualizarProyecto(modelo);
+
+    if (r == null || !Boolean.TRUE.equals(r.isOk())) {
+        error("Error", (r == null) ? "Sin respuesta del servidor" : nv(r.getMensaje()));
+        return;
+    }
+
+    guardado = true;
+    cerrar();
+}
 
     @FXML
     private void onCancelar() {
