@@ -61,109 +61,55 @@ public class ProyectoDialogController extends cr.ac.una.tareaprogramacion3.util.
     }
 
     
-    public void init(String proyectoEndpointUrl, ProyectoDto dto) {
-        
-        ProyectoService svc = new ProyectoService();
-        this.proyPort = svc.getProyectoWSPort();
-        Map<String, Object> ctx = ((BindingProvider) proyPort).getRequestContext();
-        ctx.put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, proyectoEndpointUrl);
+    /** Llamado por Ventana1Controller antes de abrir el modal */
+public void init(String proyectoEndpointUrl, ProyectoDto dto) {
+    // ====== Configurar WS Proyecto ======
+    ProyectoService svc = new ProyectoService();
+    this.proyPort = svc.getProyectoWSPort();
+    Map<String, Object> ctx = ((BindingProvider) proyPort).getRequestContext();
+    ctx.put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, proyectoEndpointUrl);
 
-        
-        String segEndpoint = proyectoEndpointUrl
-                .replace("ProyectoService/ProyectoWS", "SeguimientoService/SeguimientoWS");
-        SeguimientoService segSvc = new SeguimientoService();
-        this.segPort = segSvc.getSeguimientoWSPort();
-        Map<String, Object> ctx2 = ((BindingProvider) segPort).getRequestContext();
-        ctx2.put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, segEndpoint);
+    // ====== Configurar WS Seguimiento (derivado del endpoint de proyecto) ======
+    String segEndpoint = proyectoEndpointUrl
+            .replace("ProyectoService/ProyectoWS", "SeguimientoService/SeguimientoWS");
+    SeguimientoService segSvc = new SeguimientoService();
+    this.segPort = segSvc.getSeguimientoWSPort();
+    Map<String, Object> ctx2 = ((BindingProvider) segPort).getRequestContext();
+    ctx2.put(BindingProvider.ENDPOINT_ADDRESS_PROPERTY, segEndpoint);
 
-        
-        this.modelo = (dto != null) ? dto : new ProyectoDto();
+    // ====== DTO (nuevo o edición) ======
+    this.modelo = (dto != null) ? dto : new ProyectoDto();
 
-        txtNombre.setText(nv(modelo.getNombre()));
+    txtNombre.setText(nv(modelo.getNombre()));
 
-        
-        bloquearPlanificado = (modelo.getId() != null && contarSeguimientos(modelo.getId()) > 0);
+    // Siempre mostrar SOLO "PLANIFICADO" y dejarlo fijo (no editable)
+    cmbEstado.getItems().setAll("PLANIFICADO");
+    cmbEstado.getSelectionModel().select("PLANIFICADO");
+    cmbEstado.setDisable(true); // evita cambios por el usuario
 
-        
-        cmbEstado.getItems().setAll(ESTADOS_ALL);
+    // Mantener estado interno coherente
+    bloquearPlanificado = false;         // ya no aplica la lógica de bloqueo dinámico
+    ultimoEstadoValido  = "PLANIFICADO"; // por si en el futuro reactivas el control
 
-        
-        cmbEstado.setCellFactory(listView -> new ListCell<>() {
-            @Override protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText(null);
-                    setDisable(false);
-                    setMouseTransparent(false);
-                    setStyle(null);
-                } else {
-                    setText(item);
-                    boolean disable = bloquearPlanificado && "PLANIFICADO".equals(item);
-                    setDisable(disable);
-                    
-                    setMouseTransparent(disable);
-                   
-                    setStyle(disable ? "-fx-opacity: 0.55;" : null);
-                    if (disable) {
-                        setTooltip(new Tooltip("No disponible: el proyecto ya tiene seguimientos."));
-                    } else {
-                        setTooltip(null);
-                    }
-                }
-            }
-        });
+    // Resto de campos
+    txtPatrocinador.setText(nv(modelo.getPatrocinadorNombre()));
+    txtCorreoPatrocinador.setText(nv(modelo.getPatrocinadorCorreo()));
 
-        
-        cmbEstado.setButtonCell(new ListCell<>() {
-            @Override protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null ? "" : item);
-            }
-        });
+    txtLiderUsuario.setText(nv(modelo.getLiderUsuarioNombre()));
+    txtCorreoLiderUsuario.setText(nv(modelo.getLiderUsuarioCorreo()));
 
-     
-        String estadoInicial = nv(modelo.getEstado()).isEmpty() ? "PLANIFICADO" : modelo.getEstado();
-        if (bloquearPlanificado && "PLANIFICADO".equals(estadoInicial)) {
-         
-            estadoInicial = "EN_CURSO";
-        }
-        cmbEstado.getSelectionModel().select(estadoInicial);
-        ultimoEstadoValido = estadoInicial;
+    txtLiderTecnico.setText(nv(modelo.getLiderTecnicoNombre()));
+    txtCorreoLiderTecnico.setText(nv(modelo.getLiderTecnicoCorreo()));
 
-        
-        cmbEstado.valueProperty().addListener((obs, oldVal, newVal) -> {
-            if (bloquearPlanificado && "PLANIFICADO".equals(newVal)) {
-                
-                runLaterSafe(() -> {
-                    cmbEstado.getSelectionModel().select(ultimoEstadoValido);
-                    warn("No permitido",
-                            "Este proyecto ya tiene seguimientos registrados.\n" +
-                            "No puede volver al estado PLANIFICADO.");
-                });
-            } else {
-                ultimoEstadoValido = newVal;
-            }
-        });
+    // Cargar fechas en los DatePicker
+    setDate(dpInicioPlan, modelo.getFechaInicioPlanificada());
+    setDate(dpFinPlan,    modelo.getFechaFinalPlanificada());
+    setDate(dpInicioReal, modelo.getFechaInicioReal());
+    setDate(dpFinReal,    modelo.getFechaFinalReal());
 
-        
-        txtPatrocinador.setText(nv(modelo.getPatrocinadorNombre()));
-        txtCorreoPatrocinador.setText(nv(modelo.getPatrocinadorCorreo()));
-
-        txtLiderUsuario.setText(nv(modelo.getLiderUsuarioNombre()));
-        txtCorreoLiderUsuario.setText(nv(modelo.getLiderUsuarioCorreo()));
-
-        txtLiderTecnico.setText(nv(modelo.getLiderTecnicoNombre()));
-        txtCorreoLiderTecnico.setText(nv(modelo.getLiderTecnicoCorreo()));
-
-        
-        setDate(dpInicioPlan, modelo.getFechaInicioPlanificada());
-        setDate(dpFinPlan,    modelo.getFechaFinalPlanificada());
-        setDate(dpInicioReal, modelo.getFechaInicioReal());
-        setDate(dpFinReal,    modelo.getFechaFinalReal());
-
-        
-        configurarDatePickers();
-    }
+    // Desactiva días pasados y amarra rangos fin >= inicio
+    configurarDatePickers();
+}
 
     private void runLaterSafe(Runnable r) {
         try { javafx.application.Platform.runLater(r); } catch (Exception ignore) {}
